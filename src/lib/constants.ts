@@ -1,0 +1,16 @@
+export const WORKSPACE_PHASES = [
+  { id: "overview", label: "Overview", path: "/workspace/overview", tooltip: "Define the core premise, goals, and domain of your project." },
+  { id: "problem-statement", label: "Problem", path: "/workspace/problem-statement", tooltip: "Clearly articulate the issue your project aims to solve." },
+  { id: "actors", label: "Actors", path: "/workspace/actors", tooltip: "Identify all users and systems interacting with your application." },
+  { id: "solutions", label: "Solutions", path: "/workspace/solutions", tooltip: "Outline the technical and functional solutions to the problem." },
+  { id: "functional-requirements", label: "Func Reqs", path: "/workspace/functional-requirements", tooltip: "Specify the exact behaviors and features the system must support." },
+  { id: "non-functional-requirements", label: "Non-Func Reqs", path: "/workspace/non-functional-requirements", tooltip: "Define system attributes like performance, security, and scalability." },
+  { id: "backlog", label: "Backlog", path: "/workspace/backlog", tooltip: "Organize and prioritize all pending tasks and features." },
+  { id: "user-stories", label: "User Stories", path: "/workspace/user-stories", tooltip: "Describe features from an end-user perspective to guide development." },
+  { id: "uml-preparation", label: "UML", path: "/workspace/uml-preparation", tooltip: "Design the system architecture using Unified Modeling Language diagrams." },
+  { id: "report-structure", label: "Structure", path: "/workspace/report-structure", tooltip: "Outline the chapters and sections of your final PFE report." },
+  { id: "report-builder", label: "Report", path: "/workspace/report-builder", tooltip: "Draft and assemble the content for your final report." },
+  { id: "presentation", label: "Presentation", path: "/workspace/presentation", tooltip: "Prepare the slides and material for your project defense." },
+  { id: "pitch", label: "Pitch", path: "/workspace/pitch", tooltip: "Craft a concise and compelling summary of your project." },
+  { id: "jury-simulation", label: "Jury Sim", path: "/workspace/jury-simulation", tooltip: "Simulate a real oral defense with AI jury members." },
+];

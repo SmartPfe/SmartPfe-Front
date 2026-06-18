@@ -1,0 +1,6 @@
+{
+  "name": "PFE Guidance Platform",
+  "description": "An AI-assisted methodology and guidance platform that helps students structure and document their PFE project step-by-step.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
