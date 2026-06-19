@@ -1,6 +1,44 @@
-import { Link } from "react-router-dom";
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { fetchApi } from "../../lib/api";
 
 export default function Login() {
+  const navigate = useNavigate();
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+  });
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({ ...formData, [e.target.id]: e.target.value });
+    setError(""); // Clear error when typing
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+
+    try {
+      const data = await fetchApi("/auth/login", {
+        method: "POST",
+        body: JSON.stringify(formData),
+      });
+
+      // Save token to localStorage
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify({ fullName: data.fullName, email: data.email }));
+
+      navigate("/onboarding/1");
+    } catch (err: any) {
+      setError(err.message || "Failed to login. Please check your credentials.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="w-full max-w-[420px] mx-auto bg-surface-container-lowest border border-outline-variant rounded-xl p-xl shadow-sm">
       <div className="flex flex-col items-center mb-xl text-center">
@@ -12,7 +50,13 @@ export default function Login() {
         <p className="font-label-md text-label-md text-outline mt-1 uppercase tracking-wider">Academic Year 2023-24</p>
       </div>
 
-      <form className="space-y-lg">
+      {error && (
+        <div className="p-3 mb-4 bg-error-container text-on-error-container rounded-md text-sm text-center border border-error">
+          {error}
+        </div>
+      )}
+
+      <form className="space-y-lg" onSubmit={handleSubmit}>
         <div className="space-y-xs">
           <label className="block font-label-md text-label-md text-on-surface" htmlFor="email">Email address</label>
           <div className="relative">
@@ -23,6 +67,8 @@ export default function Login() {
               id="email" 
               name="email" 
               type="email" 
+              value={formData.email}
+              onChange={handleChange}
               autoComplete="email" 
               required 
               placeholder="student@university.edu"
@@ -43,7 +89,9 @@ export default function Login() {
             <input 
               id="password" 
               name="password" 
-              type="password" 
+              type="password"
+              value={formData.password}
+              onChange={handleChange}
               autoComplete="current-password" 
               required 
               placeholder="••••••••"
@@ -53,9 +101,13 @@ export default function Login() {
         </div>
 
         <div className="pt-sm">
-          <Link to="/onboarding/1" className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-md bg-primary text-on-primary font-label-md text-label-md uppercase tracking-wider hover:bg-on-primary-fixed-variant transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary focus:ring-offset-surface">
-            Sign In
-          </Link>
+          <button 
+            type="submit" 
+            disabled={loading}
+            className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-md bg-primary text-on-primary font-label-md text-label-md uppercase tracking-wider hover:bg-on-primary-fixed-variant transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary focus:ring-offset-surface disabled:opacity-70 disabled:cursor-not-allowed"
+          >
+            {loading ? "Signing In..." : "Sign In"}
+          </button>
         </div>
       </form>
 
