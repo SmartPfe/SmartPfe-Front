@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import SearchPalette from "./SearchPalette";
 import RevisionHistoryDrawer from "./RevisionHistoryDrawer";
+import { useNavigate } from "react-router-dom";
 
 interface TopbarProps {
   toggleSidebar: () => void;
@@ -12,6 +13,22 @@ export default function Topbar({ toggleSidebar }: TopbarProps) {
   const [saveState, setSaveState] = useState<"saved" | "saving">("saved");
   const [timeText, setTimeText] = useState("just now");
 
+  const navigate = useNavigate();
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
+
+const initials = user.fullName
+  ? user.fullName
+      .split(" ")
+      .map((name: string) => name[0])
+      .join("")
+      .substring(0, 2)
+      .toUpperCase()
+  : "U";
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    navigate("/login");
+  };
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
@@ -49,6 +66,7 @@ export default function Topbar({ toggleSidebar }: TopbarProps) {
     
     return () => clearTimeout(timeout);
   }, [saveState, timeText]);
+  
 
   return (
     <>
@@ -108,9 +126,21 @@ export default function Topbar({ toggleSidebar }: TopbarProps) {
           <button className="px-4 py-2 text-xs font-semibold text-on-primary bg-primary rounded shadow-sm hover:opacity-90 transition-opacity flex items-center gap-2">
             Validate Step
           </button>
-          <div className="w-8 h-8 rounded-full bg-surface-container-highest overflow-hidden ml-2 flex flex-col justify-center items-center text-on-surface text-xs font-bold">
-            JD
+          <div className="flex items-center gap-2 ml-2">
+          <div
+            title={user.fullName}
+            className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-xs font-bold"
+          >
+            {initials}
           </div>
+
+          <button
+            onClick={handleLogout}
+            className="px-3 py-2 text-xs font-semibold text-white bg-red-500 rounded hover:bg-red-600"
+          >
+            Logout
+          </button>
+        </div>
         </div>
       </header>
 

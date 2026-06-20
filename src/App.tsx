@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import React from "react";
+import ProtectedRoute from "./components/ProtectedRoute";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import AuthLayout from "./layouts/AuthLayout";
 import OnboardingLayout from "./layouts/OnboardingLayout";
@@ -28,7 +29,9 @@ import NonFunctionalRequirements from "./pages/workspace/NonFunctionalRequiremen
 import UmlPreparation from "./pages/workspace/UmlPreparation";
 
 import JurySimulation from "./pages/workspace/JurySimulation";
-
+import ForgotPassword from "./pages/auth/ForgotPassword";
+import ResetPassword from "./pages/auth/ResetPassword";
+  
 export default function App() {
   return (
     <BrowserRouter>
@@ -38,17 +41,19 @@ export default function App() {
         <Route element={<AuthLayout />}>
           <Route path="login" element={<Login />} />
           <Route path="signup" element={<Signup />} />
+          <Route path="forgot-password" element={<ForgotPassword />} />
+          <Route path="reset-password/:token" element={<ResetPassword />} />
         </Route>
 
-        <Route path="/onboarding" element={<OnboardingLayout />}>
-          <Route path="1" element={<ProjectBasics />} />
+      <Route path="/onboarding" element={ <ProtectedRoute> <OnboardingLayout /> </ProtectedRoute> }>
+              <Route path="1" element={<ProjectBasics />} />
           <Route path="2" element={<ProjectDescription />} />
           <Route path="3" element={<TechnicalContext />} />
           <Route path="4" element={<SummaryReview />} />
         </Route>
 
-        <Route path="/workspace" element={<WorkspaceLayout />}>
-          <Route index element={<Navigate to="overview" replace />} />
+      <Route path="/workspace" element={ <ProtectedRoute> <WorkspaceLayout /> </ProtectedRoute>}>     
+         <Route index element={<Navigate to="overview" replace />} />
           <Route path="overview" element={<Overview />} />
           <Route path="problem-statement" element={<ProblemStatement />} />
           <Route path="actors" element={<Actors />} />
