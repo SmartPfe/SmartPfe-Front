@@ -80,8 +80,9 @@ export default function Login() {
         <div className="space-y-xs">
           <div className="flex items-center justify-between">
             <label className="block font-label-md text-label-md text-on-surface" htmlFor="password">Password</label>
-            <a href="#" className="font-label-md text-label-md text-secondary hover:text-secondary-container transition-colors">Forgot password?</a>
-          </div>
+            <Link to="/forgot-password" className="font-label-md text-label-md text-secondary hover:text-secondary-container transition-colors">Forgot password?</Link> 
+
+           </div>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <span className="material-symbols-outlined text-outline text-[18px]">lock</span>
