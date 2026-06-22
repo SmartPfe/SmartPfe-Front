@@ -47,7 +47,8 @@ export default function App() {
         </Route>
 
       <Route path="/onboarding" element={ <ProtectedRoute> <OnboardingLayout /> </ProtectedRoute> }>
-              <Route path="1" element={<ProjectBasics />} />
+          <Route index element={<Navigate to="1" replace />} />
+          <Route path="1" element={<ProjectBasics />} />
           <Route path="2" element={<ProjectDescription />} />
           <Route path="3" element={<TechnicalContext />} />
           <Route path="4" element={<SummaryReview />} />
