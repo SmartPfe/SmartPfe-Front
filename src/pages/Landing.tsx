@@ -85,10 +85,10 @@ function WorkspaceMockup() {
         style={{
           position: "relative",
           borderRadius: "16px",
-          border: "1px solid #e2e8f0",
-          background: "#ffffff",
+          border: "1px solid rgba(255,255,255,0.18)",
+          background: "linear-gradient(180deg, #ffffff 0%, #f8f7ff 100%)",
           boxShadow:
-            "0 4px 6px -1px rgba(0,0,0,0.04), 0 20px 60px -10px rgba(0,0,0,0.08)",
+            "0 24px 70px rgba(15,23,42,0.22), 0 0 0 1px rgba(255,255,255,0.08)",
           overflow: "hidden",
         }}
       >
@@ -99,8 +99,8 @@ function WorkspaceMockup() {
             alignItems: "center",
             gap: "6px",
             padding: "12px 16px",
-            borderBottom: "1px solid #f1f5f9",
-            background: "#fafafa",
+            borderBottom: "1px solid #f0e9fb",
+            background: "#fbfaff",
           }}
         >
           <span
@@ -148,8 +148,8 @@ function WorkspaceMockup() {
           <div
             style={{
               width: 148,
-              borderRight: "1px solid #f1f5f9",
-              background: "#fafafa",
+              borderRight: "1px solid #f0e9fb",
+              background: "#fbfaff",
               padding: "16px 12px",
               flexShrink: 0,
             }}
@@ -193,7 +193,7 @@ function WorkspaceMockup() {
                     padding: "6px 8px",
                     borderRadius: 6,
                     marginBottom: 2,
-                    background: i === 0 ? "#eef2ff" : "transparent",
+                    background: i === 0 ? "#f3e8ff" : "transparent",
                     color: i === 0 ? "#4f46e5" : "#94a3b8",
                     fontWeight: i === 0 ? 600 : 400,
                   }}
@@ -241,8 +241,8 @@ function WorkspaceMockup() {
                   key={s.label}
                   style={{
                     borderRadius: 8,
-                    border: "1px solid #f1f5f9",
-                    background: "#fafafa",
+                    border: "1px solid #f0e9fb",
+                    background: "#fbfaff",
                     padding: "10px 12px",
                   }}
                 >
@@ -261,8 +261,8 @@ function WorkspaceMockup() {
             <div
               style={{
                 borderRadius: 8,
-                border: "1px solid #e0e7ff",
-                background: "#f5f3ff",
+                border: "1px solid #ddd6fe",
+                background: "#f3e8ff",
                 padding: "10px 12px",
               }}
             >
@@ -289,7 +289,7 @@ export default function Landing() {
     <div
       style={{
         minHeight: "100vh",
-        background: "#ffffff",
+        background: "#f6f3ff",
         color: "#0f172a",
         fontFamily:
           "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
@@ -320,12 +320,12 @@ export default function Landing() {
               alignItems: "center",
               justifyContent: "space-between",
               borderRadius: 16,
-              border: "1px solid rgba(0,0,0,0.07)",
-              background: "rgba(255,255,255,0.85)",
+              border: "1px solid rgba(79,70,229,0.14)",
+              background: "rgba(245,243,255,0.88)",
               backdropFilter: "blur(16px)",
               WebkitBackdropFilter: "blur(16px)",
               padding: "10px 20px",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+              boxShadow: "0 16px 44px rgba(49,46,129,0.14)",
             }}
           >
             {/* Logo */}
@@ -430,7 +430,7 @@ export default function Landing() {
                 style={{
                   fontSize: 14,
                   fontWeight: 600,
-                  color: "#ffffff",
+                  color: "#fbfaff",
                   textDecoration: "none",
                   padding: "8px 18px",
                   borderRadius: 10,
@@ -463,6 +463,8 @@ export default function Landing() {
           paddingBottom: 100,
           position: "relative",
           overflow: "hidden",
+          background:
+            "linear-gradient(135deg, #0f172a 0%, #1e1b4b 44%, #312e81 76%, #4f46e5 100%)",
         }}
       >
         {/* Subtle grid texture */}
@@ -471,9 +473,9 @@ export default function Landing() {
             position: "absolute",
             inset: 0,
             backgroundImage:
-              "radial-gradient(circle, #e2e8f0 1px, transparent 1px)",
+              "radial-gradient(circle, rgba(255,255,255,0.14) 1px, transparent 1px)",
             backgroundSize: "32px 32px",
-            opacity: 0.5,
+            opacity: 0.35,
             pointerEvents: "none",
           }}
         />
@@ -487,7 +489,7 @@ export default function Landing() {
             height: 480,
             borderRadius: "50%",
             background:
-              "radial-gradient(circle, rgba(99,102,241,0.08) 0%, transparent 70%)",
+              "radial-gradient(circle, rgba(199,210,254,0.24) 0%, transparent 70%)",
             pointerEvents: "none",
           }}
         />
@@ -523,17 +525,17 @@ export default function Landing() {
                   gap: 6,
                   padding: "5px 12px",
                   borderRadius: 100,
-                  border: "1px solid #e2e8f0",
-                  background: "#f8fafc",
+                  border: "1px solid rgba(255,255,255,0.22)",
+                  background: "rgba(255,255,255,0.10)",
                   fontSize: 12,
                   fontWeight: 500,
-                  color: "#64748b",
+                  color: "#e0e7ff",
                   marginBottom: 28,
                 }}
               >
                 <span
                   className="material-symbols-outlined"
-                  style={{ fontSize: 14, color: "#4f46e5" }}
+                  style={{ fontSize: 14, color: "#c7d2fe" }}
                 >
                   school
                 </span>
@@ -547,13 +549,13 @@ export default function Landing() {
                   fontWeight: 800,
                   lineHeight: 1.07,
                   letterSpacing: "-0.03em",
-                  color: "#0f172a",
+                  color: "#ffffff",
                   marginBottom: 20,
                 }}
               >
                 Structure your PFE.
                 <br />
-                <span style={{ color: "#4f46e5" }}>Defend with confidence.</span>
+                <span style={{ color: "#c7d2fe" }}>Defend with confidence.</span>
               </h1>
 
               {/* Sub */}
@@ -561,7 +563,7 @@ export default function Landing() {
                 style={{
                   fontSize: 18,
                   fontWeight: 400,
-                  color: "#64748b",
+                  color: "#dbe4ff",
                   lineHeight: 1.65,
                   maxWidth: 480,
                   marginBottom: 36,
@@ -619,9 +621,9 @@ export default function Landing() {
                     gap: 6,
                     padding: "12px 20px",
                     borderRadius: 12,
-                    border: "1px solid #e2e8f0",
-                    background: "#ffffff",
-                    color: "#0f172a",
+                    border: "1px solid rgba(255,255,255,0.24)",
+                    background: "rgba(255,255,255,0.10)",
+                    color: "#ffffff",
                     fontSize: 15,
                     fontWeight: 500,
                     textDecoration: "none",
@@ -629,13 +631,13 @@ export default function Landing() {
                   }}
                   onMouseEnter={(e) => {
                     const el = e.currentTarget as HTMLElement;
-                    el.style.borderColor = "#c7d2fe";
-                    el.style.background = "#f8fafc";
+                    el.style.borderColor = "rgba(255,255,255,0.42)";
+                    el.style.background = "rgba(255,255,255,0.16)";
                   }}
                   onMouseLeave={(e) => {
                     const el = e.currentTarget as HTMLElement;
-                    el.style.borderColor = "#e2e8f0";
-                    el.style.background = "#ffffff";
+                    el.style.borderColor = "rgba(255,255,255,0.24)";
+                    el.style.background = "rgba(255,255,255,0.10)";
                   }}
                 >
                   See features
@@ -649,7 +651,7 @@ export default function Landing() {
                   gap: 36,
                   marginTop: 48,
                   paddingTop: 40,
-                  borderTop: "1px solid #f1f5f9",
+                  borderTop: "1px solid rgba(255,255,255,0.18)",
                 }}
                 className="stats-row"
               >
@@ -663,14 +665,14 @@ export default function Landing() {
                       style={{
                         fontSize: 22,
                         fontWeight: 800,
-                        color: "#0f172a",
+                        color: "#ffffff",
                         letterSpacing: "-0.03em",
                       }}
                     >
                       {s.n}
                     </p>
                     <p
-                      style={{ fontSize: 13, color: "#94a3b8", marginTop: 2 }}
+                      style={{ fontSize: 13, color: "#c7d2fe", marginTop: 2 }}
                     >
                       {s.label}
                     </p>
@@ -695,9 +697,9 @@ export default function Landing() {
       <section
         style={{
           padding: "80px 24px",
-          background: "#fafafa",
-          borderTop: "1px solid #f1f5f9",
-          borderBottom: "1px solid #f1f5f9",
+          background: "#f6f3ff",
+          borderTop: "1px solid #ddd6fe",
+          borderBottom: "1px solid #ddd6fe",
         }}
       >
         <div style={{ maxWidth: 1120, margin: "0 auto" }}>
@@ -711,7 +713,15 @@ export default function Landing() {
             className="two-col"
           >
             {/* Problem */}
-            <div>
+            <div
+              style={{
+                border: "1px solid #e7dff2",
+                background: "linear-gradient(180deg, #faf9ff 0%, #f8f6ff 100%)",
+                borderRadius: 18,
+                padding: "32px",
+                boxShadow: "0 18px 50px rgba(49,46,129,0.07)",
+              }}
+            >
               <span
                 style={{
                   display: "inline-block",
@@ -796,7 +806,15 @@ export default function Landing() {
             </div>
 
             {/* Solution */}
-            <div>
+            <div
+              style={{
+                border: "1px solid #ddd6fe",
+                background: "linear-gradient(180deg, #ffffff 0%, #f5f3ff 100%)",
+                borderRadius: 18,
+                padding: "32px",
+                boxShadow: "0 18px 50px rgba(79,70,229,0.10)",
+              }}
+            >
               <span
                 style={{
                   display: "inline-block",
@@ -889,8 +907,9 @@ export default function Landing() {
               gap: 8,
               padding: "20px 24px",
               borderRadius: 14,
-              border: "1px solid #e2e8f0",
-              background: "#ffffff",
+              border: "1px solid #e7dff2",
+              background: "#faf9ff",
+              boxShadow: "0 16px 40px rgba(49,46,129,0.06)",
               alignItems: "center",
               justifyContent: "center",
               flexWrap: "wrap",
@@ -913,8 +932,8 @@ export default function Landing() {
                     gap: 6,
                     padding: "6px 14px",
                     borderRadius: 8,
-                    background: "#eef2ff",
-                    border: "1px solid #e0e7ff",
+                    background: "#f3e8ff",
+                    border: "1px solid #ddd6fe",
                   }}
                 >
                   <span
@@ -954,7 +973,7 @@ export default function Landing() {
       </section>
 
       {/* ── Features ───────────────────────────────────────────────── */}
-      <section id="features" style={{ padding: "96px 24px" }}>
+      <section id="features" style={{ padding: "96px 24px", background: "#f1edff" }}>
         <div style={{ maxWidth: 1120, margin: "0 auto" }}>
           {/* Header */}
           <div style={{ marginBottom: 56, maxWidth: 520 }}>
@@ -963,7 +982,7 @@ export default function Landing() {
                 display: "inline-block",
                 padding: "3px 10px",
                 borderRadius: 6,
-                background: "#eef2ff",
+                background: "#f3e8ff",
                 color: "#4f46e5",
                 fontSize: 11,
                 fontWeight: 600,
@@ -1013,8 +1032,8 @@ export default function Landing() {
         id="workflow"
         style={{
           padding: "96px 24px",
-          background: "#fafafa",
-          borderTop: "1px solid #f1f5f9",
+          background: "#f7f5ff",
+          borderTop: "1px solid #ddd6fe",
         }}
       >
         <div style={{ maxWidth: 1120, margin: "0 auto" }}>
@@ -1025,7 +1044,7 @@ export default function Landing() {
                 display: "inline-block",
                 padding: "3px 10px",
                 borderRadius: 6,
-                background: "#eef2ff",
+                background: "#ede9fe",
                 color: "#4f46e5",
                 fontSize: 11,
                 fontWeight: 600,
@@ -1063,8 +1082,9 @@ export default function Landing() {
               <div
                 key={step.num}
                 style={{
-                  background: "#ffffff",
-                  border: "1px solid #e2e8f0",
+                  background: "linear-gradient(180deg, #ffffff 0%, #faf9ff 100%)",
+                  border: "1px solid #ddd6fe",
+                  boxShadow: "0 16px 42px rgba(49,46,129,0.08)",
                   borderRadius: 14,
                   padding: "28px 24px",
                   position: "relative",
@@ -1074,7 +1094,7 @@ export default function Landing() {
                   style={{
                     fontSize: 36,
                     fontWeight: 800,
-                    color: "#f1f5f9",
+                    color: "#f0e9fb",
                     letterSpacing: "-0.04em",
                     lineHeight: 1,
                     display: "block",
@@ -1109,7 +1129,7 @@ export default function Landing() {
                       height: 26,
                       borderRadius: "50%",
                       background: "#ffffff",
-                      border: "1px solid #e2e8f0",
+                      border: "1px solid #e7dff2",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
@@ -1132,17 +1152,18 @@ export default function Landing() {
       </section>
 
       {/* ── Final CTA ──────────────────────────────────────────────── */}
-      <section style={{ padding: "96px 24px" }}>
+      <section style={{ padding: "96px 24px", background: "#ede9fe" }}>
         <div style={{ maxWidth: 1120, margin: "0 auto" }}>
           <div
             style={{
-              borderRadius: 20,
-              border: "1px solid #e0e7ff",
-              background: "linear-gradient(135deg, #fafafe 0%, #eef2ff 100%)",
+              borderRadius: 24,
+              border: "1px solid rgba(255,255,255,0.14)",
+              background: "linear-gradient(135deg, #111827 0%, #1e1b4b 40%, #312e81 72%, #4f46e5 100%)",
               padding: "72px 48px",
               textAlign: "center",
               position: "relative",
               overflow: "hidden",
+              boxShadow: "0 28px 80px rgba(30,27,75,0.24)",
             }}
           >
             {/* Subtle dot accent */}
@@ -1185,7 +1206,7 @@ export default function Landing() {
                   fontSize: "clamp(1.75rem, 3vw, 2.5rem)",
                   fontWeight: 800,
                   letterSpacing: "-0.03em",
-                  color: "#0f172a",
+                  color: "#ffffff",
                   lineHeight: 1.1,
                   marginBottom: 16,
                 }}
@@ -1195,7 +1216,7 @@ export default function Landing() {
               <p
                 style={{
                   fontSize: 17,
-                  color: "#64748b",
+                  color: "#dbe4ff",
                   lineHeight: 1.65,
                   marginBottom: 36,
                 }}
@@ -1211,24 +1232,24 @@ export default function Landing() {
                   gap: 8,
                   padding: "14px 28px",
                   borderRadius: 12,
-                  background: "#4f46e5",
-                  color: "#fff",
+                  background: "#ffffff",
+                  color: "#312e81",
                   fontSize: 16,
                   fontWeight: 700,
                   textDecoration: "none",
-                  boxShadow: "0 4px 16px rgba(79,70,229,0.3)",
+                  boxShadow: "0 12px 30px rgba(0,0,0,0.18)",
                   transition: "background 0.15s, box-shadow 0.15s",
                   letterSpacing: "-0.01em",
                 }}
                 onMouseEnter={(e) => {
                   const el = e.currentTarget as HTMLElement;
-                  el.style.background = "#4338ca";
-                  el.style.boxShadow = "0 6px 24px rgba(79,70,229,0.42)";
+                  el.style.background = "#eef2ff";
+                  el.style.boxShadow = "0 16px 36px rgba(0,0,0,0.22)";
                 }}
                 onMouseLeave={(e) => {
                   const el = e.currentTarget as HTMLElement;
-                  el.style.background = "#4f46e5";
-                  el.style.boxShadow = "0 4px 16px rgba(79,70,229,0.3)";
+                  el.style.background = "#ffffff";
+                  el.style.boxShadow = "0 12px 30px rgba(0,0,0,0.18)";
                 }}
               >
                 Create free account
@@ -1247,7 +1268,7 @@ export default function Landing() {
       {/* ── Footer ─────────────────────────────────────────────────── */}
       <footer
         style={{
-          borderTop: "1px solid #f1f5f9",
+          borderTop: "1px solid #f0e9fb",
           padding: "28px 24px",
         }}
       >
@@ -1345,21 +1366,22 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ icon, title, desc }) => {
       style={{
         padding: "28px 24px",
         borderRadius: 14,
-        border: "1px solid #e2e8f0",
-        background: "#ffffff",
+        border: "1px solid #ddd6fe",
+        background: "linear-gradient(180deg, #ffffff 0%, #faf9ff 100%)",
+        boxShadow: "0 16px 42px rgba(49,46,129,0.08)",
         transition: "border-color 0.18s, box-shadow 0.18s, transform 0.18s",
         cursor: "default",
       }}
       onMouseEnter={(e) => {
         const el = e.currentTarget as HTMLElement;
-        el.style.borderColor = "#c7d2fe";
-        el.style.boxShadow = "0 8px 24px rgba(99,102,241,0.08)";
+        el.style.borderColor = "#c4b5fd";
+        el.style.boxShadow = "0 22px 52px rgba(79,70,229,0.16)";
         el.style.transform = "translateY(-2px)";
       }}
       onMouseLeave={(e) => {
         const el = e.currentTarget as HTMLElement;
-        el.style.borderColor = "#e2e8f0";
-        el.style.boxShadow = "none";
+        el.style.borderColor = "#ddd6fe";
+        el.style.boxShadow = "0 16px 42px rgba(49,46,129,0.08)";
         el.style.transform = "translateY(0)";
       }}
     >
@@ -1368,7 +1390,7 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ icon, title, desc }) => {
           width: 44,
           height: 44,
           borderRadius: 10,
-          background: "#eef2ff",
+          background: "linear-gradient(135deg, #eef2ff 0%, #ede9fe 100%)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -1397,3 +1419,5 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ icon, title, desc }) => {
     </div>
   );
 }
+
+
