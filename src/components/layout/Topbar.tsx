@@ -28,6 +28,7 @@ const initials = user.fullName
 
   const handleLogout = () => {
     localStorage.removeItem("token");
+    localStorage.removeItem("user");
     navigate("/");
   };
   useEffect(() => {
@@ -131,9 +132,18 @@ const initials = user.fullName
             <button
               onClick={() => setIsProfileOpen(!isProfileOpen)}
               title={user.fullName}
-              className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-xs font-bold hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+              className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-xs font-bold hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 overflow-hidden"
             >
-              {initials}
+              {user.avatar ? (
+                <img
+                  src={user.avatar}
+                  alt={user.fullName ? `${user.fullName} avatar` : "User avatar"}
+                  className="w-full h-full object-cover"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                initials
+              )}
             </button>
 
             {isProfileOpen && (

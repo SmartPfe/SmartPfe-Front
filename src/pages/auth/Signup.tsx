@@ -54,7 +54,7 @@ export default function Signup() {
 
       // Save token to localStorage
       localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify({ fullName: data.fullName, email: data.email }));
+      localStorage.setItem("user", JSON.stringify({ fullName: data.fullName, email: data.email, avatar: data.avatar }));
 
       navigate("/onboarding/1");
     } catch (err: any) {

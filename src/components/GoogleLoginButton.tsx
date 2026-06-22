@@ -66,7 +66,7 @@ export default function GoogleLoginButton({ onError, onLoading }: GoogleLoginBut
       localStorage.setItem("token", data.token);
       localStorage.setItem(
         "user",
-        JSON.stringify({ fullName: data.fullName, email: data.email })
+        JSON.stringify({ fullName: data.fullName, email: data.email, avatar: data.avatar })
       );
 
       // Redirect to onboarding
