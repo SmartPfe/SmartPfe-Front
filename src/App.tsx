@@ -31,12 +31,13 @@ import UmlPreparation from "./pages/workspace/UmlPreparation";
 import JurySimulation from "./pages/workspace/JurySimulation";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import ResetPassword from "./pages/auth/ResetPassword";
+import Landing from "./pages/Landing";
   
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="/" element={<Landing />} />
         
         <Route element={<AuthLayout />}>
           <Route path="login" element={<Login />} />
