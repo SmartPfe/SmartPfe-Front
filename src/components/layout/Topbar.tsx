@@ -10,6 +10,7 @@ interface TopbarProps {
 export default function Topbar({ toggleSidebar }: TopbarProps) {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [saveState, setSaveState] = useState<"saved" | "saving">("saved");
   const [timeText, setTimeText] = useState("just now");
 
@@ -27,7 +28,7 @@ const initials = user.fullName
 
   const handleLogout = () => {
     localStorage.removeItem("token");
-    navigate("/login");
+    navigate("/");
   };
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -126,21 +127,52 @@ const initials = user.fullName
           <button className="px-4 py-2 text-xs font-semibold text-on-primary bg-primary rounded shadow-sm hover:opacity-90 transition-opacity flex items-center gap-2">
             Validate Step
           </button>
-          <div className="flex items-center gap-2 ml-2">
-          <div
-            title={user.fullName}
-            className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-xs font-bold"
-          >
-            {initials}
-          </div>
+          <div className="relative ml-2">
+            <button
+              onClick={() => setIsProfileOpen(!isProfileOpen)}
+              title={user.fullName}
+              className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-xs font-bold hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+            >
+              {initials}
+            </button>
 
-          <button
-            onClick={handleLogout}
-            className="px-3 py-2 text-xs font-semibold text-white bg-red-500 rounded hover:bg-red-600"
-          >
-            Logout
-          </button>
-        </div>
+            {isProfileOpen && (
+              <>
+                <div 
+                  className="fixed inset-0 z-40" 
+                  onClick={() => setIsProfileOpen(false)}
+                ></div>
+                <div className="absolute right-0 mt-2 w-48 bg-surface rounded-md shadow-lg py-1 border border-outline-variant z-50">
+                  <div className="px-4 py-2 border-b border-outline-variant mb-1">
+                    <p className="text-sm font-medium text-on-surface truncate">{user.fullName || "User"}</p>
+                    <p className="text-xs text-outline-variant truncate">{user.email || ""}</p>
+                  </div>
+                  <button 
+                    onClick={() => { setIsProfileOpen(false); }}
+                    className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high transition-colors"
+                  >
+                    Account
+                  </button>
+                  <button 
+                    onClick={() => { setIsProfileOpen(false); }}
+                    className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high transition-colors"
+                  >
+                    Settings
+                  </button>
+                  <div className="border-t border-outline-variant my-1"></div>
+                  <button
+                    onClick={() => {
+                      setIsProfileOpen(false);
+                      handleLogout();
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm text-error hover:bg-error/10 transition-colors"
+                  >
+                    Log Out
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </header>
 
