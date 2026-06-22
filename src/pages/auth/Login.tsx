@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { fetchApi } from "../../lib/api";
+import GoogleLoginButton from "../../components/GoogleLoginButton";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -111,6 +112,19 @@ export default function Login() {
           </button>
         </div>
       </form>
+
+      <div className="relative my-6 flex items-center justify-center">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-outline-variant"></div>
+        </div>
+        <div className="relative bg-surface-container-lowest px-3 text-sm text-outline font-medium uppercase tracking-wider">
+          or
+        </div>
+      </div>
+
+      <div className="mb-4">
+        <GoogleLoginButton onError={setError} onLoading={setLoading} />
+      </div>
 
       <div className="mt-lg text-center">
         <p className="font-body-md text-body-md text-on-surface-variant">
