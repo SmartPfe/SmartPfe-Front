@@ -1,91 +1,119 @@
+import OnboardingStep from "@/components/onboarding/OnboardingStep";
 import { Link } from "react-router-dom";
+import { useOnboarding } from "@/context/OnboardingContext";
 
-export default function SummaryReview() {
+function formatValue(value: string | number | string[]) {
+  if (Array.isArray(value)) return value.length ? value.join(", ") : "Not provided";
+  if (typeof value === "number") return Number.isFinite(value) ? String(value) : "Not provided";
+  return value.trim() || "Not provided";
+}
+
+function SummarySection({
+  title,
+  icon,
+  editTo,
+  items,
+}: {
+  title: string;
+  icon: string;
+  editTo: string;
+  items: { label: string; value: string | number | string[] }[];
+}) {
   return (
-    <div className="w-full max-w-[800px] flex flex-col gap-lg mx-auto">
-      <header className="flex flex-col items-center text-center gap-xs mb-md">
-        <h1 className="font-headline-lg text-headline-lg text-primary">Summary Review</h1>
-        <p className="font-body-lg text-body-lg text-on-surface-variant">Review your project details before final creation.</p>
-        
-        <div className="flex items-center gap-sm mt-md w-full max-w-[400px]">
-          <div className="h-1 flex-1 bg-primary rounded-full"></div>
-          <div className="h-1 flex-1 bg-primary rounded-full"></div>
-          <div className="h-1 flex-1 bg-primary rounded-full"></div>
-          <div className="h-1 flex-1 bg-primary rounded-full relative">
-            <span className="absolute -top-6 left-1/2 -translate-x-1/2 font-label-sm text-label-sm text-primary whitespace-nowrap">Step 4 of 4</span>
-          </div>
+    <section className="flex flex-col gap-sm">
+      <div className="flex items-center justify-between gap-md border-b border-outline-variant pb-xs">
+        <div className="flex items-center gap-xs">
+          <span className="material-symbols-outlined text-secondary">{icon}</span>
+          <h2 className="font-headline-sm text-headline-sm text-on-surface">{title}</h2>
         </div>
-      </header>
-
-      <article className="bg-surface-container-lowest border border-outline-variant rounded-xl p-lg sm:p-xl flex flex-col gap-xl">
-        <section className="flex flex-col gap-sm">
-          <div className="flex items-center gap-xs border-b border-outline-variant pb-xs">
-            <span className="material-symbols-outlined text-secondary">info</span>
-            <h2 className="font-headline-sm text-headline-sm text-on-surface">Basics</h2>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-md mt-sm">
-            <div>
-              <label className="font-label-md text-label-md text-on-surface-variant block mb-base">Project Title</label>
-              <p className="font-body-lg text-body-lg text-on-surface font-medium">Automated Deployment Pipeline Orchestrator</p>
-            </div>
-            <div>
-              <label className="font-label-md text-label-md text-on-surface-variant block mb-base">Academic Year</label>
-              <p className="font-body-lg text-body-lg text-on-surface font-medium">2023-24</p>
-            </div>
-            <div className="sm:col-span-2">
-              <label className="font-label-md text-label-md text-on-surface-variant block mb-base">Project Type</label>
-              <div className="flex gap-sm">
-                <span className="inline-flex items-center px-sm py-base rounded-full bg-surface-container-high font-label-sm text-label-sm text-on-surface">Engineering</span>
-                <span className="inline-flex items-center px-sm py-base rounded-full bg-surface-container-high font-label-sm text-label-sm text-on-surface">Research</span>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="flex flex-col gap-sm">
-          <div className="flex items-center gap-xs border-b border-outline-variant pb-xs">
-            <span className="material-symbols-outlined text-secondary">description</span>
-            <h2 className="font-headline-sm text-headline-sm text-on-surface">Description</h2>
-          </div>
-          <div className="mt-sm">
-            <label className="font-label-md text-label-md text-on-surface-variant block mb-base">Executive Summary</label>
-            <p className="font-body-md text-body-md text-on-surface leading-relaxed">
-              This project aims to develop a robust orchestration tool that automates the deployment pipeline across multiple cloud environments. It focuses on reducing manual intervention, increasing deployment velocity, and ensuring compliance with security standards through automated checks at every stage.
+        <Link
+          to={editTo}
+          className="inline-flex items-center gap-base px-sm py-base rounded-DEFAULT text-primary hover:bg-surface-container-high transition-colors font-label-sm text-label-sm"
+        >
+          <span className="material-symbols-outlined text-[16px]">edit</span>
+          Edit
+        </Link>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-md mt-sm">
+        {items.map((item) => (
+          <div key={item.label} className="min-w-0">
+            <span className="font-label-md text-label-md text-on-surface-variant block mb-base">{item.label}</span>
+            <p className="font-body-md text-body-md text-on-surface font-medium whitespace-pre-wrap break-words">
+              {formatValue(item.value)}
             </p>
           </div>
-        </section>
+        ))}
+      </div>
+    </section>
+  );
+}
 
-        <section className="flex flex-col gap-sm">
-          <div className="flex items-center gap-xs border-b border-outline-variant pb-xs">
-            <span className="material-symbols-outlined text-secondary">settings_suggest</span>
-            <h2 className="font-headline-sm text-headline-sm text-on-surface">Technical Context</h2>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-md mt-sm">
-            <div>
-              <label className="font-label-md text-label-md text-on-surface-variant block mb-base">Primary Stack</label>
-              <p className="font-body-lg text-body-lg text-on-surface font-medium">Kubernetes, Go, React</p>
-            </div>
-            <div>
-              <label className="font-label-md text-label-md text-on-surface-variant block mb-base">Target Environment</label>
-              <p className="font-body-lg text-body-lg text-on-surface font-medium">AWS &amp; GCP Multi-cloud</p>
-            </div>
-            <div className="sm:col-span-2">
-              <label className="font-label-md text-label-md text-on-surface-variant block mb-base">Key Dependencies</label>
-              <p className="font-body-md text-body-md text-on-surface">Docker, Terraform, GitHub Actions</p>
-            </div>
-          </div>
-        </section>
-      </article>
+export default function SummaryReview() {
+  const { data, isStepValid } = useOnboarding();
+  const canCreateProject = isStepValid(1) && isStepValid(2);
 
-      <footer className="flex items-center justify-between mt-md pt-md border-t border-outline-variant">
-        <Link to="/onboarding/3" className="px-lg py-sm rounded-lg border border-outline-variant bg-surface-container-lowest font-label-md text-label-md text-on-surface hover:bg-surface-container-low transition-colors">
-          Back
-        </Link>
-        <Link to="/workspace/overview" className="px-lg py-sm rounded-lg bg-primary font-label-md text-label-md text-on-primary hover:bg-on-surface-variant transition-colors flex items-center gap-xs">
-          <span>Create Project</span>
-          <span className="material-symbols-outlined text-[16px]">check_circle</span>
-        </Link>
-      </footer>
-    </div>
+  return (
+    <OnboardingStep
+      step={4}
+      title="Summary Review"
+      description="Review your project details before final creation."
+      backTo="/onboarding/3"
+      nextTo="/workspace/overview"
+      nextLabel="Create Project"
+      nextIcon="check_circle"
+      isNextDisabled={!canCreateProject}
+    >
+      {!canCreateProject && (
+        <div className="rounded-lg border border-error bg-error-container px-md py-sm text-on-error-container font-body-md text-body-md">
+          Complete the required fields in Project Basics and Project Description before creating the workspace.
+        </div>
+      )}
+
+      <SummarySection
+        title="Basics"
+        icon="info"
+        editTo="/onboarding/1"
+        items={[
+          { label: "Project Title", value: data.basics.title },
+          { label: "Project Type", value: data.basics.type },
+          { label: "Domain", value: data.basics.domain },
+          { label: "Report Language", value: data.basics.language },
+          { label: "Academic Year", value: data.basics.academicYear },
+          { label: "University", value: data.basics.university },
+        ]}
+      />
+
+      <SummarySection
+        title="Description"
+        icon="description"
+        editTo="/onboarding/2"
+        items={[
+          { label: "Problem Statement", value: data.description.problemStatement },
+          { label: "Project Objective", value: data.description.objective },
+          { label: "Detailed Description", value: data.description.detailedDescription },
+          { label: "Expected Deliverables", value: data.description.deliverables },
+          { label: "Internship Company", value: data.description.company },
+          { label: "Industry Sector", value: data.description.industry },
+          { label: "Stakeholders", value: data.description.stakeholders },
+        ]}
+      />
+
+      <SummarySection
+        title="Technical Context"
+        icon="settings_suggest"
+        editTo="/onboarding/3"
+        items={[
+          { label: "Development Type", value: data.technicalContext.developmentTypes },
+          { label: "Methodology", value: data.technicalContext.methodology },
+          { label: "Technology Stack", value: data.technicalContext.technologies },
+          { label: "Other Technologies", value: data.technicalContext.otherTechnologies },
+          { label: "Target Users", value: data.technicalContext.targetUsers },
+          { label: "Project Complexity", value: data.technicalContext.complexity },
+          { label: "Team Size", value: data.technicalContext.teamSize },
+          { label: "Duration (months)", value: data.technicalContext.duration },
+        ]}
+      />
+
+    </OnboardingStep>
   );
 }
