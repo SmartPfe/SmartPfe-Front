@@ -54,9 +54,13 @@ export default function Signup() {
 
       // Save token to localStorage
       localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify({ fullName: data.fullName, email: data.email, avatar: data.avatar }));
+      localStorage.setItem("user", JSON.stringify({ fullName: data.fullName, email: data.email, avatar: data.avatar, hasCompletedOnboarding: data.hasCompletedOnboarding }));
 
-      navigate("/onboarding/1");
+      if (data.hasCompletedOnboarding) {
+        navigate("/workspace/overview");
+      } else {
+        navigate("/onboarding/1");
+      }
     } catch (err: any) {
       setError(err.message || "Failed to register. Please try again.");
     } finally {

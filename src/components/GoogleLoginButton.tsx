@@ -66,11 +66,14 @@ export default function GoogleLoginButton({ onError, onLoading }: GoogleLoginBut
       localStorage.setItem("token", data.token);
       localStorage.setItem(
         "user",
-        JSON.stringify({ fullName: data.fullName, email: data.email, avatar: data.avatar })
+        JSON.stringify({ fullName: data.fullName, email: data.email, avatar: data.avatar, hasCompletedOnboarding: data.hasCompletedOnboarding })
       );
 
-      // Redirect to onboarding
-      navigate("/onboarding/1");
+      if (data.hasCompletedOnboarding) {
+        navigate("/workspace/overview");
+      } else {
+        navigate("/onboarding/1");
+      }
     } catch (err: any) {
       console.error("Google authentication error:", err);
       onError(err.message || "Failed to authenticate with Google. Please try again.");

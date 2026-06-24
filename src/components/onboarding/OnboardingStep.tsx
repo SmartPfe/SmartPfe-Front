@@ -9,10 +9,11 @@ interface OnboardingStepProps {
   children: ReactNode;
   backTo?: string;
   backLabel?: string;
-  nextTo: string;
+  nextTo?: string;
   nextLabel: string;
   nextIcon?: string;
   isNextDisabled?: boolean;
+  onNextAction?: () => void;
 }
 
 export default function OnboardingStep({
@@ -26,6 +27,7 @@ export default function OnboardingStep({
   nextLabel,
   nextIcon = "arrow_forward",
   isNextDisabled = false,
+  onNextAction,
 }: OnboardingStepProps) {
   const progressWidth = `${(step / 4) * 100}%`;
 
@@ -63,22 +65,38 @@ export default function OnboardingStep({
             {backLabel}
           </Link>
         )}
-        <Link
-          to={isNextDisabled ? "#" : nextTo}
-          aria-disabled={isNextDisabled}
-          onClick={(event) => {
-            if (isNextDisabled) event.preventDefault();
-          }}
-          className={cn(
-            "flex items-center justify-center gap-xs min-w-[120px] px-lg py-sm rounded-DEFAULT border border-primary bg-primary text-on-primary font-label-md text-label-md transition-colors",
-            isNextDisabled
-              ? "opacity-50 cursor-not-allowed"
-              : "hover:bg-on-surface-variant"
-          )}
-        >
-          {nextLabel}
-          <span className="material-symbols-outlined text-[18px]">{nextIcon}</span>
-        </Link>
+        {onNextAction ? (
+          <button
+            disabled={isNextDisabled}
+            onClick={onNextAction}
+            className={cn(
+              "flex items-center justify-center gap-xs min-w-[120px] px-lg py-sm rounded-DEFAULT border border-primary bg-primary text-on-primary font-label-md text-label-md transition-colors",
+              isNextDisabled
+                ? "opacity-50 cursor-not-allowed"
+                : "hover:bg-on-surface-variant"
+            )}
+          >
+            {nextLabel}
+            <span className="material-symbols-outlined text-[18px]">{nextIcon}</span>
+          </button>
+        ) : (
+          <Link
+            to={isNextDisabled ? "#" : (nextTo || "#")}
+            aria-disabled={isNextDisabled}
+            onClick={(event) => {
+              if (isNextDisabled) event.preventDefault();
+            }}
+            className={cn(
+              "flex items-center justify-center gap-xs min-w-[120px] px-lg py-sm rounded-DEFAULT border border-primary bg-primary text-on-primary font-label-md text-label-md transition-colors",
+              isNextDisabled
+                ? "opacity-50 cursor-not-allowed"
+                : "hover:bg-on-surface-variant"
+            )}
+          >
+            {nextLabel}
+            <span className="material-symbols-outlined text-[18px]">{nextIcon}</span>
+          </Link>
+        )}
       </footer>
     </div>
   );

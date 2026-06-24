@@ -1,6 +1,8 @@
+import { useState } from "react";
 import OnboardingStep from "@/components/onboarding/OnboardingStep";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useOnboarding } from "@/context/OnboardingContext";
+import { fetchApi } from "@/lib/api";
 
 function formatValue(value: string | number | string[]) {
   if (Array.isArray(value)) return value.length ? value.join(", ") : "Not provided";
@@ -49,8 +51,37 @@ function SummarySection({
 }
 
 export default function SummaryReview() {
-  const { data, isStepValid } = useOnboarding();
+  const { data, isStepValid, resetOnboarding } = useOnboarding();
   const canCreateProject = isStepValid(1) && isStepValid(2);
+  const navigate = useNavigate();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleCreateProject = async () => {
+    if (!canCreateProject) return;
+    setIsSubmitting(true);
+    try {
+      await fetchApi("/projects/onboarding", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+
+      // Update localStorage user
+      const userStr = localStorage.getItem("user");
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        user.hasCompletedOnboarding = true;
+        localStorage.setItem("user", JSON.stringify(user));
+      }
+
+      resetOnboarding();
+      navigate("/workspace/overview");
+    } catch (error) {
+      console.error("Failed to create project:", error);
+      // could show a toast here
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <OnboardingStep
@@ -58,10 +89,10 @@ export default function SummaryReview() {
       title="Summary Review"
       description="Review your project details before final creation."
       backTo="/onboarding/3"
-      nextTo="/workspace/overview"
-      nextLabel="Create Project"
+      nextLabel={isSubmitting ? "Creating..." : "Create Project"}
       nextIcon="check_circle"
-      isNextDisabled={!canCreateProject}
+      isNextDisabled={!canCreateProject || isSubmitting}
+      onNextAction={handleCreateProject}
     >
       {!canCreateProject && (
         <div className="rounded-lg border border-error bg-error-container px-md py-sm text-on-error-container font-body-md text-body-md">
