@@ -10,7 +10,6 @@ export interface ProjectOnboarding {
   description: {
     problemStatement: string;
     objective: string;
-    detailedDescription: string;
     deliverables: string;
     company: string;
     industry: string;
@@ -18,6 +17,7 @@ export interface ProjectOnboarding {
   };
   technicalContext: {
     developmentTypes: string[];
+    otherDevelopmentType: string;
     methodology: string;
     technologies: string[];
     otherTechnologies: string;
@@ -42,7 +42,6 @@ export const defaultOnboardingData: ProjectOnboarding = {
   description: {
     problemStatement: "",
     objective: "",
-    detailedDescription: "",
     deliverables: "",
     company: "",
     industry: "",
@@ -50,6 +49,7 @@ export const defaultOnboardingData: ProjectOnboarding = {
   },
   technicalContext: {
     developmentTypes: [],
+    otherDevelopmentType: "",
     methodology: "Scrum",
     technologies: [],
     otherTechnologies: "",

@@ -121,7 +121,6 @@ export default function SummaryReview() {
         items={[
           { label: "Problem Statement", value: data.description.problemStatement },
           { label: "Project Objective", value: data.description.objective },
-          { label: "Detailed Description", value: data.description.detailedDescription },
           { label: "Expected Deliverables", value: data.description.deliverables },
           { label: "Internship Company", value: data.description.company },
           { label: "Industry Sector", value: data.description.industry },
@@ -135,6 +134,7 @@ export default function SummaryReview() {
         editTo="/onboarding/3"
         items={[
           { label: "Development Type", value: data.technicalContext.developmentTypes },
+          { label: "Other Development Type", value: data.technicalContext.otherDevelopmentType },
           { label: "Methodology", value: data.technicalContext.methodology },
           { label: "Technology Stack", value: data.technicalContext.technologies },
           { label: "Other Technologies", value: data.technicalContext.otherTechnologies },

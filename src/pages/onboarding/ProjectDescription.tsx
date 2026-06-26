@@ -38,16 +38,6 @@ export default function ProjectDescription() {
         helperText="Write the desired outcome in measurable terms when possible."
       />
 
-      <TextAreaField
-        id="detailed-description"
-        label="Detailed Description"
-        rows={5}
-        value={description.detailedDescription}
-        onChange={(detailedDescription) => updateSection("description", { detailedDescription })}
-        placeholder="Describe the solution scope, important modules, and expected workflow."
-        helperText="Include context that helps the AI understand what the platform should do and what it should avoid."
-      />
-
       <div className="grid grid-cols-1 md:grid-cols-2 gap-lg">
         <TextAreaField
           id="expected-deliverables"
