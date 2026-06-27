@@ -25,25 +25,53 @@ export function TextField({
   helperText,
   placeholder,
   type = "text",
+  disabled = false,
+  canTogglePassword = type === "password",
+  autoComplete,
+  name,
 }: BaseFieldProps & {
   value: string | number;
   onChange: (value: string) => void;
   placeholder?: string;
   type?: string;
+  disabled?: boolean;
+  canTogglePassword?: boolean;
+  autoComplete?: string;
+  name?: string;
 }) {
+  const [showPassword, setShowPassword] = useState(false);
+  const inputType = canTogglePassword && type === "password" && showPassword ? "text" : type;
+
   return (
     <div className="flex flex-col gap-xs">
       <FieldLabel id={id} label={label} required={required} />
       {helperText && <p className="text-xs leading-snug text-on-surface-variant">{helperText}</p>}
-      <input
-        id={id}
-        type={type}
-        value={value}
-        min={type === "number" ? 0 : undefined}
-        onChange={(event) => onChange(event.target.value)}
-        placeholder={placeholder}
-        className="w-full bg-surface-bright border border-outline-variant rounded-DEFAULT px-md py-2 font-body-md text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary transition-colors"
-      />
+      <div className="relative">
+        <input
+          id={id}
+          name={name || id}
+          type={inputType}
+          value={value}
+          min={type === "number" ? 0 : undefined}
+          autoComplete={autoComplete}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder={placeholder}
+          disabled={disabled}
+          className="w-full bg-surface-bright border border-outline-variant rounded-DEFAULT px-md py-2 pr-10 font-body-md text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary transition-colors disabled:bg-surface-container-low disabled:text-outline disabled:cursor-not-allowed"
+        />
+        {canTogglePassword && type === "password" && !disabled && (
+          <button
+            type="button"
+            onClick={() => setShowPassword((current) => !current)}
+            className="absolute inset-y-0 right-0 px-sm flex items-center text-outline hover:text-on-surface transition-colors"
+            aria-label={showPassword ? "Hide password" : "Show password"}
+          >
+            <span className="material-symbols-outlined text-[18px]">
+              {showPassword ? "visibility_off" : "visibility"}
+            </span>
+          </button>
+        )}
+      </div>
     </div>
   );
 }

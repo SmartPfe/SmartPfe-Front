@@ -66,7 +66,14 @@ export default function GoogleLoginButton({ onError, onLoading }: GoogleLoginBut
       localStorage.setItem("token", data.token);
       localStorage.setItem(
         "user",
-        JSON.stringify({ fullName: data.fullName, email: data.email, avatar: data.avatar, hasCompletedOnboarding: data.hasCompletedOnboarding })
+        JSON.stringify({
+          _id: data._id,
+          fullName: data.fullName,
+          email: data.email,
+          avatar: data.avatar,
+          authProvider: data.authProvider || "google",
+          hasCompletedOnboarding: data.hasCompletedOnboarding,
+        })
       );
 
       if (data.hasCompletedOnboarding) {

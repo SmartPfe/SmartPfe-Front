@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom";
+import { Link, NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 
@@ -113,10 +113,10 @@ export default function Sidebar({ isOpen, setIsSidebarOpen }: SidebarProps) {
             )} />
           </div>
         </button>
-        <a href="#" className="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors font-medium text-sm group">
+        <Link to="/workspace/settings" className="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors font-medium text-sm group">
           <span className="material-symbols-outlined text-[20px] group-hover:text-primary transition-colors">settings</span>
           <span>Settings</span>
-        </a>
+        </Link>
         <a href="#" className="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors font-medium text-sm group">
           <span className="material-symbols-outlined text-[20px] group-hover:text-primary transition-colors">help</span>
           <span>Help Center</span>

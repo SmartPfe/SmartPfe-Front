@@ -27,6 +27,9 @@ import ExistingSolutions from "./pages/workspace/ExistingSolutions";
 import FunctionalRequirements from "./pages/workspace/FunctionalRequirements";
 import NonFunctionalRequirements from "./pages/workspace/NonFunctionalRequirements";
 import UmlPreparation from "./pages/workspace/UmlPreparation";
+import Settings from "./pages/workspace/Settings";
+import ProjectSettings from "./pages/workspace/ProjectSettings";
+import AccountSettings from "./pages/workspace/AccountSettings";
 
 import JurySimulation from "./pages/workspace/JurySimulation";
 import ForgotPassword from "./pages/auth/ForgotPassword";
@@ -70,6 +73,9 @@ export default function App() {
           <Route path="pitch" element={<Pitch />} />
           <Route path="jury-simulation" element={<JurySimulation />} />
           <Route path="user-stories" element={<UserStories />} />
+          <Route path="settings" element={<Settings />} />
+          <Route path="settings/onboarding" element={<ProjectSettings />} />
+          <Route path="account" element={<AccountSettings />} />
           <Route path="*" element={<Overview />} />
         </Route>
       </Routes>

@@ -13,9 +13,9 @@ export default function Topbar({ toggleSidebar }: TopbarProps) {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [saveState, setSaveState] = useState<"saved" | "saving">("saved");
   const [timeText, setTimeText] = useState("just now");
+  const [user, setUser] = useState(() => JSON.parse(localStorage.getItem("user") || "{}"));
 
   const navigate = useNavigate();
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
 
 const initials = user.fullName
   ? user.fullName
@@ -31,6 +31,19 @@ const initials = user.fullName
     localStorage.removeItem("user");
     navigate("/");
   };
+  useEffect(() => {
+    const handleUserUpdated = () => {
+      setUser(JSON.parse(localStorage.getItem("user") || "{}"));
+    };
+
+    window.addEventListener("user-updated", handleUserUpdated);
+    window.addEventListener("storage", handleUserUpdated);
+    return () => {
+      window.removeEventListener("user-updated", handleUserUpdated);
+      window.removeEventListener("storage", handleUserUpdated);
+    };
+  }, []);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
@@ -158,13 +171,13 @@ const initials = user.fullName
                     <p className="text-xs text-outline-variant truncate">{user.email || ""}</p>
                   </div>
                   <button 
-                    onClick={() => { setIsProfileOpen(false); }}
+                    onClick={() => { setIsProfileOpen(false); navigate("/workspace/account"); }}
                     className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high transition-colors"
                   >
                     Account
                   </button>
                   <button 
-                    onClick={() => { setIsProfileOpen(false); }}
+                    onClick={() => { setIsProfileOpen(false); navigate("/workspace/settings"); }}
                     className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high transition-colors"
                   >
                     Settings

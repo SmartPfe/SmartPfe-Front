@@ -11,6 +11,7 @@ export default function Login() {
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.id]: e.target.value });
@@ -30,7 +31,14 @@ export default function Login() {
 
       // Save token to localStorage
       localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify({ fullName: data.fullName, email: data.email, avatar: data.avatar, hasCompletedOnboarding: data.hasCompletedOnboarding }));
+      localStorage.setItem("user", JSON.stringify({
+        _id: data._id,
+        fullName: data.fullName,
+        email: data.email,
+        avatar: data.avatar,
+        authProvider: data.authProvider || "email",
+        hasCompletedOnboarding: data.hasCompletedOnboarding,
+      }));
 
       if (data.hasCompletedOnboarding) {
         navigate("/workspace/overview");
@@ -95,14 +103,24 @@ export default function Login() {
             <input 
               id="password" 
               name="password" 
-              type="password"
+              type={showPassword ? "text" : "password"}
               value={formData.password}
               onChange={handleChange}
               autoComplete="current-password" 
               required 
               placeholder="••••••••"
-              className="block w-full pl-10 pr-3 py-2 bg-surface border border-outline-variant rounded-md font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:ring-1 focus:ring-secondary focus:border-secondary transition-colors"
+              className="block w-full pl-10 pr-10 py-2 bg-surface border border-outline-variant rounded-md font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:ring-1 focus:ring-secondary focus:border-secondary transition-colors"
             />
+            <button
+              type="button"
+              onClick={() => setShowPassword((current) => !current)}
+              className="absolute inset-y-0 right-0 pr-3 flex items-center text-outline hover:text-on-surface transition-colors"
+              aria-label={showPassword ? "Hide password" : "Show password"}
+            >
+              <span className="material-symbols-outlined text-[18px]">
+                {showPassword ? "visibility_off" : "visibility"}
+              </span>
+            </button>
           </div>
         </div>
 

@@ -3,6 +3,7 @@ import Sidebar from "@/components/layout/Sidebar";
 import Topbar from "@/components/layout/Topbar";
 import { cn } from "@/lib/utils";
 import { useEffect, useRef, useState } from "react";
+import { OnboardingProvider } from "@/context/OnboardingContext";
 
 import { WORKSPACE_PHASES } from "@/lib/constants";
 
@@ -19,6 +20,10 @@ function ProgressStepper() {
       }
     }
   }, [currentIndex]);
+
+  if (currentIndex === -1) {
+    return null;
+  }
 
   return (
     <div className="bg-surface border-b border-outline-variant px-6 py-4 overflow-hidden shrink-0">
@@ -84,20 +89,22 @@ export default function WorkspaceLayout() {
   }, []);
 
   return (
-    <div className="flex h-screen bg-surface overflow-hidden">
-      <Sidebar isOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} />
-      <div className={cn(
-        "flex-1 flex flex-col h-screen min-w-0 transition-all duration-300 ease-in-out",
-        isSidebarOpen ? "md:ml-[280px]" : "ml-0"
-      )}>
-        <Topbar toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
-        <ProgressStepper />
-        <main className="flex-1 overflow-y-auto p-6 md:p-8 relative bg-surface-container-lowest">
-          <div className="max-w-6xl mx-auto w-full min-h-full flex flex-col">
-            <Outlet />
-          </div>
-        </main>
+    <OnboardingProvider>
+      <div className="flex h-screen bg-surface overflow-hidden">
+        <Sidebar isOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} />
+        <div className={cn(
+          "flex-1 flex flex-col h-screen min-w-0 transition-all duration-300 ease-in-out",
+          isSidebarOpen ? "md:ml-[280px]" : "ml-0"
+        )}>
+          <Topbar toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
+          <ProgressStepper />
+          <main className="flex-1 overflow-y-auto p-6 md:p-8 relative bg-surface-container-lowest">
+            <div className="max-w-6xl mx-auto w-full min-h-full flex flex-col">
+              <Outlet />
+            </div>
+          </main>
+        </div>
       </div>
-    </div>
+    </OnboardingProvider>
   );
 }

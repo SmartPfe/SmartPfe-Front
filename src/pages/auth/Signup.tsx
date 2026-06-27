@@ -13,6 +13,7 @@ export default function Signup() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0);
+  const [showPassword, setShowPassword] = useState(false);
 
   // Calculate password strength
   useEffect(() => {
@@ -54,7 +55,14 @@ export default function Signup() {
 
       // Save token to localStorage
       localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify({ fullName: data.fullName, email: data.email, avatar: data.avatar, hasCompletedOnboarding: data.hasCompletedOnboarding }));
+      localStorage.setItem("user", JSON.stringify({
+        _id: data._id,
+        fullName: data.fullName,
+        email: data.email,
+        avatar: data.avatar,
+        authProvider: data.authProvider || "email",
+        hasCompletedOnboarding: data.hasCompletedOnboarding,
+      }));
 
       if (data.hasCompletedOnboarding) {
         navigate("/workspace/overview");
@@ -125,15 +133,25 @@ export default function Signup() {
           <div className="relative">
             <span className="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-outline text-[20px] pointer-events-none">lock</span>
             <input 
-              type="password" 
+              type={showPassword ? "text" : "password"} 
               id="password" 
               value={formData.password}
               onChange={handleChange}
               minLength={6} 
               placeholder="••••••••" 
               required 
-              className="w-full bg-surface h-12 pl-10 pr-sm border border-outline-variant rounded-lg font-body-md text-body-md text-on-surface placeholder:text-outline focus:border-secondary focus:ring-1 focus:ring-secondary transition-colors outline-none" 
+              className="w-full bg-surface h-12 pl-10 pr-10 border border-outline-variant rounded-lg font-body-md text-body-md text-on-surface placeholder:text-outline focus:border-secondary focus:ring-1 focus:ring-secondary transition-colors outline-none" 
             />
+            <button
+              type="button"
+              onClick={() => setShowPassword((current) => !current)}
+              className="absolute inset-y-0 right-0 pr-3 flex items-center text-outline hover:text-on-surface transition-colors"
+              aria-label={showPassword ? "Hide password" : "Show password"}
+            >
+              <span className="material-symbols-outlined text-[18px]">
+                {showPassword ? "visibility_off" : "visibility"}
+              </span>
+            </button>
           </div>
           
           {/* Password Strength Progress Bar */}
