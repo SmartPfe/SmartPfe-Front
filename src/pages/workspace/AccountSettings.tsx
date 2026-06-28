@@ -130,6 +130,7 @@ export default function AccountSettings() {
           email: data.email,
           avatar: data.avatar,
           authProvider: data.authProvider || "email",
+          role: data.role || currentUser.role || "etudiant",
         })
       );
       window.dispatchEvent(new Event("user-updated"));

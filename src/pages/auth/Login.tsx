@@ -38,7 +38,13 @@ export default function Login() {
         avatar: data.avatar,
         authProvider: data.authProvider || "email",
         hasCompletedOnboarding: data.hasCompletedOnboarding,
+        role: data.role || "etudiant",
       }));
+
+      if (data.role === "admin") {
+        navigate("/admin/dashboard");
+        return;
+      }
 
       if (data.hasCompletedOnboarding) {
         navigate("/workspace/overview");

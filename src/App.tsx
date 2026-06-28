@@ -8,6 +8,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import AuthLayout from "./layouts/AuthLayout";
 import OnboardingLayout from "./layouts/OnboardingLayout";
 import WorkspaceLayout from "./layouts/WorkspaceLayout";
+import AdminLayout from "./layouts/AdminLayout";
 import Login from "./pages/auth/Login";
 import Signup from "./pages/auth/Signup";
 import ProjectBasics from "./pages/onboarding/ProjectBasics";
@@ -35,6 +36,10 @@ import JurySimulation from "./pages/workspace/JurySimulation";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import ResetPassword from "./pages/auth/ResetPassword";
 import Landing from "./pages/Landing";
+import BackofficeDashboard from "./pages/admin/BackofficeDashboard";
+import AdminSettings from "./pages/admin/AdminSettings";
+import AdminUsers from "./pages/admin/AdminUsers";
+import AdminProjects from "./pages/admin/AdminProjects";
   
 export default function App() {
   return (
@@ -77,6 +82,22 @@ export default function App() {
           <Route path="settings/onboarding" element={<ProjectSettings />} />
           <Route path="account" element={<AccountSettings />} />
           <Route path="*" element={<Overview />} />
+        </Route>
+
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <AdminLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<Navigate to="dashboard" replace />} />
+          <Route path="dashboard" element={<BackofficeDashboard />} />
+          <Route path="users" element={<AdminUsers />} />
+          <Route path="projects" element={<AdminProjects />} />
+          <Route path="settings" element={<AdminSettings />} />
+          <Route path="*" element={<BackofficeDashboard />} />
         </Route>
       </Routes>
     </BrowserRouter>
