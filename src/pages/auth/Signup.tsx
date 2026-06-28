@@ -62,6 +62,7 @@ export default function Signup() {
         avatar: data.avatar,
         authProvider: data.authProvider || "email",
         hasCompletedOnboarding: data.hasCompletedOnboarding,
+        role: data.role || "etudiant",
       }));
 
       if (data.hasCompletedOnboarding) {
