@@ -32,8 +32,21 @@ type DashboardData = {
     projects: number;
     completedOnboarding: number;
   };
+  charts: {
+    userGrowth: ChartItem[];
+    projectGrowth: ChartItem[];
+    onboardingStatus: ChartItem[];
+    complexities: ChartItem[];
+    domains: ChartItem[];
+    methodologies: ChartItem[];
+  };
   recentUsers: AdminUser[];
   recentProjects: AdminProject[];
+};
+
+type ChartItem = {
+  label: string;
+  value: number;
 };
 
 const emptyDashboard: DashboardData = {
@@ -43,6 +56,14 @@ const emptyDashboard: DashboardData = {
     admins: 0,
     projects: 0,
     completedOnboarding: 0,
+  },
+  charts: {
+    userGrowth: [],
+    projectGrowth: [],
+    onboardingStatus: [],
+    complexities: [],
+    domains: [],
+    methodologies: [],
   },
   recentUsers: [],
   recentProjects: [],
@@ -66,6 +87,103 @@ function StatCard({ icon, label, value, helper }: { icon: string; label: string;
       </div>
       <div className="w-11 h-11 rounded-lg bg-primary-container text-primary flex items-center justify-center">
         <span className="material-symbols-outlined text-[24px]">{icon}</span>
+      </div>
+    </section>
+  );
+}
+
+function BarChart({ title, description, data }: { title: string; description: string; data: ChartItem[] }) {
+  const maxValue = Math.max(...data.map((item) => item.value), 1);
+
+  return (
+    <section className="rounded-lg border border-outline-variant bg-surface p-lg flex flex-col gap-md">
+      <div>
+        <h2 className="font-headline-sm text-headline-sm text-on-surface">{title}</h2>
+        <p className="font-body-md text-body-md text-on-surface-variant mt-base">{description}</p>
+      </div>
+      <div className="flex items-end gap-sm h-52 border-b border-outline-variant pt-md">
+        {data.map((item) => (
+          <div key={item.label} className="flex-1 min-w-0 h-full flex flex-col justify-end gap-xs">
+            <span className="font-label-sm text-label-sm text-on-surface text-center">{item.value}</span>
+            <div
+              className="w-full rounded-t-lg bg-primary-container border border-primary/20 min-h-2"
+              style={{ height: `${Math.max((item.value / maxValue) * 100, item.value > 0 ? 8 : 2)}%` }}
+              title={`${item.label}: ${item.value}`}
+            ></div>
+            <span className="font-body-sm text-body-sm text-on-surface-variant text-center truncate">{item.label}</span>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function HorizontalChart({ title, description, data }: { title: string; description: string; data: ChartItem[] }) {
+  const maxValue = Math.max(...data.map((item) => item.value), 1);
+
+  return (
+    <section className="rounded-lg border border-outline-variant bg-surface p-lg flex flex-col gap-md">
+      <div>
+        <h2 className="font-headline-sm text-headline-sm text-on-surface">{title}</h2>
+        <p className="font-body-md text-body-md text-on-surface-variant mt-base">{description}</p>
+      </div>
+      <div className="flex flex-col gap-sm">
+        {data.length === 0 ? (
+          <p className="font-body-md text-body-md text-on-surface-variant">No data available.</p>
+        ) : (
+          data.map((item) => (
+            <div key={item.label} className="flex flex-col gap-base">
+              <div className="flex items-center justify-between gap-md">
+                <span className="font-label-md text-label-md text-on-surface truncate">{item.label}</span>
+                <span className="font-body-sm text-body-sm text-on-surface-variant">{item.value}</span>
+              </div>
+              <div className="h-3 rounded-full bg-surface-container-high overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-primary"
+                  style={{ width: `${Math.max((item.value / maxValue) * 100, item.value > 0 ? 6 : 0)}%` }}
+                ></div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </section>
+  );
+}
+
+function DonutChart({ title, description, data }: { title: string; description: string; data: ChartItem[] }) {
+  const total = data.reduce((sum, item) => sum + item.value, 0);
+  const completed = data[0]?.value || 0;
+  const percentage = total ? Math.round((completed / total) * 100) : 0;
+  const legendColors = ["bg-primary", "bg-surface-container-highest"];
+
+  return (
+    <section className="rounded-lg border border-outline-variant bg-surface p-lg flex flex-col gap-md">
+      <div>
+        <h2 className="font-headline-sm text-headline-sm text-on-surface">{title}</h2>
+        <p className="font-body-md text-body-md text-on-surface-variant mt-base">{description}</p>
+      </div>
+      <div className="flex items-center gap-lg">
+        <div
+          className="w-28 h-28 rounded-full flex items-center justify-center shrink-0"
+          style={{
+            background: `conic-gradient(var(--theme-primary) ${percentage}%, var(--theme-surface-container-high) ${percentage}% 100%)`,
+          }}
+        >
+          <div className="w-20 h-20 rounded-full bg-surface flex items-center justify-center">
+            <span className="font-headline-sm text-headline-sm text-on-surface">{percentage}%</span>
+          </div>
+        </div>
+        <div className="flex flex-col gap-sm min-w-0">
+          {data.map((item, index) => (
+            <div key={item.label} className="flex items-center gap-xs">
+              <span className={`w-3 h-3 rounded-full ${legendColors[index] || "bg-outline"}`}></span>
+              <span className="font-body-md text-body-md text-on-surface-variant">
+                {item.label}: {item.value}
+              </span>
+            </div>
+          ))}
+        </div>
       </div>
     </section>
   );
@@ -120,12 +238,45 @@ export default function BackofficeDashboard() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-md">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-md">
               <StatCard icon="group" label="Total Users" value={dashboard.totals.users} helper="All registered accounts" />
               <StatCard icon="school" label="Students" value={dashboard.totals.students} helper="Role: etudiant" />
               <StatCard icon="admin_panel_settings" label="Admins" value={dashboard.totals.admins} helper="Backoffice access" />
               <StatCard icon="folder_managed" label="Projects" value={dashboard.totals.projects} helper="Created workspaces" />
               <StatCard icon="task_alt" label="Completion" value={completionRate} helper="Onboarding completion %" />
+            </div>
+
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-lg">
+              <BarChart
+                title="User Growth"
+                description="New users registered during the last 6 months."
+                data={dashboard.charts.userGrowth}
+              />
+              <BarChart
+                title="Project Creation"
+                description="New PFE projects created during the last 6 months."
+                data={dashboard.charts.projectGrowth}
+              />
+              <DonutChart
+                title="Onboarding Status"
+                description="Student onboarding completion across all accounts."
+                data={dashboard.charts.onboardingStatus}
+              />
+              <HorizontalChart
+                title="Project Complexity"
+                description="Created projects grouped by declared complexity."
+                data={dashboard.charts.complexities}
+              />
+              <HorizontalChart
+                title="Projects by Domain"
+                description="Most common PFE domains in created projects."
+                data={dashboard.charts.domains}
+              />
+              <HorizontalChart
+                title="Projects by Methodology"
+                description="Methodologies selected during onboarding."
+                data={dashboard.charts.methodologies}
+              />
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-lg">
