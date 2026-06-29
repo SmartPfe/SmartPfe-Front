@@ -39,7 +39,6 @@ export function useProblemStatement() {
         body: JSON.stringify({ problemStatement: content }),
       });
       setSaveStatus("saved");
-      setTimeout(() => setSaveStatus("unsaved"), 2500);
     } catch (err: any) {
       setError(err.message || "Failed to save. Please try again.");
       setSaveStatus("unsaved");
@@ -66,7 +65,7 @@ export function useProblemStatement() {
 
   const refineWithAi = async (plainText: string) => {
     if (!plainText.trim()) {
-      setError("The editor is empty — write something before asking AI to refine it.");
+      setError("The editor is empty. Write something before asking AI to refine it.");
       return;
     }
     setAiState("generating");

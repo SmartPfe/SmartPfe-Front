@@ -28,6 +28,7 @@ export default function ProblemStatement() {
   // Keep track of content via refs to avoid re-renders on every keystroke
   const editorHtmlRef = useRef("");
   const editorPlainRef = useRef("");
+  const autosaveTimerRef = useRef<number | null>(null);
   
   const [snapshotHtml, setSnapshotHtml] = useState(""); // Capture HTML before AI request
   const [externalUpdate, setExternalUpdate] = useState<{ content: string; timestamp: number } | undefined>();
@@ -49,12 +50,33 @@ export default function ProblemStatement() {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "s") {
         e.preventDefault();
+        if (autosaveTimerRef.current) {
+          window.clearTimeout(autosaveTimerRef.current);
+        }
         saveContent(editorHtmlRef.current);
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [saveContent]);
+
+  useEffect(() => {
+    return () => {
+      if (autosaveTimerRef.current) {
+        window.clearTimeout(autosaveTimerRef.current);
+      }
+    };
+  }, []);
+
+  const scheduleAutosave = (content: string) => {
+    markUnsaved();
+    if (autosaveTimerRef.current) {
+      window.clearTimeout(autosaveTimerRef.current);
+    }
+    autosaveTimerRef.current = window.setTimeout(() => {
+      saveContent(content);
+    }, 1200);
+  };
 
   const handleGenerate = async () => {
     setSnapshotHtml(editorHtmlRef.current);
@@ -110,18 +132,23 @@ export default function ProblemStatement() {
           <span className={`text-label-sm transition-colors ${
             saveStatus === "saving" ? "text-on-surface-variant" :
             saveStatus === "saved"  ? "text-secondary" :
-            "text-outline"
+            "text-error"
           }`}>
-            {saveStatus === "saving" ? "Saving..." :
-             saveStatus === "saved"  ? "Saved" :
+            {saveStatus === "saving" ? "Autosaving..." :
+             saveStatus === "saved"  ? "All changes saved" :
              "Unsaved changes"}
           </span>
           <button
-            onClick={() => saveContent(editorHtmlRef.current)}
+            onClick={() => {
+              if (autosaveTimerRef.current) {
+                window.clearTimeout(autosaveTimerRef.current);
+              }
+              saveContent(editorHtmlRef.current);
+            }}
             disabled={saveStatus === "saving"}
             className="px-5 py-2 rounded-md bg-primary text-on-primary text-label-md font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
           >
-            Save
+            Save now
           </button>
         </div>
       </div>
@@ -156,7 +183,7 @@ export default function ProblemStatement() {
             if (isEditorEmpty !== isEmpty) {
               setIsEditorEmpty(isEmpty);
             }
-            markUnsaved();
+            scheduleAutosave(html);
           }}
           readOnly={aiState === "generating" || aiState === "suggestion_ready"}
         />
