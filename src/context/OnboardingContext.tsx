@@ -37,8 +37,41 @@ function toNumber(value: unknown, fallback: number) {
   return Number.isFinite(numberValue) ? numberValue : fallback;
 }
 
-function mergeOnboardingData(saved: Partial<ProjectOnboarding>): ProjectOnboarding {
+function splitCustomList(value: string) {
+  return value
+    .split(/[\n,]+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function addUnique(values: string[], additions: string[]) {
+  const normalized = values.filter((value) => value && value !== "Other");
+  additions.forEach((addition) => {
+    if (!normalized.some((value) => value.toLowerCase() === addition.toLowerCase())) {
+      normalized.push(addition);
+    }
+  });
+  return normalized;
+}
+
+function normalizeTechnicalContext(
+  technicalContext: ProjectOnboarding["technicalContext"]
+): ProjectOnboarding["technicalContext"] {
   return {
+    ...technicalContext,
+    developmentTypes: addUnique(
+      technicalContext.developmentTypes || [],
+      splitCustomList(technicalContext.otherDevelopmentType || "")
+    ),
+    technologies: addUnique(
+      technicalContext.technologies || [],
+      splitCustomList(technicalContext.otherTechnologies || "")
+    ),
+  };
+}
+
+function mergeOnboardingData(saved: Partial<ProjectOnboarding>): ProjectOnboarding {
+  const merged = {
     basics: {
       ...defaultOnboardingData.basics,
       ...saved.basics,
@@ -58,6 +91,11 @@ function mergeOnboardingData(saved: Partial<ProjectOnboarding>): ProjectOnboardi
       teamSize: toNumber(saved.technicalContext?.teamSize, defaultOnboardingData.technicalContext.teamSize),
       duration: toNumber(saved.technicalContext?.duration, defaultOnboardingData.technicalContext.duration),
     },
+  };
+
+  return {
+    ...merged,
+    technicalContext: normalizeTechnicalContext(merged.technicalContext),
   };
 }
 
