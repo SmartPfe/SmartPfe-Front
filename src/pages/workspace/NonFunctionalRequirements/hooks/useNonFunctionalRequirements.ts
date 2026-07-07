@@ -4,11 +4,11 @@ import { fetchApi } from "@/lib/api";
 export type RequirementPriority = "Must Have" | "Should Have" | "Could Have" | "Won't Have";
 export type RequirementStatus = "Draft" | "In Review" | "Approved";
 
-export type FunctionalRequirement = {
+export type NonFunctionalRequirement = {
   _id?: string;
   localId?: string;
   code: string;
-  module: string;
+  category: string;
   title: string;
   description: string;
   priority: RequirementPriority;
@@ -19,46 +19,42 @@ export type AiState = "idle" | "generating" | "suggestion_ready";
 export type SaveStatus = "unsaved" | "saving" | "saved";
 
 const normalizePriority = (priority: string): RequirementPriority => {
-  if (priority === "Must Have" || priority === "Could Have" || priority === "Won't Have") {
-    return priority;
-  }
+  if (priority === "Must Have" || priority === "Could Have" || priority === "Won't Have") return priority;
   return "Should Have";
 };
 
 const normalizeStatus = (status: string): RequirementStatus => {
-  if (status === "Approved" || status === "In Review") {
-    return status;
-  }
+  if (status === "Approved" || status === "In Review") return status;
   return "Draft";
 };
 
-export const normalizeRequirements = (requirements: FunctionalRequirement[] = []): FunctionalRequirement[] =>
+export const normalizeRequirements = (requirements: NonFunctionalRequirement[] = []): NonFunctionalRequirement[] =>
   requirements.map((requirement, index) => ({
     ...requirement,
-    code: requirement.code || `FR-${String(index + 1).padStart(2, "0")}`,
-    module: requirement.module || "Core",
+    code: requirement.code || `NFR-${String(index + 1).padStart(2, "0")}`,
+    category: requirement.category || "Quality",
     title: requirement.title || "",
     description: requirement.description || "",
     priority: normalizePriority(requirement.priority),
     status: normalizeStatus(requirement.status),
   }));
 
-export const renumberRequirements = (requirements: FunctionalRequirement[]) =>
+export const renumberRequirements = (requirements: NonFunctionalRequirement[]) =>
   requirements.map((requirement, index) => ({
     ...requirement,
-    code: `FR-${String(index + 1).padStart(2, "0")}`,
+    code: `NFR-${String(index + 1).padStart(2, "0")}`,
   }));
 
-export function useFunctionalRequirements() {
+export function useNonFunctionalRequirements() {
   const [project, setProject] = useState<any>(null);
-  const [requirements, setRequirements] = useState<FunctionalRequirement[]>([]);
-  const [suggestion, setSuggestion] = useState<FunctionalRequirement[] | null>(null);
+  const [requirements, setRequirements] = useState<NonFunctionalRequirement[]>([]);
+  const [suggestion, setSuggestion] = useState<NonFunctionalRequirement[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
   const [aiState, setAiState] = useState<AiState>("idle");
   const [error, setError] = useState<string | null>(null);
   const autosaveTimerRef = useRef<number | null>(null);
-  const requirementsRef = useRef<FunctionalRequirement[]>([]);
+  const requirementsRef = useRef<NonFunctionalRequirement[]>([]);
 
   useEffect(() => {
     requirementsRef.current = requirements;
@@ -70,10 +66,10 @@ export function useFunctionalRequirements() {
         const projectData = await fetchApi("/projects/my-project");
         setProject(projectData);
 
-        const data = await fetchApi(`/projects/${projectData._id}/functional-requirements`);
-        setRequirements(normalizeRequirements(data.functionalRequirements || []));
+        const data = await fetchApi(`/projects/${projectData._id}/non-functional-requirements`);
+        setRequirements(normalizeRequirements(data.nonFunctionalRequirements || []));
       } catch (err: any) {
-        setError(err.message || "Failed to load functional requirements. Please refresh the page.");
+        setError(err.message || "Failed to load non-functional requirements. Please refresh the page.");
       } finally {
         setLoading(false);
       }
@@ -82,9 +78,7 @@ export function useFunctionalRequirements() {
     fetchRequirements();
   }, []);
 
-  const markUnsaved = useCallback(() => {
-    setSaveStatus("unsaved");
-  }, []);
+  const markUnsaved = useCallback(() => setSaveStatus("unsaved"), []);
 
   const saveRequirements = useCallback(async (nextRequirements = requirements, showValidation = false) => {
     if (!project?._id) {
@@ -94,13 +88,13 @@ export function useFunctionalRequirements() {
 
     const hasIncompleteRequirement = nextRequirements.some(
       (requirement) =>
-        !requirement.module.trim() ||
+        !requirement.category.trim() ||
         !requirement.title.trim() ||
         !requirement.description.trim()
     );
     if (hasIncompleteRequirement) {
       if (showValidation) {
-        setError("Please fill each requirement module, title, and description before saving.");
+        setError("Please fill each requirement category, title, and description before saving.");
       }
       setSaveStatus("unsaved");
       return;
@@ -111,49 +105,41 @@ export function useFunctionalRequirements() {
     setError(null);
 
     try {
-      const res = await fetchApi(`/projects/${project._id}/functional-requirements`, {
+      const res = await fetchApi(`/projects/${project._id}/non-functional-requirements`, {
         method: "PUT",
-        body: JSON.stringify({ functionalRequirements: normalized }),
+        body: JSON.stringify({ nonFunctionalRequirements: normalized }),
       });
       if (JSON.stringify(renumberRequirements(requirementsRef.current)) === JSON.stringify(normalized)) {
-        setRequirements(normalizeRequirements(res.functionalRequirements || []));
+        setRequirements(normalizeRequirements(res.nonFunctionalRequirements || []));
         setSaveStatus("saved");
       } else {
         setSaveStatus("unsaved");
       }
     } catch (err: any) {
-      setError(err.message || "Failed to save functional requirements. Please try again.");
+      setError(err.message || "Failed to save non-functional requirements. Please try again.");
       setSaveStatus("unsaved");
     }
   }, [project?._id, requirements]);
 
   useEffect(() => {
-    if (saveStatus !== "unsaved" || !project?._id || aiState === "generating") {
-      return;
-    }
+    if (saveStatus !== "unsaved" || !project?._id || aiState === "generating") return;
 
     const hasIncompleteRequirement = requirements.some(
       (requirement) =>
-        !requirement.module.trim() ||
+        !requirement.category.trim() ||
         !requirement.title.trim() ||
         !requirement.description.trim()
     );
-    if (hasIncompleteRequirement) {
-      return;
-    }
+    if (hasIncompleteRequirement) return;
 
-    if (autosaveTimerRef.current) {
-      window.clearTimeout(autosaveTimerRef.current);
-    }
+    if (autosaveTimerRef.current) window.clearTimeout(autosaveTimerRef.current);
 
     autosaveTimerRef.current = window.setTimeout(() => {
       saveRequirements(requirements);
     }, 1200);
 
     return () => {
-      if (autosaveTimerRef.current) {
-        window.clearTimeout(autosaveTimerRef.current);
-      }
+      if (autosaveTimerRef.current) window.clearTimeout(autosaveTimerRef.current);
     };
   }, [aiState, project?._id, requirements, saveRequirements, saveStatus]);
 
@@ -161,8 +147,8 @@ export function useFunctionalRequirements() {
     setAiState("generating");
     setError(null);
     try {
-      const res = await fetchApi("/ai/functional-requirements/generate", { method: "POST" });
-      setSuggestion(normalizeRequirements(res.functionalRequirements || []));
+      const res = await fetchApi("/ai/non-functional-requirements/generate", { method: "POST" });
+      setSuggestion(normalizeRequirements(res.nonFunctionalRequirements || []));
       setAiState("suggestion_ready");
     } catch (err: any) {
       setError(err.message || "AI generation failed. Please try again.");
@@ -172,18 +158,18 @@ export function useFunctionalRequirements() {
 
   const refineWithAi = async () => {
     if (requirements.length === 0) {
-      setError("Add or generate functional requirements before asking AI to refine them.");
+      setError("Add or generate non-functional requirements before asking AI to refine them.");
       return;
     }
 
     setAiState("generating");
     setError(null);
     try {
-      const res = await fetchApi("/ai/functional-requirements/refine", {
+      const res = await fetchApi("/ai/non-functional-requirements/refine", {
         method: "POST",
-        body: JSON.stringify({ functionalRequirements: requirements }),
+        body: JSON.stringify({ nonFunctionalRequirements: requirements }),
       });
-      setSuggestion(normalizeRequirements(res.functionalRequirements || []));
+      setSuggestion(normalizeRequirements(res.nonFunctionalRequirements || []));
       setAiState("suggestion_ready");
     } catch (err: any) {
       setError(err.message || "AI refinement failed. Please try again.");

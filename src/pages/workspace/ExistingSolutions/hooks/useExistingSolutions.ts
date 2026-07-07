@@ -176,14 +176,18 @@ export function useExistingSolutions() {
     }
   };
 
-  const acceptSuggestion = useCallback(() => {
+  const acceptSuggestion = useCallback(async () => {
     if (suggestion) {
+      solutionsRef.current = suggestion;
       setSolutions(suggestion);
-      setSaveStatus("unsaved");
+      setSuggestion(null);
+      setAiState("idle");
+      await saveSolutions(suggestion);
+      return;
     }
     setSuggestion(null);
     setAiState("idle");
-  }, [suggestion]);
+  }, [saveSolutions, suggestion]);
 
   const discardSuggestion = useCallback(() => {
     setSuggestion(null);
