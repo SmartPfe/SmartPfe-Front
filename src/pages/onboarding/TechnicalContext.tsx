@@ -138,7 +138,7 @@ const FALLBACK_TECHNOLOGIES = Array.from(
 ).sort();
 
 function getTechnologyOptions(developmentTypes: string[]) {
-  const selectedKnownTypes = developmentTypes.filter((type) => type !== "Other");
+  const selectedKnownTypes = developmentTypes.filter((type) => TECHNOLOGIES_BY_DEVELOPMENT_TYPE[type]);
   const source =
     selectedKnownTypes.length > 0
       ? selectedKnownTypes.flatMap((type) => TECHNOLOGIES_BY_DEVELOPMENT_TYPE[type] ?? [])
@@ -147,10 +147,42 @@ function getTechnologyOptions(developmentTypes: string[]) {
   return [...Array.from(new Set(source)), "Other"];
 }
 
+function splitCustomValues(value: string) {
+  return value
+    .split(/[\n,]+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function replaceCustomValues(values: string[], previousCustomValue: string, nextCustomValue: string) {
+  const previousCustomValues = splitCustomValues(previousCustomValue).map((value) => value.toLowerCase());
+  const nextValues = values.filter(
+    (value) => value !== "Other" && !previousCustomValues.includes(value.toLowerCase())
+  );
+
+  splitCustomValues(nextCustomValue).forEach((customValue) => {
+    if (!nextValues.some((value) => value.toLowerCase() === customValue.toLowerCase())) {
+      nextValues.push(customValue);
+    }
+  });
+
+  return nextValues;
+}
+
 export default function TechnicalContext() {
   const { data, updateSection } = useOnboarding();
   const technicalContext = data.technicalContext;
-  const technologyOptions = getTechnologyOptions(technicalContext.developmentTypes);
+  const developmentTypeOptions = [
+    ...DEVELOPMENT_TYPES.filter((type) => type !== "Other"),
+    ...technicalContext.developmentTypes.filter((type) => !DEVELOPMENT_TYPES.includes(type)),
+    "Other",
+  ];
+  const baseTechnologyOptions = getTechnologyOptions(technicalContext.developmentTypes);
+  const technologyOptions = [
+    ...baseTechnologyOptions.filter((technology) => technology !== "Other"),
+    ...technicalContext.technologies.filter((technology) => !baseTechnologyOptions.includes(technology)),
+    "Other",
+  ];
 
   const handleDevelopmentTypesChange = (developmentTypes: string[]) => {
     const nextTechnologyOptions = getTechnologyOptions(developmentTypes);
@@ -172,6 +204,28 @@ export default function TechnicalContext() {
     });
   };
 
+  const handleOtherDevelopmentTypeChange = (otherDevelopmentType: string) => {
+    updateSection("technicalContext", {
+      otherDevelopmentType,
+      developmentTypes: replaceCustomValues(
+        technicalContext.developmentTypes,
+        technicalContext.otherDevelopmentType,
+        otherDevelopmentType
+      ),
+    });
+  };
+
+  const handleOtherTechnologiesChange = (otherTechnologies: string) => {
+    updateSection("technicalContext", {
+      otherTechnologies,
+      technologies: replaceCustomValues(
+        technicalContext.technologies,
+        technicalContext.otherTechnologies,
+        otherTechnologies
+      ),
+    });
+  };
+
   return (
     <OnboardingStep
       step={3}
@@ -185,16 +239,16 @@ export default function TechnicalContext() {
         label="Development Type"
         values={technicalContext.developmentTypes}
         onChange={handleDevelopmentTypesChange}
-        options={DEVELOPMENT_TYPES}
+        options={developmentTypeOptions}
         helperText="Select every platform or technical category that applies to your project."
       />
 
-      {technicalContext.developmentTypes.includes("Other") && (
+      {(technicalContext.developmentTypes.includes("Other") || technicalContext.otherDevelopmentType) && (
         <TextField
           id="other-development-type"
           label="Other Development Type"
           value={technicalContext.otherDevelopmentType}
-          onChange={(otherDevelopmentType) => updateSection("technicalContext", { otherDevelopmentType })}
+          onChange={handleOtherDevelopmentTypeChange}
           placeholder="e.g. AR/VR system, embedded system, blockchain application"
           helperText="Specify the real project type if it is not listed above."
         />
@@ -225,12 +279,12 @@ export default function TechnicalContext() {
         helperText="Select the frameworks, languages, databases, cloud tools, and AI libraries used in your project."
       />
 
-      {technicalContext.technologies.includes("Other") && (
+      {(technicalContext.technologies.includes("Other") || technicalContext.otherTechnologies) && (
         <TextField
           id="other-technologies"
           label="Other Technologies"
           value={technicalContext.otherTechnologies}
-          onChange={(otherTechnologies) => updateSection("technicalContext", { otherTechnologies })}
+          onChange={handleOtherTechnologiesChange}
           placeholder="e.g. Odoo, Figma, MATLAB, Apache Kafka"
           helperText="Use this only for real tools or technologies that are not available in the list."
         />
