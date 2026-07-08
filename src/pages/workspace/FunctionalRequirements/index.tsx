@@ -26,7 +26,7 @@ const priorityOptions: RequirementPriority[] = ["Must Have", "Should Have", "Cou
 const statusOptions: RequirementStatus[] = ["Draft", "In Review", "Approved"];
 
 const aiButtonClass =
-  "flex items-center gap-2 px-4 py-2 bg-surface border border-outline-variant rounded-md text-on-surface text-sm font-medium hover:bg-surface-container-low transition-colors shadow-sm disabled:opacity-40 disabled:cursor-not-allowed disabled:grayscale";
+  "px-5 py-2 rounded-md border border-primary/20 bg-gradient-to-r from-primary/5 to-secondary/5 text-primary text-label-md font-semibold hover:from-primary/10 hover:to-secondary/10 transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed disabled:grayscale";
 
 const createEmptyRequirement = (index: number): FunctionalRequirement => ({
   localId: `new-${Date.now()}`,
@@ -145,12 +145,10 @@ export default function FunctionalRequirements() {
             Save now
           </button>
           <button onClick={generateWithAi} disabled={aiState === "generating" || aiState === "suggestion_ready"} className={aiButtonClass}>
-            <span className="material-symbols-outlined text-[18px]">auto_awesome</span>
-            {aiState === "generating" ? "Generating..." : "Generate"}
+            {aiState === "generating" ? "Generating..." : "Generate with AI"}
           </button>
           <button onClick={refineWithAi} disabled={aiState === "generating" || aiState === "suggestion_ready" || requirements.length === 0} className={aiButtonClass}>
-            <span className="material-symbols-outlined text-[18px]">tune</span>
-            Refine
+            Refine with AI
           </button>
           <button onClick={addRequirement} disabled={aiState === "generating"} className="flex items-center gap-2 px-4 py-2 bg-primary text-on-primary rounded-md text-sm font-medium hover:opacity-90 transition-colors shadow-sm disabled:opacity-50">
             <span className="material-symbols-outlined text-[18px]">add</span>

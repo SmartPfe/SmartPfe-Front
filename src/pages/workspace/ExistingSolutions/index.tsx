@@ -7,7 +7,7 @@ import {
 } from "./hooks/useExistingSolutions";
 
 const aiButtonClass =
-  "px-4 py-2 rounded-md border border-primary/20 bg-gradient-to-r from-primary/5 to-secondary/5 text-primary text-sm font-semibold hover:from-primary/10 hover:to-secondary/10 transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed disabled:grayscale";
+  "px-5 py-2 rounded-md border border-primary/20 bg-gradient-to-r from-primary/5 to-secondary/5 text-primary text-label-md font-semibold hover:from-primary/10 hover:to-secondary/10 transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed disabled:grayscale";
 
 const iconOptions = ["search", "web", "apps", "science", "cloud", "school", "analytics", "devices", "business_center", "database", "smart_toy"];
 
@@ -117,16 +117,16 @@ export default function ExistingSolutions() {
       </div>
 
       <div className="mb-8 p-6 rounded-xl bg-secondary-container border border-outline-variant flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shrink-0">
-        <div className="flex items-start sm:items-center gap-4">
+          <div className="flex items-start sm:items-center gap-4">
           <div className="w-10 h-10 rounded-full bg-surface/50 flex items-center justify-center shrink-0">
             <span className="material-symbols-outlined text-on-secondary-container">auto_awesome</span>
           </div>
           <div>
             <h3 className="font-medium text-on-secondary-container text-base">Generate Competitive Analysis</h3>
-            <p className="text-on-secondary-container/80 text-sm mt-1">Let AI identify relevant existing solutions using your project context, problem statement, and actors.</p>
+              <p className="text-on-secondary-container text-sm mt-1">Let AI identify relevant existing solutions using your project context, problem statement, and actors.</p>
           </div>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex items-center gap-3">
           <button onClick={generateWithAi} disabled={aiState === "generating" || aiState === "suggestion_ready"} className={aiButtonClass}>
             {aiState === "generating" ? (
               <span className="inline-flex items-center gap-2">

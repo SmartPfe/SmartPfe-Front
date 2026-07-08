@@ -96,13 +96,11 @@ export default function UmlPreparation() {
           <button onClick={() => saveUmlPreparation(umlPreparation)} disabled={saveStatus === "saving" || aiState === "generating"} className="px-4 py-2 rounded-md bg-primary text-on-primary text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50">
             Save now
           </button>
-          <button onClick={generateWithAi} disabled={aiState === "generating" || aiState === "suggestion_ready"} className="flex items-center gap-2 px-4 py-2 bg-surface border border-outline-variant rounded-md text-on-surface text-sm font-medium hover:bg-surface-container-low transition-colors shadow-sm disabled:opacity-40">
-            <span className="material-symbols-outlined text-[18px]">auto_awesome</span>
-            {aiState === "generating" ? "Generating..." : "Generate"}
+          <button onClick={generateWithAi} disabled={aiState === "generating" || aiState === "suggestion_ready"} className="px-5 py-2 rounded-md border border-primary/20 bg-gradient-to-r from-primary/5 to-secondary/5 text-primary text-label-md font-semibold hover:from-primary/10 hover:to-secondary/10 transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed disabled:grayscale">
+            {aiState === "generating" ? "Generating..." : "Generate with AI"}
           </button>
-          <button onClick={refineWithAi} disabled={aiState === "generating" || aiState === "suggestion_ready" || umlPreparation.classes.length === 0} className="flex items-center gap-2 px-4 py-2 bg-surface border border-outline-variant rounded-md text-on-surface text-sm font-medium hover:bg-surface-container-low transition-colors shadow-sm disabled:opacity-40">
-            <span className="material-symbols-outlined text-[18px]">tune</span>
-            Refine
+          <button onClick={refineWithAi} disabled={aiState === "generating" || aiState === "suggestion_ready" || umlPreparation.classes.length === 0} className="px-5 py-2 rounded-md border border-primary/20 bg-gradient-to-r from-primary/5 to-secondary/5 text-primary text-label-md font-semibold hover:from-primary/10 hover:to-secondary/10 transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed disabled:grayscale">
+            Refine with AI
           </button>
         </div>
       </div>
@@ -178,17 +176,6 @@ export default function UmlPreparation() {
           <div className="flex-1 overflow-y-auto p-6 bg-surface-container-low/30">
             {activeView === "elements" ? (
               <div className="flex flex-col gap-6">
-                <div className="flex items-center justify-between bg-secondary-container/20 p-4 rounded-xl border border-secondary/10">
-                  <p className="text-sm text-on-surface-variant flex gap-3 items-start">
-                    <span className="material-symbols-outlined text-secondary mt-0.5 text-[20px]">lightbulb</span>
-                    <span>{currentInfo.description}</span>
-                  </p>
-                  <button onClick={refineWithAi} disabled={aiState === "generating" || umlPreparation.classes.length === 0} className="flex items-center gap-2 px-3 py-1.5 bg-surface text-on-surface border border-outline-variant rounded text-xs font-bold hover:bg-surface-container transition-colors shrink-0 whitespace-nowrap disabled:opacity-40">
-                    <span className="material-symbols-outlined text-[16px]">smart_toy</span>
-                    AI Suggest
-                  </button>
-                </div>
-
                 {activeDiagram === "class" && <ClassElements umlPreparation={umlPreparation} editingClassId={editingClassId} setEditingClassId={setEditingClassId} updatePreparation={updatePreparation} addClass={addClass} />}
                 {activeDiagram === "usecase" && <UseCaseElements umlPreparation={umlPreparation} updatePreparation={updatePreparation} />}
                 {activeDiagram === "sequence" && <SequenceElements umlPreparation={umlPreparation} updatePreparation={updatePreparation} />}
