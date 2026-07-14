@@ -26,8 +26,8 @@ export default function AdminLayout() {
 
   return (
     <div className="min-h-screen bg-surface-container-lowest text-on-surface lg:flex">
-      <aside className="w-full lg:w-72 lg:h-screen lg:sticky lg:top-0 bg-surface border-r border-outline-variant flex flex-col">
-        <div className="h-16 px-lg border-b border-outline-variant flex items-center gap-sm">
+      <aside className="w-full lg:w-72 lg:h-dvh lg:sticky lg:top-0 bg-surface border-b lg:border-b-0 lg:border-r border-outline-variant flex flex-col">
+        <div className="h-16 px-md sm:px-lg border-b border-outline-variant flex items-center gap-sm">
           <div className="w-10 h-10 rounded-lg bg-primary text-on-primary flex items-center justify-center font-bold">
             A
           </div>
@@ -77,12 +77,12 @@ export default function AdminLayout() {
       </aside>
 
       <div className="flex-1 min-w-0 flex flex-col">
-        <header className="h-16 bg-surface border-b border-outline-variant px-lg flex items-center justify-between sticky top-0 z-30">
-          <div>
+        <header className="min-h-16 bg-surface border-b border-outline-variant px-md sm:px-lg py-2 flex items-center justify-between gap-sm sticky top-0 z-30">
+          <div className="min-w-0">
             <p className="font-label-md text-label-md text-primary uppercase tracking-wider">Admin</p>
             <p className="font-body-md text-body-md text-on-surface-variant">Backoffice management</p>
           </div>
-          <div className="flex items-center gap-sm">
+          <div className="flex items-center gap-xs sm:gap-sm shrink-0">
             <NotificationBell label="Live system updates" />
             <Link
               to="/admin/settings"
@@ -108,7 +108,7 @@ export default function AdminLayout() {
           </div>
         </header>
 
-        <main className="flex-1 min-w-0 px-lg py-xl">
+        <main className="flex-1 min-w-0 overflow-x-hidden px-md sm:px-lg py-lg sm:py-xl">
           <Outlet />
         </main>
       </div>

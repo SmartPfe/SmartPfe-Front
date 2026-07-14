@@ -86,9 +86,9 @@ const initials = user.fullName
 
   return (
     <>
-      <header className="sticky top-0 z-30 bg-surface border-b border-outline-variant flex justify-between items-center px-8 h-16 w-full shrink-0">
-        <div className="flex items-center text-sm font-body-md text-body-md">
-          <div className="flex items-center gap-4 mr-6">
+      <header className="sticky top-0 z-30 bg-surface border-b border-outline-variant flex justify-between items-center gap-2 px-3 sm:px-6 md:px-8 h-16 w-full shrink-0">
+        <div className="flex items-center text-sm font-body-md text-body-md min-w-0">
+          <div className="flex items-center gap-2 sm:gap-4 mr-2 sm:mr-6 min-w-0">
             <button 
               onClick={toggleSidebar}
               className="flex flex-shrink-0 items-center justify-center w-10 h-10 rounded hover:bg-surface-container-high text-on-surface transition-colors"
@@ -97,7 +97,7 @@ const initials = user.fullName
             </button>
             <span className="text-outline hidden sm:inline">Workspace</span>
             <span className="text-surface-container-highest hidden sm:inline">/</span>
-            <span className="font-medium text-on-surface truncate">PFE Project</span>
+            <span className="font-medium text-on-surface truncate max-w-[36vw] sm:max-w-none">PFE Project</span>
           </div>
           
           <div className="hidden sm:flex items-center justify-center min-w-[120px] px-3 py-1.5 text-xs font-medium text-on-surface-variant rounded transition-colors bg-surface-container-low border border-outline-variant/50">
@@ -115,7 +115,7 @@ const initials = user.fullName
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1 sm:gap-3 shrink-0">
           <button 
             onClick={() => setIsSearchOpen(true)}
             className="group relative hidden lg:flex items-center mr-2 w-64 bg-surface-container-low hover:bg-surface-container transition-colors border border-outline-variant rounded px-3 py-1.5"
@@ -137,7 +137,7 @@ const initials = user.fullName
 
           <NotificationBell label="Live workspace updates" />
 
-          <button className="px-4 py-2 text-xs font-semibold text-on-primary bg-primary rounded shadow-sm hover:opacity-90 transition-opacity flex items-center gap-2">
+          <button className="hidden sm:flex px-3 md:px-4 py-2 text-xs font-semibold text-on-primary bg-primary rounded shadow-sm hover:opacity-90 transition-opacity items-center gap-2 whitespace-nowrap">
             Validate Step
           </button>
           <div className="relative ml-2">

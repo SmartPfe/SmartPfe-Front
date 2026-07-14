@@ -78,7 +78,7 @@ export default function Signup() {
   };
 
   return (
-    <div className="w-full max-w-[420px] bg-surface-container-lowest border border-outline-variant rounded-xl p-xl shadow-[0_4px_20px_rgba(0,0,0,0.04)] flex flex-col gap-lg relative overflow-hidden">
+    <div className="w-full max-w-[420px] bg-surface-container-lowest border border-outline-variant rounded-xl p-lg sm:p-xl shadow-[0_4px_20px_rgba(0,0,0,0.04)] flex flex-col gap-lg relative overflow-hidden">
       <header className="flex flex-col items-center text-center gap-xs mt-sm">
         <div className="w-12 h-12 bg-primary-container text-on-primary rounded-lg flex items-center justify-center mb-xs">
           <span className="material-symbols-outlined text-[28px]">school</span>

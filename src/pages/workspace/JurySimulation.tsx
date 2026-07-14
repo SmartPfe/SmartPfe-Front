@@ -88,13 +88,13 @@ export default function JurySimulation() {
   const currentJury = currentQuestion ? JURY_MEMBERS.find(j => j.id === currentQuestion.juryId) : null;
 
   return (
-    <div className="flex h-[calc(100vh-100px)] w-[calc(100%+64px)] -mx-8 -my-6 md:-my-8 flex-col lg:flex-row overflow-hidden relative bg-surface">
+    <div className="flex min-h-[calc(100dvh-150px)] lg:h-[calc(100dvh-150px)] w-full flex-col lg:flex-row overflow-hidden relative bg-surface rounded-xl border border-outline-variant">
       
       {/* CENTER PANEL: Main Simulation Workspace */}
-      <div className="flex-1 flex flex-col relative z-10 custom-scrollbar overflow-y-auto">
+      <div className="flex-1 min-w-0 flex flex-col relative z-10 custom-scrollbar overflow-y-auto">
         <div className="max-w-4xl w-full mx-auto p-md lg:p-xl flex-1 flex flex-col relative">
           
-          <div className="flex items-center gap-3 mb-6 lg:mb-10">
+          <div className="flex items-center gap-3 mb-6 lg:mb-10 min-w-0">
             <div className="w-12 h-12 rounded-xl bg-primary-container text-on-primary-container flex items-center justify-center">
               <span className="material-symbols-outlined text-[24px]">Record_Voice_Over</span>
             </div>
@@ -114,7 +114,7 @@ export default function JurySimulation() {
                 exit={{ opacity: 0, y: -10 }}
                 className="flex-1 w-full flex flex-col items-center justify-center -mt-10"
               >
-                <div className="w-full max-w-2xl bg-surface-container-lowest border border-outline-variant rounded-3xl p-8 flex flex-col items-center text-center shadow-sm relative overflow-hidden">
+                <div className="w-full max-w-2xl bg-surface-container-lowest border border-outline-variant rounded-3xl p-md sm:p-xl flex flex-col items-center text-center shadow-sm relative overflow-hidden">
                   
                   {stage === "processing_pitch" && (
                      <div className="absolute inset-0 bg-surface/80 backdrop-blur-sm z-20 flex flex-col items-center justify-center">
@@ -141,7 +141,7 @@ export default function JurySimulation() {
                     )}
                   </div>
 
-                  <h2 className="text-display text-on-surface mb-2">
+                  <h2 className="text-display text-on-surface mb-2 break-words">
                     {stage === "recording_pitch" ? "Recording in progress..." : "Ready to present?"}
                   </h2>
                   <p className="font-body-lg text-on-surface-variant max-w-md mb-8">
@@ -183,7 +183,7 @@ export default function JurySimulation() {
                 exit={{ opacity: 0, y: -10 }}
                 className="flex-1 w-full flex flex-col"
               >
-                <div className="mb-6 flex items-center justify-between">
+                <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <h3 className="font-headline-sm text-on-surface flex items-center gap-2">
                     <span className="material-symbols-outlined text-primary">forum</span> Jury Q&A Session
                   </h3>
@@ -203,7 +203,7 @@ export default function JurySimulation() {
                         <motion.div 
                           initial={{ opacity: 0, x: -20 }}
                           animate={{ opacity: 1, x: 0 }}
-                          className="flex items-start gap-4 max-w-[85%]"
+                          className="flex items-start gap-3 sm:gap-4 max-w-full sm:max-w-[85%]"
                         >
                           <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border border-black/5 shadow-sm", j.bgColor, j.color)}>
                             <span className="material-symbols-outlined text-[24px]">{j.icon}</span>
@@ -224,7 +224,7 @@ export default function JurySimulation() {
                           <motion.div 
                             initial={{ opacity: 0, x: 20 }}
                             animate={{ opacity: 1, x: 0 }}
-                            className="flex items-start gap-4 max-w-[85%] ml-auto flex-row-reverse"
+                            className="flex items-start gap-3 sm:gap-4 max-w-full sm:max-w-[85%] ml-auto flex-row-reverse"
                           >
                             <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center shrink-0 text-on-primary shadow-sm">
                               <span className="material-symbols-outlined text-[20px]">person</span>
@@ -347,7 +347,7 @@ export default function JurySimulation() {
                       </p>
                     </div>
 
-                    <div className="flex gap-4">
+                    <div className="flex flex-col sm:flex-row gap-4">
                       <button 
                         onClick={() => { setStage("setup"); setQuestions([]); }}
                         className="h-10 px-6 bg-primary text-on-primary font-label-md rounded-lg flex items-center gap-2 hover:bg-primary/90 transition-all shadow-sm"

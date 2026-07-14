@@ -26,7 +26,7 @@ function ProgressStepper() {
   }
 
   return (
-    <div className="bg-surface border-b border-outline-variant px-6 py-4 overflow-hidden shrink-0">
+    <div className="bg-surface border-b border-outline-variant px-3 py-3 sm:px-6 sm:py-4 overflow-hidden shrink-0">
       <div className="max-w-6xl mx-auto w-full relative">
         <div ref={scrollRef} className="flex items-center gap-2 overflow-x-auto no-scrollbar scroll-smooth">
           {WORKSPACE_PHASES.map((phase, index) => {
@@ -90,16 +90,16 @@ export default function WorkspaceLayout() {
 
   return (
     <OnboardingProvider>
-      <div className="flex h-screen bg-surface overflow-hidden">
+      <div className="flex h-dvh min-h-dvh bg-surface overflow-hidden">
         <Sidebar isOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} />
         <div className={cn(
-          "flex-1 flex flex-col h-screen min-w-0 transition-all duration-300 ease-in-out",
+          "flex-1 flex flex-col h-dvh min-w-0 transition-all duration-300 ease-in-out",
           isSidebarOpen ? "md:ml-[280px]" : "ml-0"
         )}>
           <Topbar toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
           <ProgressStepper />
-          <main className="flex-1 overflow-y-auto p-6 md:p-8 relative bg-surface-container-lowest">
-            <div className="max-w-6xl mx-auto w-full min-h-full flex flex-col">
+          <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 md:p-8 relative bg-surface-container-lowest">
+            <div className="max-w-6xl mx-auto w-full min-w-0 min-h-full flex flex-col">
               <Outlet />
             </div>
           </main>

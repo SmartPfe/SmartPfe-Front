@@ -115,7 +115,7 @@ export default function ReportBuilder() {
   const nextSection = sections[sections.findIndex(s => s.id === activeSectionId) + 1];
 
   return (
-    <div className="flex h-[calc(100vh-100px)] w-[calc(100%+64px)] -mx-xl -my-margin flex-col lg:flex-row overflow-hidden relative">
+    <div className="flex min-h-[calc(100dvh-150px)] lg:h-[calc(100dvh-150px)] w-full flex-col lg:flex-row overflow-hidden relative rounded-xl border border-outline-variant bg-surface">
       
       {/* LEFT PANEL: Report Structure Navigation */}
       <div className="w-full lg:w-[300px] shrink-0 border-b lg:border-b-0 lg:border-r border-outline-variant bg-surface-container-lowest flex flex-col pt-md lg:h-full max-h-[30vh] lg:max-h-full">
@@ -165,13 +165,13 @@ export default function ReportBuilder() {
       </div>
 
       {/* CENTER PANEL: Current Section Workspace */}
-      <div className="flex-1 overflow-y-auto bg-surface flex flex-col shadow-[-4px_0_24px_rgba(0,0,0,0.02)] z-10 relative">
-        <div className="max-w-3xl w-full mx-auto p-xl flex-1 flex flex-col">
+      <div className="flex-1 min-w-0 overflow-y-auto bg-surface flex flex-col shadow-[-4px_0_24px_rgba(0,0,0,0.02)] z-10 relative">
+        <div className="max-w-3xl w-full mx-auto p-md sm:p-lg lg:p-xl flex-1 flex flex-col">
           
           <div className="mb-8">
-            <div className="flex items-start justify-between mb-4">
-              <h1 className="text-display text-on-surface tracking-tight">{activeSection.title}</h1>
-              <div className="flex items-center gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
+              <h1 className="text-display text-on-surface tracking-tight break-words">{activeSection.title}</h1>
+              <div className="flex items-center gap-3 flex-wrap">
                 {activeSection.status === "completed" && (
                   <span className="font-label-sm text-label-sm bg-[#10B981]/10 text-[#059669] px-2.5 py-1 rounded border border-[#10B981]/20 uppercase tracking-wider flex items-center gap-1.5">
                     <span className="material-symbols-outlined text-[14px]">check_circle</span> Completed
@@ -223,7 +223,7 @@ export default function ReportBuilder() {
           </AnimatePresence>
 
           <div className="flex-1 flex flex-col mb-10 relative">
-            <div className="flex items-center justify-between border-b border-outline-variant mb-4 relative z-10 bg-surface">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-outline-variant mb-4 relative z-10 bg-surface">
               <div className="flex gap-6">
                 <button 
                   onClick={() => setActiveTab("content")} 
@@ -238,7 +238,7 @@ export default function ReportBuilder() {
                   LaTeX
                 </button>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 sm:gap-3 flex-wrap pb-2 sm:pb-0">
                 {activeTab === "latex" ? (
                   <button 
                     onClick={handleCopyLatex}
@@ -292,7 +292,7 @@ export default function ReportBuilder() {
               </div>
             </div>
 
-            <div className="flex-1 flex flex-col relative h-[400px]">
+            <div className="flex-1 flex flex-col relative min-h-[360px] sm:min-h-[400px]">
               {activeTab === "latex" ? (
                 <div className="flex-1 bg-[#1e1e1e] rounded-xl p-md overflow-y-auto">
                   <pre className="font-mono text-[13px] leading-relaxed text-[#d4d4d4] whitespace-pre-wrap">
@@ -309,13 +309,13 @@ export default function ReportBuilder() {
                     Select your preferred section length and use the AI assistant to instantly generate a comprehensive first draft.
                   </p>
                   
-                  <div className="flex bg-surface-container-low rounded-lg p-1 mb-6 border border-outline-variant/50">
+                  <div className="flex flex-wrap justify-center bg-surface-container-low rounded-lg p-1 mb-6 border border-outline-variant/50">
                     {(["short", "medium", "long"] as ContentLength[]).map(l => (
                       <button 
                         key={l}
                         onClick={() => setContentLength(l)}
                         className={cn(
-                          "px-4 py-1.5 rounded-md font-label-sm transition-colors flex items-center gap-1", 
+                          "px-3 sm:px-4 py-1.5 rounded-md font-label-sm transition-colors flex items-center gap-1", 
                           contentLength === l 
                             ? "bg-surface shadow-[0_1px_3px_rgba(0,0,0,0.1)] text-on-surface font-bold" 
                             : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container"

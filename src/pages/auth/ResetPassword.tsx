@@ -42,7 +42,7 @@ export default function ResetPassword() {
 
   if (!token) {
     return (
-      <div className="w-full max-w-[420px] mx-auto bg-surface-container-lowest border border-outline-variant rounded-xl p-xl shadow-sm text-center">
+      <div className="w-full max-w-[420px] mx-auto bg-surface-container-lowest border border-outline-variant rounded-xl p-lg sm:p-xl shadow-sm text-center">
         <p className="font-body-md text-body-md text-on-surface-variant mb-lg">Invalid reset link.</p>
         <Link to="/forgot-password" className="font-label-md text-label-md text-primary hover:text-secondary transition-colors">
           Request a new link
@@ -52,7 +52,7 @@ export default function ResetPassword() {
   }
 
   return (
-    <div className="w-full max-w-[420px] mx-auto bg-surface-container-lowest border border-outline-variant rounded-xl p-xl shadow-sm">
+    <div className="w-full max-w-[420px] mx-auto bg-surface-container-lowest border border-outline-variant rounded-xl p-lg sm:p-xl shadow-sm">
       <div className="flex flex-col items-center mb-xl text-center">
         <div className="w-12 h-12 rounded-lg bg-surface-container-high flex items-center justify-center mb-md border border-outline-variant">
           <span className="material-symbols-outlined text-[28px] text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>lock</span>

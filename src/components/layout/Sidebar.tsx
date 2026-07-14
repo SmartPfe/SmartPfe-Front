@@ -53,7 +53,7 @@ export default function Sidebar({ isOpen, setIsSidebarOpen }: SidebarProps) {
         onClick={() => setIsSidebarOpen(false)}
       />
       <aside className={cn(
-        "bg-surface-container-low text-on-surface w-[280px] h-full fixed left-0 top-0 bottom-0 z-40 flex flex-col border-r border-outline-variant transition-transform duration-300 ease-in-out",
+        "bg-surface-container-low text-on-surface w-[min(280px,85vw)] h-full fixed left-0 top-0 bottom-0 z-40 flex flex-col border-r border-outline-variant transition-transform duration-300 ease-in-out",
         isOpen ? "translate-x-0" : "-translate-x-full"
       )}>
       <div className="p-xl border-b border-outline-variant">
@@ -61,7 +61,7 @@ export default function Sidebar({ isOpen, setIsSidebarOpen }: SidebarProps) {
           <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-on-primary font-bold">
             P
           </div>
-          <span className="font-bold text-lg tracking-tight text-on-surface">PFE Guidance</span>
+          <span className="font-bold text-lg tracking-tight text-on-surface truncate">PFE Guidance</span>
         </div>
       </div>
       <div className="flex-1 overflow-y-auto pt-lg pb-md px-md">
@@ -85,7 +85,7 @@ export default function Sidebar({ isOpen, setIsSidebarOpen }: SidebarProps) {
                   <div className={cn("w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors", isActive ? "border-primary" : "border-outline")}>
                     {isActive && <div className="w-2 h-2 bg-primary rounded-full"></div>}
                   </div>
-                  <span>{item.label}</span>
+                  <span className="truncate">{item.label}</span>
                 </>
               )}
             </NavLink>

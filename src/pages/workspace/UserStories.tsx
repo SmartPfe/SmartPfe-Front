@@ -25,13 +25,13 @@ export default function UserStories() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-150px)] w-[calc(100%+64px)] -mx-xl -my-margin">
+    <div className="flex min-h-[calc(100dvh-150px)] w-full flex-col lg:flex-row overflow-hidden rounded-xl border border-outline-variant bg-surface">
       {/* Left Pane: Stories List */}
-      <div className="w-[360px] flex-shrink-0 flex flex-col border-r border-outline-variant bg-surface-container-lowest h-full relative z-10">
+      <div className="w-full lg:w-[360px] flex-shrink-0 flex flex-col border-b lg:border-b-0 lg:border-r border-outline-variant bg-surface-container-lowest lg:h-full max-h-[48dvh] lg:max-h-none relative z-10">
         
         <div className="p-md border-b border-outline-variant bg-surface-container-lowest z-10">
           <div className="flex items-center justify-between mb-sm">
-            <h1 className="font-headline-sm text-headline-sm text-on-surface flex items-center">
+            <h1 className="font-headline-sm text-headline-sm text-on-surface flex items-center min-w-0">
               User Stories
               <InfoTooltip 
                 label="User Stories" 
@@ -46,7 +46,7 @@ export default function UserStories() {
                   animate={{ scale: 1, opacity: 1 }}
                   exit={{ scale: 0.8, opacity: 0 }}
                   transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                  className="font-label-sm text-label-sm bg-[#10B981] text-white px-2 py-1 rounded uppercase tracking-wider shadow-sm flex items-center gap-1"
+                  className="font-label-sm text-label-sm bg-[#10B981] text-white px-2 py-1 rounded uppercase tracking-wider shadow-sm flex items-center gap-1 shrink-0"
                 >
                   <span className="material-symbols-outlined text-[14px]">done_all</span> Phase Complete
                 </motion.span>
@@ -57,7 +57,7 @@ export default function UserStories() {
                   animate={{ scale: 1, opacity: 1 }}
                   exit={{ scale: 0.8, opacity: 0 }}
                   transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                  className="font-label-sm text-label-sm bg-secondary-fixed text-on-secondary-fixed-variant px-2 py-1 rounded uppercase tracking-wider"
+                  className="font-label-sm text-label-sm bg-secondary-fixed text-on-secondary-fixed-variant px-2 py-1 rounded uppercase tracking-wider shrink-0"
                 >
                   In Progress
                 </motion.span>
@@ -65,7 +65,7 @@ export default function UserStories() {
             </AnimatePresence>
           </div>
           <div className="flex flex-col gap-sm">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row sm:items-center gap-2">
               <div className="relative flex-1">
                 <span className="material-symbols-outlined absolute left-2 top-1/2 -translate-y-1/2 text-on-surface-variant text-lg">search</span>
                 <input type="text" placeholder="Search stories..." className="w-full pl-8 pr-3 py-1.5 bg-surface border border-outline-variant rounded text-body-md focus:outline-none focus:border-secondary transition-colors" />
@@ -148,9 +148,9 @@ export default function UserStories() {
       </div>
 
       {/* Right Pane: Story Detail */}
-      <div className="flex-1 overflow-y-auto bg-surface relative">
-        <div className="max-w-4xl mx-auto p-xl">
-          <div className="flex items-center gap-3 mb-xl">
+      <div className="flex-1 min-w-0 overflow-y-auto bg-surface relative">
+        <div className="max-w-4xl mx-auto p-md sm:p-lg lg:p-xl">
+          <div className="flex items-center gap-3 mb-lg sm:mb-xl flex-wrap">
             <span className="font-label-md text-label-md text-on-surface-variant bg-surface-container px-3 py-1.5 rounded-full border border-outline-variant">US-01</span>
             <span className="font-label-sm text-label-sm bg-error-container text-on-error-container px-3 py-1.5 rounded-full uppercase tracking-wider font-bold">High Priority</span>
           </div>

@@ -152,7 +152,7 @@ export default function Pitch() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-100px)] w-[calc(100%+64px)] -mx-8 -my-6 md:-my-8 flex-col lg:flex-row overflow-hidden relative bg-surface">
+    <div className="flex min-h-[calc(100dvh-150px)] lg:h-[calc(100dvh-150px)] w-full flex-col lg:flex-row overflow-hidden relative bg-surface rounded-xl border border-outline-variant">
       
       {/* LEFT PANEL: Pitch Sections Navigator */}
       <div className="w-full lg:w-[320px] shrink-0 border-b lg:border-b-0 lg:border-r border-outline-variant bg-surface-container-lowest flex flex-col pt-md lg:h-full max-h-[35vh] lg:max-h-full">
@@ -247,16 +247,16 @@ export default function Pitch() {
       </div>
 
       {/* CENTER PANEL: Main Workspace */}
-      <div className="flex-1 overflow-y-auto bg-surface flex flex-col shadow-[-4px_0_24px_rgba(0,0,0,0.02)] z-10 relative custom-scrollbar">
+      <div className="flex-1 min-w-0 overflow-y-auto bg-surface flex flex-col shadow-[-4px_0_24px_rgba(0,0,0,0.02)] z-10 relative custom-scrollbar">
         <div className="max-w-3xl w-full mx-auto p-md lg:p-xl flex-1 flex flex-col pt-lg">
           
-          <div className="flex items-start justify-between mb-8">
-            <div className="flex items-center gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8">
+            <div className="flex items-center gap-4 min-w-0">
               <div className="w-12 h-12 rounded-xl bg-primary-container text-on-primary-container flex items-center justify-center">
                 <span className="material-symbols-outlined text-[24px]">{activeSection.icon}</span>
               </div>
               <div>
-                <h1 className="text-display text-on-surface tracking-tight mb-1 flex items-center gap-2">
+                <h1 className="text-display text-on-surface tracking-tight mb-1 flex items-center gap-2 break-words">
                   {activeSection.title}
                   <span className="text-[20px]">👋</span>
                 </h1>
@@ -267,7 +267,7 @@ export default function Pitch() {
               </div>
             </div>
             
-            <div className="flex gap-2">
+            <div className="flex gap-2 shrink-0">
               <button 
                 onClick={() => handleMoveSection('up')}
                 className="w-10 h-10 flex items-center justify-center rounded-lg border border-outline-variant text-on-surface-variant hover:bg-surface-container-low transition-colors"
@@ -283,9 +283,9 @@ export default function Pitch() {
             </div>
           </div>
 
-          <div className="flex-1 flex flex-col bg-surface-container-lowest border border-outline-variant rounded-2xl shadow-sm overflow-hidden mb-8 flex flex-col max-h-[500px]">
-            <div className="flex items-center justify-between border-b border-outline-variant px-4 pt-4 bg-surface-container-lowest">
-              <div className="flex gap-6">
+          <div className="flex-1 flex flex-col bg-surface-container-lowest border border-outline-variant rounded-2xl shadow-sm overflow-hidden mb-8 max-h-[500px]">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-outline-variant px-4 pt-4 bg-surface-container-lowest">
+              <div className="flex gap-4 sm:gap-6">
                 <button 
                   onClick={() => setActiveTab("script")} 
                   className={cn("pb-3 font-label-md transition-colors border-b-2", activeTab === "script" ? "border-primary text-primary" : "border-transparent text-on-surface-variant hover:text-on-surface")}
@@ -363,13 +363,13 @@ export default function Pitch() {
               </AnimatePresence>
             </div>
 
-            <div className="border-t border-outline-variant bg-surface-container-lowest p-3 px-4 flex items-center justify-between">
+            <div className="border-t border-outline-variant bg-surface-container-lowest p-3 px-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div className="font-label-sm text-on-surface-variant flex items-center gap-1.5">
                 <span className="material-symbols-outlined text-[16px]">format_align_left</span>
                 {draftScript.trim() ? draftScript.trim().split(/\s+/).length : 0} words
               </div>
               
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap justify-end">
                 {!isEditing ? (
                   <>
                     <button 
@@ -436,12 +436,12 @@ export default function Pitch() {
         </div>
         
         {/* Footer actions */}
-        <div className="p-4 border-t border-outline-variant bg-surface flex items-center justify-between mt-auto sticky bottom-0 z-20">
+        <div className="p-4 border-t border-outline-variant bg-surface flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-auto sticky bottom-0 z-20">
           <button className="h-9 px-4 font-label-md text-on-surface hover:bg-surface-container flex items-center gap-2 rounded-lg transition-colors">
             <span className="material-symbols-outlined text-[18px]">visibility</span> Preview Full Pitch
           </button>
           
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
             <button className="h-9 px-4 font-label-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container flex items-center gap-2 rounded-lg transition-colors">
               <span className="material-symbols-outlined text-[18px]">picture_as_pdf</span> Export PDF
             </button>

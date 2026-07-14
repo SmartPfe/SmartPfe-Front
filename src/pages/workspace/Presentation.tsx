@@ -123,7 +123,7 @@ export default function Presentation() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-100px)] w-[calc(100%+64px)] -mx-xl -my-margin flex-col lg:flex-row overflow-hidden relative">
+    <div className="flex min-h-[calc(100dvh-150px)] lg:h-[calc(100dvh-150px)] w-full flex-col lg:flex-row overflow-hidden relative rounded-xl border border-outline-variant bg-surface">
       
       {/* LEFT PANEL: Slide Outline */}
       <div className="w-full lg:w-[320px] shrink-0 border-b lg:border-b-0 lg:border-r border-outline-variant bg-surface-container-lowest flex flex-col pt-md lg:h-full max-h-[35vh] lg:max-h-full">
@@ -232,7 +232,7 @@ export default function Presentation() {
       </div>
 
       {/* CENTER PANEL: Workspace */}
-      <div className="flex-1 overflow-y-auto bg-surface flex flex-col shadow-[-4px_0_24px_rgba(0,0,0,0.02)] z-10 relative custom-scrollbar">
+      <div className="flex-1 min-w-0 overflow-y-auto bg-surface flex flex-col shadow-[-4px_0_24px_rgba(0,0,0,0.02)] z-10 relative custom-scrollbar">
         {slides.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-surface w-full h-[50vh] lg:h-auto">
             <div className="w-20 h-20 rounded-3xl bg-primary-container flex items-center justify-center mb-6">
@@ -252,7 +252,7 @@ export default function Presentation() {
           </div>
         ) : activeSlide ? (
           <div className="max-w-3xl w-full mx-auto p-md lg:p-xl flex-1 flex flex-col">
-            <div className="flex items-start justify-between mb-2">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-2">
               <div className="flex-1">
                 {isEditing ? (
                   <input
@@ -262,11 +262,11 @@ export default function Presentation() {
                     className="text-display text-on-surface tracking-tight w-full bg-transparent border-b-2 border-primary outline-none py-1"
                   />
                 ) : (
-                  <h1 className="text-display text-on-surface tracking-tight">{activeSlide.title}</h1>
+                  <h1 className="text-display text-on-surface tracking-tight break-words">{activeSlide.title}</h1>
                 )}
               </div>
               
-              <div className="flex items-center gap-2 shrink-0 ml-4">
+              <div className="flex items-center gap-2 shrink-0 sm:ml-4 flex-wrap">
                 <button title="Move Up" onClick={() => handleMoveSlide('up')} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-surface-container text-on-surface-variant transition-colors disabled:opacity-30">
                   <span className="material-symbols-outlined text-[20px]">arrow_upward</span>
                 </button>
@@ -319,10 +319,10 @@ export default function Presentation() {
             </div>
 
             <div className="flex-1 flex flex-col gap-6 mb-10">
-              <div className="flex items-center justify-between border-b border-outline-variant pb-2">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-outline-variant pb-2">
                 <h3 className="font-headline-sm text-on-surface">Slide Content</h3>
                 {!isEditing ? (
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <button 
                       onClick={() => setIsEditing(true)}
                       className="h-8 px-3 font-label-sm text-on-surface hover:bg-surface-container-low border border-outline-variant rounded-md flex items-center gap-1.5 transition-colors"
@@ -343,7 +343,7 @@ export default function Presentation() {
                     </button>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <button 
                       onClick={() => setIsEditing(false)}
                       className="h-8 px-3 font-label-sm text-on-surface hover:bg-surface-container-low rounded-md transition-colors"

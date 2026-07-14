@@ -14,21 +14,21 @@ export default function ProductBacklog() {
           </h2>
           <p className="font-body-lg text-body-lg text-on-surface-variant max-w-[42rem]">Manage and prioritize features, requirements, and technical tasks for your project.</p>
         </div>
-        <div className="flex items-center gap-sm">
-          <button className="flex items-center gap-2 px-4 py-2 bg-surface border border-outline-variant rounded-lg text-on-surface font-label-md text-label-md hover:bg-surface-container-low transition-colors">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-sm">
+          <button className="flex items-center justify-center gap-2 px-4 py-2 bg-surface border border-outline-variant rounded-lg text-on-surface font-label-md text-label-md hover:bg-surface-container-low transition-colors">
             <span className="material-symbols-outlined text-[18px]">sort</span>
             Sort by Priority
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-primary text-on-primary rounded-lg font-label-md text-label-md hover:opacity-90 transition-colors shadow-sm">
+          <button className="flex items-center justify-center gap-2 px-4 py-2 bg-primary text-on-primary rounded-lg font-label-md text-label-md hover:opacity-90 transition-colors shadow-sm">
             <span className="material-symbols-outlined text-[18px]">add</span>
             Create Story
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-lg h-[calc(100vh-200px)] pb-xl">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-lg lg:h-[calc(100dvh-220px)] pb-xl">
         {/* To Do Column */}
-        <div className="flex flex-col bg-surface-container-lowest rounded-xl border border-outline-variant h-full overflow-hidden hover:bg-surface-container-low transition-colors">
+        <div className="flex flex-col bg-surface-container-lowest rounded-xl border border-outline-variant min-h-[360px] lg:h-full overflow-hidden hover:bg-surface-container-low transition-colors">
           <div className="p-sm border-b border-outline-variant bg-surface flex justify-between items-center sticky top-0 z-10">
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-surface-variant"></div>
@@ -100,7 +100,7 @@ export default function ProductBacklog() {
         </div>
 
         {/* In Progress Column */}
-        <div className="flex flex-col bg-surface-container-lowest rounded-xl border border-outline-variant h-full overflow-hidden hover:bg-surface-container-low transition-colors">
+        <div className="flex flex-col bg-surface-container-lowest rounded-xl border border-outline-variant min-h-[320px] lg:h-full overflow-hidden hover:bg-surface-container-low transition-colors">
           <div className="p-sm border-b border-outline-variant bg-surface flex justify-between items-center sticky top-0 z-10">
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-secondary"></div>
@@ -131,7 +131,7 @@ export default function ProductBacklog() {
         </div>
 
         {/* Done Column */}
-        <div className="flex flex-col bg-surface-container-lowest rounded-xl border border-outline-variant h-full overflow-hidden hover:bg-surface-container-low transition-colors opacity-80">
+        <div className="flex flex-col bg-surface-container-lowest rounded-xl border border-outline-variant min-h-[320px] lg:h-full overflow-hidden hover:bg-surface-container-low transition-colors opacity-80">
           <div className="p-sm border-b border-outline-variant bg-surface flex justify-between items-center sticky top-0 z-10">
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-[#10B981]"></div>
