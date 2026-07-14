@@ -181,25 +181,27 @@ export default function FunctionalRequirements() {
       )}
 
       <div className="bg-surface border border-outline-variant rounded-xl flex flex-col flex-1 min-h-0 overflow-hidden shadow-sm">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 p-4 border-b border-outline-variant bg-surface-container-lowest shrink-0">
-          <div className="flex gap-2 relative overflow-x-auto">
-            {modules.map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab.toLowerCase())}
-                className={cn(
-                  "px-4 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap",
-                  activeTab === tab.toLowerCase()
-                    ? "bg-surface-container-high text-on-surface"
-                    : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low"
-                )}
-              >
-                {tab}
-              </button>
-            ))}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 p-4 border-b border-outline-variant bg-surface-container-lowest shrink-0 min-w-0">
+          <div className="min-w-0 flex-1 overflow-x-auto no-scrollbar">
+            <div className="flex min-w-max items-center gap-2 pr-2">
+              {modules.map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab.toLowerCase())}
+                  className={cn(
+                    "inline-flex items-center justify-center px-4 py-2 text-sm font-semibold rounded-md transition-colors whitespace-nowrap border",
+                    activeTab === tab.toLowerCase()
+                      ? "bg-primary-container text-primary border-primary/20"
+                      : "bg-surface text-on-surface hover:text-primary hover:bg-surface-container-low border-outline-variant"
+                  )}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="relative">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline-variant text-[18px]">search</span>
+          <div className="relative shrink-0 w-full lg:w-72">
+            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[18px]">search</span>
             <input type="text" value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} placeholder="Search FRs..." className="pl-9 pr-4 py-1.5 bg-surface border border-outline-variant rounded-md text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary w-full lg:w-64" />
           </div>
         </div>
@@ -239,13 +241,13 @@ function RequirementsTable({
   return (
     <div className="overflow-x-auto flex-1">
       <table className="w-full text-left border-collapse">
-        <thead className="bg-surface-container-lowest sticky top-0 z-10 shadow-sm">
+        <thead className="bg-surface-container-low sticky top-0 z-10 shadow-sm">
           <tr>
-            <th className="px-6 py-3 border-b border-outline-variant text-[10px] font-bold text-outline-variant uppercase tracking-wider">ID</th>
-            <th className="px-6 py-3 border-b border-outline-variant text-[10px] font-bold text-outline-variant uppercase tracking-wider">Module</th>
-            <th className="px-6 py-3 border-b border-outline-variant text-[10px] font-bold text-outline-variant uppercase tracking-wider">Description</th>
-            <th className="px-6 py-3 border-b border-outline-variant text-[10px] font-bold text-outline-variant uppercase tracking-wider w-36">Priority</th>
-            <th className="px-6 py-3 border-b border-outline-variant text-[10px] font-bold text-outline-variant uppercase tracking-wider">Status</th>
+            <th className="px-6 py-3 border-b border-outline-variant text-[11px] font-bold text-on-surface uppercase">ID</th>
+            <th className="px-6 py-3 border-b border-outline-variant text-[11px] font-bold text-on-surface uppercase">Module</th>
+            <th className="px-6 py-3 border-b border-outline-variant text-[11px] font-bold text-on-surface uppercase">Description</th>
+            <th className="px-6 py-3 border-b border-outline-variant text-[11px] font-bold text-on-surface uppercase w-36">Priority</th>
+            <th className="px-6 py-3 border-b border-outline-variant text-[11px] font-bold text-on-surface uppercase">Status</th>
             <th className="px-6 py-3 border-b border-outline-variant w-32"></th>
           </tr>
         </thead>
@@ -259,7 +261,7 @@ function RequirementsTable({
             const isEditing = editingId === id;
 
             return (
-              <tr key={id} className="hover:bg-surface-container-lowest/50 transition-colors group align-top">
+              <tr key={id} className="hover:bg-surface-container-low transition-colors group align-top">
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className="text-xs font-mono font-medium text-primary bg-primary-container/30 px-2 py-1 rounded inline-flex">{requirement.code}</span>
                 </td>
