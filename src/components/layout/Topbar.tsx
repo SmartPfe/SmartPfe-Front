@@ -137,9 +137,6 @@ const initials = user.fullName
 
           <NotificationBell label="Live workspace updates" />
 
-          <button className="hidden sm:flex px-3 md:px-4 py-2 text-xs font-semibold text-on-primary bg-primary rounded shadow-sm hover:opacity-90 transition-opacity items-center gap-2 whitespace-nowrap">
-            Validate Step
-          </button>
           <div className="relative ml-2">
             <button
               onClick={() => {
