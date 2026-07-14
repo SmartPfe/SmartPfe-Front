@@ -18,7 +18,7 @@ import SummaryReview from "./pages/onboarding/SummaryReview";
 import Overview from "./pages/workspace/Overview";
 import ProblemStatement from "./pages/workspace/ProblemStatement";
 import Actors from "./pages/workspace/Actors";
-import ProductBacklog from "./pages/workspace/ProductBacklog";
+import ProductBacklog from "./pages/workspace/ProductBacklog/index";
 import ReportStructure from "./pages/workspace/ReportStructure";
 import ReportBuilder from "./pages/workspace/ReportBuilder";
 import Presentation from "./pages/workspace/Presentation";
