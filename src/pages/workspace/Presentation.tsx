@@ -4,6 +4,9 @@ import { cn } from "@/lib/utils";
 import { fetchApi } from "@/lib/api";
 import { motion, AnimatePresence } from "motion/react";
 import confetti from "canvas-confetti";
+import PresentationPage from "./Presentation/index";
+
+export default PresentationPage;
 
 type SlideStatus = "completed" | "in-progress" | "not-started";
 type Duration = 5 | 10 | 15 | 20;
@@ -53,7 +56,7 @@ const defenseBlueprints = [
   ["Conclusion", "Close with achievements, limits, and future improvements."],
 ] as const;
 
-export default function Presentation() {
+function LegacyDefenseBuilder() {
   const [duration, setDuration] = useState<Duration>(15);
   const [activeStep, setActiveStep] = useState<BuilderStep>("plan");
   const [sections, setSections] = useState<DefenseSection[]>([]);
