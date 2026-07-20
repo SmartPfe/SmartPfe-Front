@@ -37,9 +37,9 @@ export default function RevisionHistoryDrawer({ isOpen, onClose }: RevisionHisto
       time: "2 hours ago", 
       date: "Today, 8:30 AM", 
       user: "JD", 
-      action: "Validated Phase: User Stories", 
-      details: "Approved 12 User Stories and moved sprint velocity metric to 42 points.",
-      phase: "User Stories",
+      action: "Validated Phase: Product Backlog", 
+      details: "Approved 12 Backlog Items and moved sprint velocity metric to 42 points.",
+      phase: "Product Backlog",
       current: false 
     },
     { 

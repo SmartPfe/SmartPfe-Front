@@ -70,7 +70,7 @@ export default function UmlPreparation() {
       )
     },
     class: {
-      description: "Define the structural entities before generating the diagram. AI can suggest attributes based on your User Stories.",
+      description: "Define the structural entities before generating the diagram. AI can suggest attributes based on your Product Backlog.",
       markup: `classDiagram
     class User {
         <<Abstract>>

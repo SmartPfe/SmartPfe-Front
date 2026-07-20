@@ -97,7 +97,7 @@ export default function Actors() {
               tooltip="Identify all users and systems interacting with your application."
             />
           </h2>
-          <p className="font-body-lg text-body-lg text-on-surface-variant max-w-[42rem]">Define the users, external systems, or roles that interact with your proposed solution. These actors will form the basis of your user stories and use case diagrams.</p>
+          <p className="font-body-lg text-body-lg text-on-surface-variant max-w-[42rem]">Define the users, external systems, or roles that interact with your proposed solution. These actors will form the basis of your product backlog and use case diagrams.</p>
         </div>
         <div className="flex items-center gap-4 shrink-0">
           <span className={`text-label-sm transition-colors ${

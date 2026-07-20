@@ -296,7 +296,7 @@ export default function TechnicalContext() {
         value={technicalContext.targetUsers}
         onChange={(targetUsers) => updateSection("technicalContext", { targetUsers })}
         placeholder="e.g. Students, academic supervisors, company supervisors, administrators"
-        helperText="This helps AI generate relevant actors, user stories, and backlog items."
+        helperText="This helps AI generate relevant actors and backlog items."
       />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-lg">

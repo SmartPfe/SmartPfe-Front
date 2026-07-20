@@ -10,7 +10,7 @@ const NAV_ITEMS = [
   { icon: "settings_suggest", label: "Functional Requirements", path: "/workspace/functional-requirements", tooltip: "Specify the exact behaviors and features the system must support." },
   { icon: "verified_user", label: "Non Functional Requirements", path: "/workspace/non-functional-requirements", tooltip: "Define system attributes like performance, security, and scalability." },
   { icon: "format_list_bulleted", label: "Product Backlog", path: "/workspace/backlog", tooltip: "Organize and prioritize all pending tasks and features." },
-  { icon: "person_pin", label: "User Stories", path: "/workspace/user-stories", tooltip: "Describe features from an end-user perspective to guide development." },
+
   { icon: "account_tree", label: "UML Preparation", path: "/workspace/uml-preparation", tooltip: "Design the system architecture using Unified Modeling Language diagrams." },
   { icon: "account_tree", label: "Report Structure", path: "/workspace/report-structure", tooltip: "Outline the chapters and sections of your final PFE report." },
   { icon: "auto_stories", label: "Report Builder", path: "/workspace/report-builder", tooltip: "Draft and assemble the content for your final report." },

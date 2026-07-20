@@ -48,10 +48,9 @@ const INITIAL_SECTIONS: Section[] = [
   },
   { id: "requirements", title: "Requirements Analysis", status: "in-progress", content: "", generatedFrom: ["Functional Requirements", "Non-Functional Requirements"] },
   { id: "backlog", title: "Product Backlog", status: "not-started", content: "", generatedFrom: ["Product Backlog"] },
-  { id: "user-stories", title: "User Stories", status: "not-started", content: "", generatedFrom: ["User Stories", "Actors"] },
   { id: "uml", title: "UML Design", status: "not-started", content: "", generatedFrom: ["UML Preparation"] },
   { id: "implementation", title: "Implementation", status: "not-started", content: "", generatedFrom: ["Technical Context"] },
-  { id: "testing", title: "Testing", status: "not-started", content: "", generatedFrom: ["User Stories"] },
+  { id: "testing", title: "Testing", status: "not-started", content: "", generatedFrom: ["Product Backlog"] },
   { id: "conclusion", title: "Conclusion", status: "not-started", content: "", generatedFrom: ["Project Overview"] },
 ];
 

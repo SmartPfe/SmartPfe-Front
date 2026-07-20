@@ -23,7 +23,7 @@ import ReportStructure from "./pages/workspace/ReportStructure/index";
 import ReportBuilder from "./pages/workspace/ReportBuilder";
 import Presentation from "./pages/workspace/Presentation";
 import Pitch from "./pages/workspace/Pitch";
-import UserStories from "./pages/workspace/UserStories";
+
 import ExistingSolutions from "./pages/workspace/ExistingSolutions/index";
 import FunctionalRequirements from "./pages/workspace/FunctionalRequirements/index";
 import NonFunctionalRequirements from "./pages/workspace/NonFunctionalRequirements/index";
@@ -77,7 +77,7 @@ export default function App() {
           <Route path="presentation" element={<Presentation />} />
           <Route path="pitch" element={<Pitch />} />
           <Route path="jury-simulation" element={<JurySimulation />} />
-          <Route path="user-stories" element={<UserStories />} />
+
           <Route path="settings" element={<Settings />} />
           <Route path="settings/onboarding" element={<ProjectSettings />} />
           <Route path="account" element={<AccountSettings />} />

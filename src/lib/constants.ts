@@ -6,7 +6,7 @@ export const WORKSPACE_PHASES = [
   { id: "functional-requirements", label: "Func Reqs", path: "/workspace/functional-requirements", tooltip: "Specify the exact behaviors and features the system must support." },
   { id: "non-functional-requirements", label: "Non-Func Reqs", path: "/workspace/non-functional-requirements", tooltip: "Define system attributes like performance, security, and scalability." },
   { id: "backlog", label: "Backlog", path: "/workspace/backlog", tooltip: "Organize and prioritize all pending tasks and features." },
-  { id: "user-stories", label: "User Stories", path: "/workspace/user-stories", tooltip: "Describe features from an end-user perspective to guide development." },
+
   { id: "uml-preparation", label: "UML", path: "/workspace/uml-preparation", tooltip: "Design the system architecture using Unified Modeling Language diagrams." },
   { id: "report-structure", label: "Structure", path: "/workspace/report-structure", tooltip: "Outline the chapters and sections of your final PFE report." },
   { id: "report-builder", label: "Report", path: "/workspace/report-builder", tooltip: "Draft and assemble the content for your final report." },
