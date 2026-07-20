@@ -1,6 +1,7 @@
-import { Link, NavLink } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
+import { useWorkflow } from "@/context/WorkflowContext";
 
 const NAV_ITEMS = [
   { icon: "info", label: "Project Overview", path: "/workspace/overview", tooltip: "Define the core premise, goals, and domain of your project." },
@@ -25,6 +26,8 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ isOpen, setIsSidebarOpen }: SidebarProps) {
+  const { steps, loading } = useWorkflow();
+  const navigate = useNavigate();
   const [isDarkMode, setIsDarkMode] = useState(() => {
     if (typeof window !== "undefined") {
       return document.documentElement.classList.contains('dark') || 
@@ -65,31 +68,73 @@ export default function Sidebar({ isOpen, setIsSidebarOpen }: SidebarProps) {
         </div>
       </div>
       <div className="flex-1 overflow-y-auto pt-lg pb-md px-md">
-        <nav className="flex flex-col gap-1">
+        <nav className="flex flex-col gap-1 relative z-0">
           <div className="text-[10px] uppercase font-bold text-outline tracking-wider mb-2 px-3">Methodology Phases</div>
-          {NAV_ITEMS.map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              className={({ isActive }) =>
-                cn(
-                  "flex items-center gap-3 px-3 py-2 rounded-md font-medium transition-colors text-sm",
-                  isActive
-                    ? "text-primary bg-surface border border-outline-variant shadow-sm"
-                    : "text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface"
-                )
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  <div className={cn("w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors", isActive ? "border-primary" : "border-outline")}>
-                    {isActive && <div className="w-2 h-2 bg-primary rounded-full"></div>}
-                  </div>
-                  <span className="truncate">{item.label}</span>
-                </>
-              )}
-            </NavLink>
-          ))}
+
+          {NAV_ITEMS.map((item, index) => {
+            const stepState = steps[item.path] || { status: "Locked", isCompleted: false };
+            const isLocked = stepState.status === "Locked";
+            const isCompleted = stepState.status === "Completed";
+            const isLast = index === NAV_ITEMS.length - 1;
+            
+            const prevItem = index > 0 ? NAV_ITEMS[index - 1] : null;
+            const tooltipText = isLocked && prevItem 
+              ? `Complete "${prevItem.label}" to unlock this phase.` 
+              : item.tooltip;
+
+            return (
+              <div key={item.path} className="relative flex flex-col">
+                <NavLink
+                  to={isLocked ? "#" : item.path}
+                  onClick={(e) => {
+                    if (isLocked) {
+                      e.preventDefault();
+                    }
+                  }}
+                  title={tooltipText}
+                  className={({ isActive }) =>
+                    cn(
+                      "flex items-center gap-3 px-3 py-2 rounded-md font-medium transition-colors text-sm relative z-10",
+                      isLocked ? "opacity-60 cursor-not-allowed text-outline" :
+                      isActive
+                        ? "text-primary bg-surface border border-outline-variant shadow-sm"
+                        : "text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface",
+                      isCompleted && !isActive && "text-on-surface"
+                    )
+                  }
+                >
+                  {({ isActive }) => (
+                    <>
+                      <div className={cn(
+                        "w-[22px] h-[22px] rounded-full border-[1.5px] flex items-center justify-center shrink-0 transition-colors bg-surface-container-lowest z-10",
+                        isCompleted ? "border-[#10B981] bg-[#10B981]/10 text-[#10B981]" : 
+                        isActive ? "border-primary bg-primary/10 text-primary" : 
+                        isLocked ? "border-outline-variant/60 bg-surface-container text-outline-variant" : "border-outline text-outline"
+                      )}>
+                        {isCompleted ? (
+                          <span className="material-symbols-outlined" style={{ fontSize: '13px', fontWeight: 'bold' }}>check</span>
+                        ) : isLocked ? (
+                          <span className="material-symbols-outlined" style={{ fontSize: '11px' }}>lock</span>
+                        ) : isActive ? (
+                          <div className="w-2.5 h-2.5 bg-primary rounded-full"></div>
+                        ) : null}
+                      </div>
+                      <span className="truncate">{item.label}</span>
+                    </>
+                  )}
+                </NavLink>
+                {!isLast && (
+                  <div 
+                    className={cn(
+                      "absolute top-[30px] h-[16px] w-[2px] z-0 transition-colors rounded-full",
+                      isCompleted ? "bg-[#10B981]" : "bg-outline-variant/30"
+                    )}
+                    style={{ left: '22px' }}
+                  />
+                )}
+              </div>
+            );
+          })}
         </nav>
       </div>
       <div className="mt-auto border-t border-outline-variant py-md flex flex-col">
