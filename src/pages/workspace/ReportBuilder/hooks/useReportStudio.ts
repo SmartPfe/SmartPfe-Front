@@ -130,6 +130,7 @@ export const flattenReportStructure = (sections: ReportSection[] = [], prefix = 
   });
 
 export const hasChapterContent = (chapter?: ReportChapter) => Boolean(chapter && stripHtml(chapter.contentHtml));
+export const isLeafReportSection = (item?: FlatReportSection) => Boolean(item && !item.section.children?.length);
 
 export function useReportStudio() {
   const [project, setProject] = useState<any>(null);
@@ -256,6 +257,12 @@ export function useReportStudio() {
   }, [flatSections, markUnsaved]);
 
   const generateChapter = async (sectionId: string, detailLevel: DetailLevel) => {
+    const targetSection = flatSections.find((item) => item.section.id === sectionId);
+    if (!isLeafReportSection(targetSection)) {
+      setError("Select a child report section before generating content.");
+      return;
+    }
+
     setAiState("generating");
     setError(null);
     try {
@@ -280,6 +287,12 @@ export function useReportStudio() {
   };
 
   const runChapterAction = async (sectionId: string, action: AiAction, currentContent: string, selectedText = "") => {
+    const targetSection = flatSections.find((item) => item.section.id === sectionId);
+    if (!isLeafReportSection(targetSection)) {
+      setError("Select a child report section before using AI tools.");
+      return;
+    }
+
     setAiState("acting");
     setError(null);
     try {
@@ -304,12 +317,15 @@ export function useReportStudio() {
   };
 
   const generateCompleteReport = async () => {
+    const leafSectionIds = new Set(flatSections.filter(isLeafReportSection).map((item) => item.section.id));
+    const leafChapters = chaptersRef.current.filter((chapter) => leafSectionIds.has(chapter.sectionId));
+
     setAiState("finalizing");
     setError(null);
     try {
       const res = await fetchApi("/ai/report-studio/final/generate", {
         method: "POST",
-        body: JSON.stringify({ reportChapters: chaptersRef.current }),
+        body: JSON.stringify({ reportChapters: leafChapters }),
       });
       setFinalReport(res.finalReport || null);
     } catch (err: any) {
