@@ -20,7 +20,7 @@ import ProblemStatement from "./pages/workspace/ProblemStatement";
 import Actors from "./pages/workspace/Actors";
 import ProductBacklog from "./pages/workspace/ProductBacklog/index";
 import ReportStructure from "./pages/workspace/ReportStructure/index";
-import ReportBuilder from "./pages/workspace/ReportBuilder";
+import ReportBuilder from "./pages/workspace/ReportBuilder/index";
 import Presentation from "./pages/workspace/Presentation";
 import Pitch from "./pages/workspace/Pitch";
 

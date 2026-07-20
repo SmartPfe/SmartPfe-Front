@@ -282,3 +282,109 @@
     display: none; /* Chrome, Safari and Opera */
   }
 }
+
+.report-rich-editor h1,
+.report-rich-editor h2,
+.report-rich-editor h3 {
+  color: var(--theme-on-surface);
+  font-weight: 800;
+  line-height: 1.25;
+  margin: 1.35rem 0 0.65rem;
+}
+
+.report-rich-editor h1 {
+  font-size: 1.65rem;
+}
+
+.report-rich-editor h2 {
+  font-size: 1.35rem;
+}
+
+.report-rich-editor h3 {
+  font-size: 1.1rem;
+}
+
+.report-rich-editor p {
+  margin: 0.85rem 0;
+}
+
+.report-rich-editor ul,
+.report-rich-editor ol {
+  margin: 0.85rem 0 0.85rem 1.5rem;
+}
+
+.report-rich-editor ul {
+  list-style: disc;
+}
+
+.report-rich-editor ol {
+  list-style: decimal;
+}
+
+.report-rich-editor li {
+  margin: 0.35rem 0;
+}
+
+.report-rich-editor table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  font-size: 0.9rem;
+}
+
+.report-rich-editor th,
+.report-rich-editor td {
+  border: 1px solid var(--theme-outline-variant);
+  padding: 0.65rem 0.75rem;
+  vertical-align: top;
+}
+
+.report-rich-editor th {
+  background: var(--theme-surface-container);
+  font-weight: 700;
+}
+
+.report-rich-editor caption,
+.report-rich-editor figcaption {
+  color: var(--theme-on-surface-variant);
+  font-size: 0.82rem;
+  font-weight: 600;
+  margin-top: 0.45rem;
+  text-align: center;
+}
+
+.report-rich-editor figure {
+  border: 1px dashed var(--theme-outline);
+  border-radius: 8px;
+  margin: 1.2rem 0;
+  padding: 1rem;
+  text-align: center;
+  background: var(--theme-surface-container-low);
+}
+
+.report-rich-editor pre {
+  background: var(--theme-inverse-surface);
+  color: var(--theme-inverse-on-surface);
+  border-radius: 8px;
+  padding: 1rem;
+  overflow-x: auto;
+  margin: 1rem 0;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+}
+
+.report-rich-editor hr[data-page-break="true"] {
+  border: 0;
+  border-top: 2px dashed var(--theme-primary);
+  margin: 1.5rem 0;
+}
+
+.report-rich-editor hr[data-page-break="true"]::after {
+  content: "Page break";
+  display: block;
+  color: var(--theme-primary);
+  font-size: 0.75rem;
+  font-weight: 700;
+  margin-top: 0.25rem;
+  text-transform: uppercase;
+}
