@@ -83,8 +83,7 @@ export function WorkflowProvider({ children }: { children: ReactNode }) {
         (data.umlPreparation?.sequence?.participants && data.umlPreparation.sequence.participants.length > 0)
       ),
       "/workspace/report-structure": Boolean(data.reportStructure && data.reportStructure.length > 0),
-      // For these last ones, we assume they are completed if they are visited/have some form of data, 
-      // but since they don't have DB fields yet, we'll mark them false so they stay "Available" once unlocked.
+      // Since these don't have backend storage yet, they will evaluate to false unless we add explicit completion triggers
       "/workspace/report-builder": false,
       "/workspace/presentation": false,
       "/workspace/pitch": false,
@@ -92,28 +91,64 @@ export function WorkflowProvider({ children }: { children: ReactNode }) {
     };
 
     const newSteps: Record<string, WorkflowStep> = {};
-    let isPreviousCompleted = true; // The first step is always available
-
-    NAV_PATHS.forEach((path) => {
+    
+    // Evaluate strict sequential logic up to report-structure (index 0 to 8)
+    let isPreviousCompleted = true;
+    for (let i = 0; i <= 8; i++) {
+      const path = NAV_PATHS[i];
       const isCompleted = completions[path] || false;
-      
       let status: StepStatus = "Locked";
-      
+
       if (isCompleted) {
         status = "Completed";
       } else if (isPreviousCompleted) {
         status = "Available";
       }
 
-      newSteps[path] = {
-        path,
-        status,
-        isCompleted,
-      };
-
-      // To unlock the next step, this step must be completed.
+      newSteps[path] = { path, status, isCompleted };
       isPreviousCompleted = isCompleted;
+    }
+
+    // Branching Logic After Report Structure
+    const isReportStructureCompleted = completions["/workspace/report-structure"] || false;
+    
+    // Report Builder, Presentation, and Pitch unlock together
+    const branchingPaths = [
+      "/workspace/report-builder", 
+      "/workspace/presentation", 
+      "/workspace/pitch"
+    ];
+    
+    branchingPaths.forEach((path) => {
+      const isCompleted = completions[path] || false;
+      let status: StepStatus = "Locked";
+      
+      if (isCompleted) {
+        status = "Completed";
+      } else if (isReportStructureCompleted) {
+        status = "Available";
+      }
+      
+      newSteps[path] = { path, status, isCompleted };
     });
+
+    // Jury Simulation Logic
+    const isPresentationCompleted = completions["/workspace/presentation"] || false;
+    const isPitchCompleted = completions["/workspace/pitch"] || false;
+    const isJurySimCompleted = completions["/workspace/jury-simulation"] || false;
+    
+    let jurySimStatus: StepStatus = "Locked";
+    if (isJurySimCompleted) {
+      jurySimStatus = "Completed";
+    } else if (isPresentationCompleted && isPitchCompleted) {
+      jurySimStatus = "Available";
+    }
+    
+    newSteps["/workspace/jury-simulation"] = {
+      path: "/workspace/jury-simulation",
+      status: jurySimStatus,
+      isCompleted: isJurySimCompleted
+    };
 
     setSteps(newSteps);
   };
