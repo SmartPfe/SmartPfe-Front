@@ -83,9 +83,6 @@ export default function PitchPage() {
   };
 
   const exportPdf = () => {
-    const printWindow = window.open("", "_blank", "noopener,noreferrer");
-    if (!printWindow) return;
-
     const sections = slides.map((slide, index) => {
       const tips = slide.tips.length
         ? `<ul>${slide.tips.map((tip) => `<li>${escapeHtml(tip)}</li>`).join("")}</ul>`
@@ -95,7 +92,7 @@ export default function PitchPage() {
         <section class="slide">
           <p class="kicker">Slide ${index + 1}</p>
           <h2>${escapeHtml(slide.title || `Slide ${index + 1}`)}</h2>
-          <p class="duration">Estimated duration: ${formatDuration(estimateSpeechSeconds(slide.speech, slide.estimatedSeconds))}</p>
+          <p class="duration">Estimated duration: ${formatDuration(getCurrentSeconds(slide))}</p>
           <h3>Speech</h3>
           ${paragraphHtml(slide.speech) || "<p>No speech yet.</p>"}
           <h3>Speaker Tips</h3>
@@ -104,7 +101,7 @@ export default function PitchPage() {
       `;
     }).join("");
 
-    printWindow.document.write(`
+    const html = `
       <!doctype html>
       <html>
         <head>
@@ -142,10 +139,48 @@ export default function PitchPage() {
           </main>
         </body>
       </html>
-    `);
-    printWindow.document.close();
-    printWindow.focus();
-    printWindow.print();
+    `;
+
+    const printFrame = document.createElement("iframe");
+    printFrame.title = "Pitch PDF Export";
+    printFrame.style.position = "fixed";
+    printFrame.style.right = "0";
+    printFrame.style.bottom = "0";
+    printFrame.style.width = "0";
+    printFrame.style.height = "0";
+    printFrame.style.border = "0";
+    printFrame.style.opacity = "0";
+    document.body.appendChild(printFrame);
+
+    const frameWindow = printFrame.contentWindow;
+    const frameDocument = printFrame.contentDocument || frameWindow?.document;
+
+    if (!frameWindow || !frameDocument) {
+      printFrame.remove();
+      return;
+    }
+
+    const cleanup = () => {
+      window.setTimeout(() => {
+        printFrame.remove();
+      }, 500);
+    };
+
+    frameDocument.open();
+    frameDocument.write(html);
+    frameDocument.close();
+    frameWindow.onafterprint = cleanup;
+
+    window.setTimeout(() => {
+      frameWindow.focus();
+      frameWindow.print();
+    }, 150);
+
+    window.setTimeout(() => {
+      if (document.body.contains(printFrame)) {
+        printFrame.remove();
+      }
+    }, 30000);
   };
 
   if (loading) {
