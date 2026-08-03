@@ -19,14 +19,15 @@ const priorityOptions: BacklogPriority[] = ["High", "Medium", "Low"];
 const aiButtonClass =
   "px-5 py-2 rounded-md border border-primary/20 bg-gradient-to-r from-primary/5 to-secondary/5 text-primary text-label-md font-semibold hover:from-primary/10 hover:to-secondary/10 transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed disabled:grayscale";
 
-const createEmptyBacklogItem = (index: number): ProductBacklogItem => ({
+const createEmptyBacklogItem = (index: number, primaryActorOptions: string[]): ProductBacklogItem => ({
   localId: `new-${Date.now()}`,
-  code: `PB-${String(index + 1).padStart(2, "0")}`,
+  code: `1.${index + 1}`,
   epic: "Project",
+  actors: [primaryActorOptions[0] || "User"],
   task: "",
   priority: "Medium",
   durationDays: 3,
-  sprint: "",
+  sprint: "Sprint 1",
   notes: "",
 });
 
@@ -39,6 +40,7 @@ export default function ProductBacklog() {
     aiState,
     suggestion,
     error,
+    primaryActorOptions,
     targetDurationDays,
     markUnsaved,
     saveProductBacklog,
@@ -72,6 +74,7 @@ export default function ProductBacklog() {
       !query ||
       item.code.toLowerCase().includes(query) ||
       item.epic.toLowerCase().includes(query) ||
+      item.actors.join(" ").toLowerCase().includes(query) ||
       item.task.toLowerCase().includes(query) ||
       item.sprint.toLowerCase().includes(query) ||
       item.notes.toLowerCase().includes(query);
@@ -86,7 +89,7 @@ export default function ProductBacklog() {
   };
 
   const addBacklogItem = () => {
-    const item = createEmptyBacklogItem(productBacklog.length);
+    const item = createEmptyBacklogItem(productBacklog.length, primaryActorOptions);
     setProductBacklog((prev) => [...prev, item]);
     setEditingId(getBacklogKey(item));
     markUnsaved();
@@ -129,7 +132,7 @@ export default function ProductBacklog() {
             <InfoTooltip label="Backlog" tooltip="Organize the project tasks, priorities, and planned durations for your PFE report." />
           </h1>
           <p className="text-body-lg text-on-surface-variant max-w-[42rem]">
-            Build a report-ready backlog table that translates your project scope into realistic tasks, priorities, phases, and durations.
+            Build a report-ready Product Backlog with epics, primary actors, user stories, and priorities in English.
           </p>
         </div>
         <div className="flex flex-wrap items-center justify-end gap-3">
@@ -151,7 +154,7 @@ export default function ProductBacklog() {
           </button>
           <button onClick={addBacklogItem} disabled={aiState === "generating"} className="flex items-center gap-2 px-4 py-2 bg-primary text-on-primary rounded-md text-sm font-medium hover:opacity-90 transition-colors shadow-sm disabled:opacity-50">
             <span className="material-symbols-outlined text-[18px]">add</span>
-            Add Task
+            Add Story
           </button>
         </div>
       </div>
@@ -175,12 +178,12 @@ export default function ProductBacklog() {
               <button onClick={acceptSuggestion} className="px-4 py-2 rounded-md bg-primary text-on-primary text-label-sm hover:opacity-90">Accept backlog</button>
             </div>
           </div>
-          <BacklogTable items={suggestion} editingId={null} readOnly onEdit={() => {}} onDelete={() => {}} onMove={() => {}} onUpdate={() => {}} />
+          <BacklogTable items={suggestion} editingId={null} primaryActorOptions={primaryActorOptions} readOnly onEdit={() => {}} onDelete={() => {}} onMove={() => {}} onUpdate={() => {}} />
         </div>
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-md mb-6">
-        <SummaryCard icon="format_list_numbered" label="Tasks" value={productBacklog.length.toString()} helper={`${highPriorityCount} high priority`} />
+        <SummaryCard icon="format_list_numbered" label="User stories" value={productBacklog.length.toString()} helper={`${highPriorityCount} high priority`} />
         <SummaryCard icon="calendar_month" label="Planned duration" value={`${totalDuration} days`} helper={targetDurationDays ? `Target: ~${targetDurationDays} days` : "Set duration in onboarding"} />
         <div className="rounded-lg border border-outline-variant bg-surface p-md">
           <div className="flex items-center justify-between mb-3">
@@ -238,10 +241,10 @@ export default function ProductBacklog() {
             <div className="w-12 h-12 rounded-full bg-surface-container border border-outline-variant flex items-center justify-center group-hover:scale-110 group-hover:text-primary transition-all duration-300">
               <span className="material-symbols-outlined text-[24px]">add</span>
             </div>
-            <span className="font-medium">Generate with AI or add your first backlog task.</span>
+            <span className="font-medium">Generate with AI or add your first user story.</span>
           </button>
         ) : (
-          <BacklogTable items={filteredBacklog} editingId={editingId} onEdit={setEditingId} onDelete={deleteBacklogItem} onMove={moveBacklogItem} onUpdate={updateBacklogItem} />
+          <BacklogTable items={filteredBacklog} editingId={editingId} primaryActorOptions={primaryActorOptions} onEdit={setEditingId} onDelete={deleteBacklogItem} onMove={moveBacklogItem} onUpdate={updateBacklogItem} />
         )}
       </div>
     </div>
@@ -264,6 +267,7 @@ function SummaryCard({ icon, label, value, helper }: { icon: string; label: stri
 function BacklogTable({
   items,
   editingId,
+  primaryActorOptions,
   readOnly = false,
   onEdit,
   onDelete,
@@ -272,63 +276,118 @@ function BacklogTable({
 }: {
   items: ProductBacklogItem[];
   editingId: string | null;
+  primaryActorOptions: string[];
   readOnly?: boolean;
   onEdit: (id: string | null) => void;
   onDelete: (id: string) => void;
   onMove: (id: string, direction: -1 | 1) => void;
   onUpdate: (id: string, updates: Partial<ProductBacklogItem>) => void;
 }) {
+  const getEpicRowSpan = (index: number) => {
+    const epic = items[index]?.epic;
+    if (!epic || items[index - 1]?.epic === epic) return 0;
+
+    let span = 1;
+    while (items[index + span]?.epic === epic) {
+      span += 1;
+    }
+
+    return span;
+  };
+
+  const toggleActor = (item: ProductBacklogItem, actor: string) => {
+    const hasActor = item.actors.includes(actor);
+    const actors = hasActor
+      ? item.actors.filter((itemActor) => itemActor !== actor)
+      : [...item.actors, actor];
+
+    return actors.length ? actors : [actor];
+  };
+
   return (
     <div className="overflow-x-auto flex-1">
-      <table className="w-full text-left border-collapse">
-        <thead className="bg-surface-container-low sticky top-0 z-10 shadow-sm">
+      <table className="w-full min-w-[940px] text-left border-collapse bg-surface">
+        <thead className="bg-surface-container-low sticky top-0 z-10">
           <tr>
-            <th className="px-6 py-3 border-b border-outline-variant text-[11px] font-bold text-on-surface uppercase">ID</th>
-            <th className="px-6 py-3 border-b border-outline-variant text-[11px] font-bold text-on-surface uppercase">Epic / Phase</th>
-            <th className="px-6 py-3 border-b border-outline-variant text-[11px] font-bold text-on-surface uppercase">Task</th>
-            <th className="px-6 py-3 border-b border-outline-variant text-[11px] font-bold text-on-surface uppercase w-32">Priority</th>
-            <th className="px-6 py-3 border-b border-outline-variant text-[11px] font-bold text-on-surface uppercase w-32">Duration</th>
-            <th className="px-6 py-3 border-b border-outline-variant text-[11px] font-bold text-on-surface uppercase">Sprint</th>
-            <th className="px-6 py-3 border-b border-outline-variant w-32"></th>
+            <th className="w-[190px] border border-outline-variant px-4 py-3 text-sm font-bold text-on-surface">Epic</th>
+            <th className="w-[90px] border border-outline-variant px-4 py-3 text-sm font-bold text-on-surface">ID</th>
+            <th className="w-[210px] border border-outline-variant px-4 py-3 text-sm font-bold text-on-surface">As a</th>
+            <th className="border border-outline-variant px-4 py-3 text-sm font-bold text-on-surface">I want (User Story)</th>
+            <th className="w-[140px] border border-outline-variant px-4 py-3 text-sm font-bold text-on-surface">Sprint</th>
+            <th className="w-[130px] border border-outline-variant px-4 py-3 text-sm font-bold text-on-surface">Priority</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-outline-variant/50">
+        <tbody>
           {items.length === 0 ? (
             <tr>
-              <td colSpan={7} className="px-6 py-12 text-center text-on-surface-variant">No matching backlog tasks.</td>
+              <td colSpan={6} className="border border-outline-variant px-6 py-12 text-center text-on-surface-variant">No matching backlog stories.</td>
             </tr>
-          ) : items.map((item) => {
+          ) : items.map((item, index) => {
             const id = getBacklogKey(item);
             const isEditing = editingId === id;
+            const epicRowSpan = getEpicRowSpan(index);
             return (
               <tr key={id} className="hover:bg-surface-container-low transition-colors group align-top">
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className="text-xs font-mono font-medium text-primary bg-primary-container/30 px-2 py-1 rounded inline-flex">{item.code}</span>
+                {epicRowSpan > 0 && (
+                  <td rowSpan={epicRowSpan} className="border border-outline-variant px-4 py-4 align-top">
+                    {isEditing ? (
+                      <input value={item.epic} onChange={(event) => onUpdate(id, { epic: event.target.value })} className="w-full bg-surface border border-outline-variant rounded-md px-3 py-2 outline-none focus:border-primary text-sm font-semibold" placeholder="Epic" />
+                    ) : (
+                      <span className="text-sm font-bold leading-6 text-on-surface">{item.epic}</span>
+                    )}
+                  </td>
+                )}
+                <td className="border border-outline-variant px-4 py-4 whitespace-nowrap align-top">
+                  <span className="font-mono text-sm font-semibold text-on-surface">{item.code}</span>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="border border-outline-variant px-4 py-4 align-top">
                   {isEditing ? (
-                    <input value={item.epic} onChange={(event) => onUpdate(id, { epic: event.target.value })} className="w-40 bg-surface border border-outline-variant rounded-md px-3 py-2 outline-none focus:border-primary text-sm" placeholder="Epic" />
+                    primaryActorOptions.length > 0 ? (
+                      <div className="flex flex-col gap-2">
+                        {primaryActorOptions.map((actor) => (
+                          <label key={actor} className="flex items-center gap-2 text-sm font-semibold text-on-surface">
+                            <input
+                              type="checkbox"
+                              checked={item.actors.includes(actor)}
+                              onChange={() => onUpdate(id, { actors: toggleActor(item, actor) })}
+                              className="h-4 w-4 accent-primary"
+                            />
+                            {actor}
+                          </label>
+                        ))}
+                      </div>
+                    ) : (
+                      <textarea value={item.actors.join("\n")} onChange={(event) => onUpdate(id, { actors: event.target.value.split(/\r?\n/).map((actor) => actor.trim()).filter(Boolean) })} className="w-full min-h-[80px] bg-surface border border-outline-variant rounded-md px-3 py-2 outline-none focus:border-primary resize-y text-sm font-semibold" placeholder="Primary actor" />
+                    )
                   ) : (
-                    <span className="inline-flex items-center gap-1.5 text-sm font-medium text-on-surface">
-                      <span className="w-2 h-2 rounded-full bg-outline-variant/50"></span>
-                      {item.epic}
-                    </span>
+                    <div className="flex flex-col gap-1">
+                      {item.actors.map((actor) => (
+                        <span key={actor} className="text-sm font-bold leading-6 text-on-surface">{actor}</span>
+                      ))}
+                    </div>
                   )}
                 </td>
-                <td className="px-6 py-4 min-w-[360px]">
+                <td className="border border-outline-variant px-4 py-4 min-w-[360px] align-top">
                   {isEditing ? (
                     <div className="flex flex-col gap-2">
-                      <textarea value={item.task} onChange={(event) => onUpdate(id, { task: event.target.value })} className="w-full min-h-[74px] bg-surface border border-outline-variant rounded-md px-3 py-2 outline-none focus:border-primary resize-y text-sm font-medium" placeholder="Describe the backlog task" />
-                      <input value={item.notes} onChange={(event) => onUpdate(id, { notes: event.target.value })} className="w-full bg-surface border border-outline-variant rounded-md px-3 py-2 outline-none focus:border-primary text-sm" placeholder="Optional notes" />
+                      <textarea value={item.task} onChange={(event) => onUpdate(id, { task: event.target.value })} className="w-full min-h-[74px] bg-surface border border-outline-variant rounded-md px-3 py-2 outline-none focus:border-primary resize-y text-sm font-medium" placeholder="Create an account." />
+                      <input value={item.notes} onChange={(event) => onUpdate(id, { notes: event.target.value })} className="w-full bg-surface border border-outline-variant rounded-md px-3 py-2 outline-none focus:border-primary text-sm" placeholder="Optional details" />
                     </div>
                   ) : (
                     <div className="flex flex-col gap-1">
-                      <span className="font-bold text-sm text-on-surface">{item.task || "Untitled backlog task"}</span>
+                      <span className="text-sm leading-6 text-on-surface">{item.task || "Untitled user story"}</span>
                       {item.notes && <span className="text-sm text-on-surface-variant leading-relaxed line-clamp-2 pr-8">{item.notes}</span>}
                     </div>
                   )}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="border border-outline-variant px-4 py-4 whitespace-nowrap align-top">
+                  {isEditing ? (
+                    <input value={item.sprint} onChange={(event) => onUpdate(id, { sprint: event.target.value })} className="w-28 bg-surface border border-outline-variant rounded-md px-3 py-2 outline-none focus:border-primary text-sm" placeholder="Sprint 1" />
+                  ) : (
+                    <span className="text-sm font-semibold text-on-surface-variant">{item.sprint || "Sprint 1"}</span>
+                  )}
+                </td>
+                <td className="border border-outline-variant px-4 py-4 whitespace-nowrap align-top">
                   {isEditing ? (
                     <select value={item.priority} onChange={(event) => onUpdate(id, { priority: event.target.value as BacklogPriority })} className="w-32 bg-surface border border-outline-variant rounded-md px-3 py-2 outline-none focus:border-primary text-sm">
                       {priorityOptions.map((priority) => <option key={priority} value={priority}>{priority}</option>)}
@@ -336,24 +395,9 @@ function BacklogTable({
                   ) : (
                     <span className={cn("text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded border", priorityStyles[item.priority])}>{item.priority}</span>
                   )}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  {isEditing ? (
-                    <input type="number" min={1} value={item.durationDays} onChange={(event) => onUpdate(id, { durationDays: Number(event.target.value) })} className="w-24 bg-surface border border-outline-variant rounded-md px-3 py-2 outline-none focus:border-primary text-sm" />
-                  ) : (
-                    <span className="font-label-md text-on-surface">{item.durationDays} day{item.durationDays === 1 ? "" : "s"}</span>
-                  )}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  {isEditing ? (
-                    <input value={item.sprint} onChange={(event) => onUpdate(id, { sprint: event.target.value })} className="w-32 bg-surface border border-outline-variant rounded-md px-3 py-2 outline-none focus:border-primary text-sm" placeholder="Sprint / Phase" />
-                  ) : (
-                    <span className="text-sm text-on-surface-variant">{item.sprint || "Unassigned"}</span>
-                  )}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right">
+
                   {!readOnly && (
-                    <div className="flex items-center justify-end gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                    <div className="mt-3 flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                       <button onClick={() => onMove(id, -1)} className="p-1.5 text-outline-variant hover:text-on-surface hover:bg-surface-container rounded-md" title="Move up">
                         <span className="material-symbols-outlined text-[18px]">keyboard_arrow_up</span>
                       </button>

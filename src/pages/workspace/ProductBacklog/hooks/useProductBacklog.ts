@@ -8,6 +8,7 @@ export type ProductBacklogItem = {
   localId?: string;
   code: string;
   epic: string;
+  actors: string[];
   task: string;
   priority: BacklogPriority;
   durationDays: number;
@@ -19,7 +20,8 @@ export type AiState = "idle" | "generating" | "suggestion_ready";
 export type SaveStatus = "unsaved" | "saving" | "saved";
 
 const normalizePriority = (priority: string): BacklogPriority => {
-  if (priority === "High" || priority === "Low") return priority;
+  if (priority === "High" || priority === "Must") return "High";
+  if (priority === "Low" || priority === "Could" || priority === "Won't") return "Low";
   return "Medium";
 };
 
@@ -29,23 +31,67 @@ const normalizeDuration = (durationDays: number | string) => {
   return Math.round(value);
 };
 
-export const normalizeProductBacklog = (items: ProductBacklogItem[] = []): ProductBacklogItem[] =>
+export const getPrimaryActorNames = (project: any): string[] =>
+  (project?.actors || [])
+    .filter((actor: any) => actor?.type !== "external" && String(actor?.name || "").trim())
+    .map((actor: any) => String(actor.name).trim());
+
+const normalizeItemActors = (item: any, primaryActorOptions: string[] = []): string[] => {
+  const rawActors = Array.isArray(item?.actors)
+    ? item.actors
+    : item?.actor || item?.asA
+      ? [item.actor || item.asA]
+      : [];
+
+  const selectedActors = rawActors
+    .flatMap((actor: string) => String(actor || "").split(/[,;\n]/))
+    .map((actor: string) => actor.trim())
+    .filter(Boolean);
+
+  if (primaryActorOptions.length === 0) {
+    return selectedActors.length ? Array.from(new Set<string>(selectedActors)) : ["User"];
+  }
+
+  const matchedActors = selectedActors
+    .map((actor: string) => primaryActorOptions.find((option) => option.toLowerCase() === actor.toLowerCase()))
+    .filter(Boolean) as string[];
+
+  return matchedActors.length ? Array.from(new Set<string>(matchedActors)) : [primaryActorOptions[0]];
+};
+
+export const normalizeProductBacklog = (items: ProductBacklogItem[] = [], primaryActorOptions: string[] = []): ProductBacklogItem[] =>
   items.map((item, index) => ({
     ...item,
-    code: item.code || `PB-${String(index + 1).padStart(2, "0")}`,
+    code: item.code || `1.${index + 1}`,
     epic: item.epic || "Project",
+    actors: normalizeItemActors(item, primaryActorOptions),
     task: item.task || "",
     priority: normalizePriority(item.priority),
     durationDays: normalizeDuration(item.durationDays),
-    sprint: item.sprint || "",
+    sprint: item.sprint || `Sprint ${Math.floor(index / 4) + 1}`,
     notes: item.notes || "",
   }));
 
-export const renumberProductBacklog = (items: ProductBacklogItem[]) =>
-  items.map((item, index) => ({
-    ...item,
-    code: `PB-${String(index + 1).padStart(2, "0")}`,
-  }));
+export const renumberProductBacklog = (items: ProductBacklogItem[]) => {
+  const epicOrder = new Map<string, number>();
+  const epicCounts = new Map<string, number>();
+
+  return items.map((item) => {
+    const epic = item.epic.trim() || "Project";
+    if (!epicOrder.has(epic)) {
+      epicOrder.set(epic, epicOrder.size + 1);
+    }
+
+    const nextCount = (epicCounts.get(epic) || 0) + 1;
+    epicCounts.set(epic, nextCount);
+
+    return {
+      ...item,
+      epic,
+      code: `${epicOrder.get(epic)}.${nextCount}`,
+    };
+  });
+};
 
 export function useProductBacklog() {
   const [project, setProject] = useState<any>(null);
@@ -68,7 +114,7 @@ export function useProductBacklog() {
         const projectData = await fetchApi("/projects/my-project");
         setProject(projectData);
         const data = await fetchApi(`/projects/${projectData._id}/product-backlog`);
-        setProductBacklog(normalizeProductBacklog(data.productBacklog || []));
+        setProductBacklog(normalizeProductBacklog(data.productBacklog || [], getPrimaryActorNames(projectData)));
       } catch (err: any) {
         setError(err.message || "Failed to load product backlog. Please refresh the page.");
       } finally {
@@ -78,6 +124,8 @@ export function useProductBacklog() {
 
     fetchProductBacklog();
   }, []);
+
+  const primaryActorOptions = useMemo(() => getPrimaryActorNames(project), [project]);
 
   const targetDurationDays = useMemo(() => {
     const months = Number(project?.technicalContext?.duration) || 0;
@@ -93,15 +141,15 @@ export function useProductBacklog() {
     }
 
     const hasIncompleteItem = nextBacklog.some(
-      (item) => !item.epic.trim() || !item.task.trim() || normalizeDuration(item.durationDays) < 1
+      (item) => !item.epic.trim() || item.actors.length === 0 || !item.task.trim() || !item.sprint.trim() || normalizeDuration(item.durationDays) < 1
     );
     if (hasIncompleteItem) {
-      if (showValidation) setError("Please fill each task epic, task name, and duration before saving.");
+      if (showValidation) setError("Please fill each epic, primary actor, user story, sprint, and duration before saving.");
       setSaveStatus("unsaved");
       return;
     }
 
-    const normalized = renumberProductBacklog(normalizeProductBacklog(nextBacklog));
+    const normalized = renumberProductBacklog(normalizeProductBacklog(nextBacklog, primaryActorOptions));
     setSaveStatus("saving");
     setError(null);
 
@@ -111,7 +159,7 @@ export function useProductBacklog() {
         body: JSON.stringify({ productBacklog: normalized }),
       });
       if (JSON.stringify(renumberProductBacklog(backlogRef.current)) === JSON.stringify(normalized)) {
-        setProductBacklog(normalizeProductBacklog(res.productBacklog || []));
+        setProductBacklog(normalizeProductBacklog(res.productBacklog || [], primaryActorOptions));
         setSaveStatus("saved");
       } else {
         setSaveStatus("unsaved");
@@ -120,13 +168,13 @@ export function useProductBacklog() {
       setError(err.message || "Failed to save product backlog. Please try again.");
       setSaveStatus("unsaved");
     }
-  }, [productBacklog, project?._id]);
+  }, [primaryActorOptions, productBacklog, project?._id]);
 
   useEffect(() => {
     if (saveStatus !== "unsaved" || !project?._id || aiState === "generating") return;
 
     const hasIncompleteItem = productBacklog.some(
-      (item) => !item.epic.trim() || !item.task.trim() || normalizeDuration(item.durationDays) < 1
+      (item) => !item.epic.trim() || item.actors.length === 0 || !item.task.trim() || !item.sprint.trim() || normalizeDuration(item.durationDays) < 1
     );
     if (hasIncompleteItem) return;
 
@@ -143,7 +191,7 @@ export function useProductBacklog() {
     setError(null);
     try {
       const res = await fetchApi("/ai/product-backlog/generate", { method: "POST" });
-      setSuggestion(normalizeProductBacklog(res.productBacklog || []));
+      setSuggestion(normalizeProductBacklog(res.productBacklog || [], primaryActorOptions));
       setAiState("suggestion_ready");
     } catch (err: any) {
       setError(err.message || "AI generation failed. Please try again.");
@@ -164,7 +212,7 @@ export function useProductBacklog() {
         method: "POST",
         body: JSON.stringify({ productBacklog }),
       });
-      setSuggestion(normalizeProductBacklog(res.productBacklog || []));
+      setSuggestion(normalizeProductBacklog(res.productBacklog || [], primaryActorOptions));
       setAiState("suggestion_ready");
     } catch (err: any) {
       setError(err.message || "AI refinement failed. Please try again.");
@@ -201,6 +249,7 @@ export function useProductBacklog() {
     aiState,
     suggestion,
     error,
+    primaryActorOptions,
     targetDurationDays,
     markUnsaved,
     saveProductBacklog,
