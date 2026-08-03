@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { fetchApi } from "@/lib/api";
 
 export type PresentationDuration = 5 | 10 | 15 | 20;
-export type AiState = "idle" | "generating";
+export type AiState = "idle" | "generating" | "refining" | "translating";
 export type SaveStatus = "unsaved" | "saving" | "saved";
 
 export type PresentationSlide = {
@@ -10,6 +11,7 @@ export type PresentationSlide = {
   title: string;
   bullets: string[];
   notes: string;
+  language?: string;
 };
 
 export type PresentationDeck = {
@@ -22,6 +24,32 @@ export type PresentationDeck = {
 const durations: PresentationDuration[] = [5, 10, 15, 20];
 
 const createSlideId = () => `slide-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+const LANGUAGE_CODES: Record<string, string> = {
+  english: "en",
+  french: "fr",
+  arabic: "ar",
+  en: "en",
+  fr: "fr",
+  ar: "ar",
+};
+
+const LANGUAGE_LABELS: Record<string, string> = {
+  en: "English",
+  fr: "French",
+  ar: "Arabic",
+};
+
+export function normalizeLanguage(language?: string | null) {
+  const value = String(language || "").trim();
+  if (!value) return "";
+  return LANGUAGE_CODES[value.toLowerCase()] || value.toLowerCase();
+}
+
+export function getLanguageLabel(language?: string | null) {
+  const normalized = normalizeLanguage(language);
+  return LANGUAGE_LABELS[normalized] || language || "current language";
+}
 
 const normalizeDuration = (value: unknown): PresentationDuration => {
   const duration = Number(value) as PresentationDuration;
@@ -47,6 +75,7 @@ export const normalizePresentation = (presentation: Partial<PresentationDeck> = 
       title: String(slide.title || `Slide ${index + 1}`).trim(),
       bullets: normalizeBullets(slide.bullets),
       notes: String(slide.notes || "").trim(),
+      language: normalizeLanguage(slide.language),
     }))
     : [],
   sourceFingerprint: presentation.sourceFingerprint,
@@ -61,7 +90,9 @@ export const createEmptySlide = (index: number): PresentationSlide => ({
 });
 
 export function usePresentation() {
+  const location = useLocation();
   const [project, setProject] = useState<any>(null);
+  const [currentProjectLanguage, setCurrentProjectLanguage] = useState("");
   const [presentation, setPresentation] = useState<PresentationDeck>(normalizePresentation());
   const [loading, setLoading] = useState(true);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
@@ -79,6 +110,7 @@ export function usePresentation() {
       try {
         const projectData = await fetchApi("/projects/my-project");
         setProject(projectData);
+        setCurrentProjectLanguage(normalizeLanguage(projectData?.basics?.language || projectData?.language));
 
         const data = await fetchApi(`/projects/${projectData._id}/presentation`);
         setPresentation(normalizePresentation(data.presentation || {}));
@@ -91,6 +123,35 @@ export function usePresentation() {
 
     fetchPresentation();
   }, []);
+
+  useEffect(() => {
+    const refreshProjectLanguage = async () => {
+      try {
+        const projectData = await fetchApi("/projects/my-project");
+        setProject((current: any) => current ? { ...current, basics: projectData.basics || current.basics } : projectData);
+        setCurrentProjectLanguage(normalizeLanguage(projectData?.basics?.language || projectData?.language));
+      } catch {
+        // Keep the loaded project language if the background refresh fails.
+      }
+    };
+
+    window.addEventListener("focus", refreshProjectLanguage);
+    return () => window.removeEventListener("focus", refreshProjectLanguage);
+  }, []);
+
+  useEffect(() => {
+    const refreshProjectLanguage = async () => {
+      try {
+        const projectData = await fetchApi("/projects/my-project");
+        setProject((current: any) => current ? { ...current, basics: projectData.basics || current.basics } : projectData);
+        setCurrentProjectLanguage(normalizeLanguage(projectData?.basics?.language || projectData?.language));
+      } catch {
+        // Keep the loaded project language if a route refresh fails.
+      }
+    };
+
+    refreshProjectLanguage();
+  }, [location.key]);
 
   const markUnsaved = useCallback(() => setSaveStatus("unsaved"), []);
 
@@ -129,7 +190,7 @@ export function usePresentation() {
   }, [presentation, project?._id]);
 
   useEffect(() => {
-    if (saveStatus !== "unsaved" || !project?._id || aiState === "generating") return;
+    if (saveStatus !== "unsaved" || !project?._id || aiState !== "idle") return;
     if (autosaveTimerRef.current) window.clearTimeout(autosaveTimerRef.current);
     autosaveTimerRef.current = window.setTimeout(() => savePresentation(presentation), 1200);
 
@@ -163,18 +224,23 @@ export function usePresentation() {
     }
   };
 
-  const refineWithAi = async () => {
+  const refineWithAi = async (slideId = "", instructions = "") => {
     if (presentation.slides.length === 0) {
       setError("Generate or add slides before asking AI to refine them.");
       return;
     }
 
-    setAiState("generating");
+    setAiState("refining");
     setError(null);
     try {
+      const trimmedInstructions = instructions.trim();
       const res = await fetchApi("/ai/presentation/refine", {
         method: "POST",
-        body: JSON.stringify({ presentation }),
+        body: JSON.stringify({
+          presentation,
+          ...(slideId ? { slideId } : {}),
+          ...(trimmedInstructions ? { instructions: trimmedInstructions } : {}),
+        }),
       });
       const nextPresentation = normalizePresentation(res.presentation || {});
       presentationRef.current = nextPresentation;
@@ -188,10 +254,35 @@ export function usePresentation() {
     }
   };
 
+  const translateWithAi = async (slideId: string) => {
+    if (!slideId) return;
+
+    setAiState("translating");
+    setError(null);
+    try {
+      const res = await fetchApi("/ai/presentation/translate", {
+        method: "POST",
+        body: JSON.stringify({ presentation, slideId }),
+      });
+      const nextPresentation = normalizePresentation(res.presentation || {});
+      presentationRef.current = nextPresentation;
+      setPresentation(nextPresentation);
+      setSaveStatus("unsaved");
+      await savePresentation(nextPresentation);
+    } catch (err: any) {
+      setError(err.message || "AI presentation translation failed. Please try again.");
+    } finally {
+      setAiState("idle");
+    }
+  };
+
   const dismissError = useCallback(() => setError(null), []);
+
+  const projectLanguage = currentProjectLanguage || normalizeLanguage(project?.basics?.language || project?.language);
 
   return {
     project,
+    projectLanguage,
     presentation,
     setPresentation,
     loading,
@@ -203,6 +294,7 @@ export function usePresentation() {
     savePresentation,
     generateWithAi,
     refineWithAi,
+    translateWithAi,
     dismissError,
   };
 }

@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import InfoTooltip from "@/components/ui/InfoTooltip";
 import { cn } from "@/lib/utils";
 import {
   createEmptySlide,
+  getLanguageLabel,
   PresentationDuration,
   PresentationSlide,
   usePresentation,
@@ -12,10 +13,13 @@ const durations: PresentationDuration[] = [5, 10, 15, 20];
 
 const aiButtonClass =
   "px-5 py-2 rounded-md border border-primary/20 bg-gradient-to-r from-primary/5 to-secondary/5 text-primary text-label-md font-semibold hover:from-primary/10 hover:to-secondary/10 transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed disabled:grayscale";
+const translateButtonClass =
+  "px-5 py-2 rounded-md border border-secondary/30 bg-secondary-container/60 text-secondary text-label-md font-semibold hover:bg-secondary-container transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed disabled:grayscale";
 
 export default function PresentationPage() {
   const {
     presentation,
+    projectLanguage,
     loading,
     saveStatus,
     aiState,
@@ -24,18 +28,32 @@ export default function PresentationPage() {
     savePresentation,
     generateWithAi,
     refineWithAi,
+    translateWithAi,
     dismissError,
   } = usePresentation();
 
   const [selectedSlideId, setSelectedSlideId] = useState<string | null>(null);
   const [notesOpen, setNotesOpen] = useState(true);
   const [draggedSlideId, setDraggedSlideId] = useState<string | null>(null);
+  const [refineOpen, setRefineOpen] = useState(false);
+  const [refineInstructions, setRefineInstructions] = useState("");
+  const refinePopoverRef = useRef<HTMLDivElement>(null);
 
   const slides = presentation.slides;
   const selectedSlide = slides.find((slide) => slide.id === selectedSlideId) || slides[0];
   const selectedIndex = selectedSlide ? slides.findIndex((slide) => slide.id === selectedSlide.id) : -1;
   const nextSlide = selectedIndex >= 0 ? slides[selectedIndex + 1] : undefined;
   const hasSlides = slides.length > 0;
+  const isAiIdle = aiState === "idle";
+  const selectedSlideHasContent = Boolean(
+    selectedSlide &&
+    (selectedSlide.title.trim() || selectedSlide.bullets.length || selectedSlide.notes.trim())
+  );
+  const shouldShowTranslate = Boolean(
+    selectedSlideHasContent &&
+    projectLanguage &&
+    (selectedSlide?.language || "") !== projectLanguage
+  );
 
   useEffect(() => {
     if (!selectedSlideId && slides.length) {
@@ -47,6 +65,25 @@ export default function PresentationPage() {
       setSelectedSlideId(slides[Math.min(selectedIndex, slides.length - 1)]?.id || slides[0].id);
     }
   }, [selectedIndex, selectedSlideId, slides]);
+
+  useEffect(() => {
+    const handlePointerDown = (event: MouseEvent) => {
+      if (refinePopoverRef.current && !refinePopoverRef.current.contains(event.target as Node)) {
+        setRefineOpen(false);
+      }
+    };
+
+    if (refineOpen) {
+      document.addEventListener("mousedown", handlePointerDown);
+    }
+
+    return () => document.removeEventListener("mousedown", handlePointerDown);
+  }, [refineOpen]);
+
+  useEffect(() => {
+    setRefineOpen(false);
+    setRefineInstructions("");
+  }, [selectedSlide?.id]);
 
   const pacingLabel = useMemo(() => {
     if (!slides.length) return "AI will adapt slide count and pacing";
@@ -69,7 +106,7 @@ export default function PresentationPage() {
     updatePresentation((current) => {
       const nextSlide = createEmptySlide(current.slides.length);
       setSelectedSlideId(nextSlide.id);
-      return { ...current, slides: [...current.slides, nextSlide] };
+      return { ...current, slides: [...current.slides, { ...nextSlide, language: projectLanguage }] };
     });
   };
 
@@ -80,6 +117,13 @@ export default function PresentationPage() {
       setSelectedSlideId(nextSlides[Math.min(index, nextSlides.length - 1)]?.id || nextSlides[0]?.id || null);
       return { ...current, slides: nextSlides };
     });
+  };
+
+  const handleRefineSubmit = async () => {
+    if (!selectedSlide) return;
+    await refineWithAi(selectedSlide.id, refineInstructions);
+    setRefineInstructions("");
+    setRefineOpen(false);
   };
 
   const moveSlide = (fromId: string, toId: string) => {
@@ -128,11 +172,17 @@ export default function PresentationPage() {
           </span>
           <button
             onClick={() => savePresentation(presentation, true)}
-            disabled={saveStatus === "saving" || aiState === "generating"}
+            disabled={saveStatus === "saving" || !isAiIdle}
             className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-on-primary shadow-sm transition-opacity hover:opacity-90 disabled:opacity-50"
           >
             Save now
           </button>
+          <style>{`
+            @keyframes presentation-popover-in {
+              from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+              to { opacity: 1; transform: translateY(0) scale(1); }
+            }
+          `}</style>
         </div>
       </header>
 
@@ -145,7 +195,7 @@ export default function PresentationPage() {
                 <button
                   key={duration}
                   onClick={() => setDuration(duration)}
-                  disabled={aiState === "generating"}
+                  disabled={!isAiIdle}
                   className={cn(
                     "h-9 rounded-md px-3 font-label-sm transition-colors disabled:opacity-50",
                     presentation.durationMinutes === duration
@@ -166,7 +216,7 @@ export default function PresentationPage() {
             {!hasSlides ? (
               <button
                 onClick={() => generateWithAi(presentation.durationMinutes)}
-                disabled={aiState === "generating"}
+                disabled={!isAiIdle}
                 className={aiButtonClass}
               >
                 {aiState === "generating" ? (
@@ -177,18 +227,77 @@ export default function PresentationPage() {
                 ) : "Generate with AI"}
               </button>
             ) : (
-              <button
-                onClick={refineWithAi}
-                disabled={aiState === "generating"}
-                className={aiButtonClass}
-              >
-                {aiState === "generating" ? (
-                  <span className="inline-flex items-center gap-2">
-                    <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                    Refining...
-                  </span>
-                ) : "Refine with AI"}
-              </button>
+              <>
+                <div className="relative" ref={refinePopoverRef}>
+                  <button
+                    onClick={() => setRefineOpen(true)}
+                    disabled={!selectedSlide || !isAiIdle}
+                    className={aiButtonClass}
+                  >
+                    {aiState === "refining" ? (
+                      <span className="inline-flex items-center gap-2">
+                        <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                        Refining...
+                      </span>
+                    ) : "Refine with AI"}
+                  </button>
+
+                  {refineOpen && (
+                    <div
+                      className="absolute right-0 top-full z-30 mt-2 w-[min(22rem,calc(100vw-2rem))] rounded-md border border-outline-variant bg-surface-bright p-3 shadow-xl"
+                      style={{ animation: "presentation-popover-in 150ms ease-out" }}
+                    >
+                      <textarea
+                        value={refineInstructions}
+                        onChange={(event) => setRefineInstructions(event.target.value)}
+                        placeholder="Tell AI what you'd like to improve (optional)..."
+                        rows={4}
+                        className="w-full resize-none rounded-md border border-outline-variant bg-surface px-3 py-2 text-body-md text-on-surface outline-none transition-colors placeholder:text-on-surface-variant focus:border-primary focus:ring-1 focus:ring-primary"
+                        autoFocus
+                      />
+                      <div className="mt-3 flex items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setRefineInstructions("");
+                            setRefineOpen(false);
+                          }}
+                          className="px-3 py-1.5 rounded-md border border-outline-variant bg-surface text-label-sm font-medium text-on-surface hover:bg-surface-container transition-colors"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleRefineSubmit}
+                          disabled={aiState === "refining"}
+                          className="px-3 py-1.5 rounded-md bg-primary text-label-sm font-semibold text-on-primary hover:opacity-90 transition-opacity disabled:opacity-50"
+                        >
+                          {aiState === "refining" ? "Refining..." : "Refine"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                {shouldShowTranslate && (
+                  <button
+                    onClick={() => selectedSlide && translateWithAi(selectedSlide.id)}
+                    disabled={!selectedSlide || !isAiIdle}
+                    className={translateButtonClass}
+                  >
+                    {aiState === "translating" ? (
+                      <span className="inline-flex items-center gap-2">
+                        <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-secondary border-t-transparent" />
+                        Translating...
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-2">
+                        <span aria-hidden="true">🌐</span>
+                        Translate to {getLanguageLabel(projectLanguage)}
+                      </span>
+                    )}
+                  </button>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -212,7 +321,7 @@ export default function PresentationPage() {
           </p>
           <button
             onClick={() => generateWithAi(presentation.durationMinutes)}
-            disabled={aiState === "generating"}
+            disabled={!isAiIdle}
             className={aiButtonClass}
           >
             {aiState === "generating" ? (
@@ -236,7 +345,7 @@ export default function PresentationPage() {
                 </div>
                 <button
                   onClick={addSlide}
-                  disabled={aiState === "generating"}
+                  disabled={!isAiIdle}
                   title="Add slide"
                   className="flex h-9 w-9 items-center justify-center rounded-md bg-primary text-on-primary transition-opacity hover:opacity-90 disabled:opacity-50"
                 >
@@ -301,7 +410,7 @@ export default function PresentationPage() {
 
                 <button
                   onClick={() => deleteSlide(selectedSlide.id)}
-                  disabled={aiState === "generating"}
+                  disabled={!isAiIdle}
                   title="Delete slide"
                   className="flex h-9 w-9 items-center justify-center rounded-md border border-outline-variant text-on-surface-variant transition-colors hover:bg-error-container hover:text-error disabled:opacity-50"
                 >

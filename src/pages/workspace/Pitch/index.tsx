@@ -1,15 +1,19 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import {
   estimateSpeechSeconds,
   formatDuration,
+  getLanguageLabel,
+  normalizeLanguage,
   PitchSlide,
   usePitch,
 } from "./hooks/usePitch";
 
 const aiButtonClass =
   "px-5 py-2 rounded-md border border-primary/20 bg-gradient-to-r from-primary/5 to-secondary/5 text-primary text-label-md font-semibold hover:from-primary/10 hover:to-secondary/10 transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed disabled:grayscale";
+const translateButtonClass =
+  "px-5 py-2 rounded-md border border-secondary/30 bg-secondary-container/60 text-secondary text-label-md font-semibold hover:bg-secondary-container transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed disabled:grayscale";
 
 const escapeHtml = (value = "") =>
   value
@@ -31,6 +35,7 @@ export default function PitchPage() {
   const navigate = useNavigate();
   const {
     pitch,
+    projectLanguage,
     loading,
     aiState,
     error,
@@ -39,17 +44,32 @@ export default function PitchPage() {
     refineWithAi,
     generateSlideWithAi,
     refineSlideWithAi,
+    translateSlideWithAi,
     dismissError,
   } = usePitch();
 
   const [selectedSlideId, setSelectedSlideId] = useState<string | null>(null);
   const [tipsOpen, setTipsOpen] = useState(true);
+  const [deckRefineOpen, setDeckRefineOpen] = useState(false);
+  const [deckRefineInstructions, setDeckRefineInstructions] = useState("");
+  const [slideRefineOpen, setSlideRefineOpen] = useState(false);
+  const [slideRefineInstructions, setSlideRefineInstructions] = useState("");
+  const deckRefinePopoverRef = useRef<HTMLDivElement>(null);
+  const slideRefinePopoverRef = useRef<HTMLDivElement>(null);
 
   const slides = pitch.slides;
   const selectedSlide = slides.find((slide) => slide.slideId === selectedSlideId) || slides[0];
   const selectedIndex = selectedSlide ? slides.findIndex((slide) => slide.slideId === selectedSlide.slideId) : -1;
   const hasPresentation = slides.length > 0;
   const hasPitch = slides.some((slide) => slide.speech.trim());
+  const isAiIdle = aiState === "idle";
+  const selectedSlideLanguage = normalizeLanguage(selectedSlide?.language);
+  const selectedSlideHasSpeech = Boolean(selectedSlide?.speech.trim());
+  const shouldShowTranslate = Boolean(
+    selectedSlideHasSpeech &&
+    projectLanguage &&
+    (!selectedSlideLanguage || selectedSlideLanguage !== projectLanguage)
+  );
 
   const getCurrentSeconds = (slide: PitchSlide) =>
     slide.speech.trim() ? estimateSpeechSeconds(slide.speech, slide.estimatedSeconds) : 0;
@@ -69,6 +89,29 @@ export default function PitchPage() {
     }
   }, [selectedIndex, selectedSlideId, slides]);
 
+  useEffect(() => {
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (deckRefinePopoverRef.current && !deckRefinePopoverRef.current.contains(target)) {
+        setDeckRefineOpen(false);
+      }
+      if (slideRefinePopoverRef.current && !slideRefinePopoverRef.current.contains(target)) {
+        setSlideRefineOpen(false);
+      }
+    };
+
+    if (deckRefineOpen || slideRefineOpen) {
+      document.addEventListener("mousedown", handlePointerDown);
+    }
+
+    return () => document.removeEventListener("mousedown", handlePointerDown);
+  }, [deckRefineOpen, slideRefineOpen]);
+
+  useEffect(() => {
+    setSlideRefineOpen(false);
+    setSlideRefineInstructions("");
+  }, [selectedSlide?.slideId]);
+
   const updateSlide = (slideId: string, updates: Partial<PitchSlide>) => {
     updatePitch((current) => ({
       ...current,
@@ -80,6 +123,19 @@ export default function PitchPage() {
     updateSlide(slideId, {
       tips: value.split(/\r?\n/).map((tip) => tip.replace(/^\s*[-*\u2022]\s*/, "").trim()).filter(Boolean),
     });
+  };
+
+  const handleDeckRefineSubmit = async () => {
+    await refineWithAi(deckRefineInstructions);
+    setDeckRefineInstructions("");
+    setDeckRefineOpen(false);
+  };
+
+  const handleSlideRefineSubmit = async () => {
+    if (!selectedSlide) return;
+    await refineSlideWithAi(selectedSlide.slideId, slideRefineInstructions);
+    setSlideRefineInstructions("");
+    setSlideRefineOpen(false);
   };
 
   const exportPdf = () => {
@@ -208,10 +264,16 @@ export default function PitchPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            <style>{`
+              @keyframes pitch-popover-in {
+                from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+                to { opacity: 1; transform: translateY(0) scale(1); }
+              }
+            `}</style>
             {!hasPitch ? (
               <button
                 onClick={generateWithAi}
-                disabled={aiState === "generating" || !hasPresentation}
+                disabled={!isAiIdle || !hasPresentation}
                 className={aiButtonClass}
               >
                 {aiState === "generating" ? (
@@ -222,17 +284,74 @@ export default function PitchPage() {
                 ) : "Generate with AI"}
               </button>
             ) : (
+              <div className="relative" ref={deckRefinePopoverRef}>
+                <button
+                  onClick={() => setDeckRefineOpen(true)}
+                  disabled={!isAiIdle}
+                  className={aiButtonClass}
+                >
+                  {aiState === "refining" ? (
+                    <span className="inline-flex items-center gap-2">
+                      <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                      Refining...
+                    </span>
+                  ) : "Refine with AI"}
+                </button>
+
+                {deckRefineOpen && (
+                  <div
+                    className="absolute right-0 top-full z-30 mt-2 w-[min(22rem,calc(100vw-2rem))] rounded-md border border-outline-variant bg-surface-bright p-3 shadow-xl"
+                    style={{ animation: "pitch-popover-in 150ms ease-out" }}
+                  >
+                    <textarea
+                      value={deckRefineInstructions}
+                      onChange={(event) => setDeckRefineInstructions(event.target.value)}
+                      placeholder="Tell AI what you'd like to improve (optional)..."
+                      rows={4}
+                      className="w-full resize-none rounded-md border border-outline-variant bg-surface px-3 py-2 text-body-md text-on-surface outline-none transition-colors placeholder:text-on-surface-variant focus:border-primary focus:ring-1 focus:ring-primary"
+                      autoFocus
+                    />
+                    <div className="mt-3 flex items-center justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDeckRefineInstructions("");
+                          setDeckRefineOpen(false);
+                        }}
+                        className="px-3 py-1.5 rounded-md border border-outline-variant bg-surface text-label-sm font-medium text-on-surface hover:bg-surface-container transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleDeckRefineSubmit}
+                        disabled={aiState === "refining"}
+                        className="px-3 py-1.5 rounded-md bg-primary text-label-sm font-semibold text-on-primary hover:opacity-90 transition-opacity disabled:opacity-50"
+                      >
+                        {aiState === "refining" ? "Refining..." : "Refine"}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            {shouldShowTranslate && selectedSlide && (
               <button
-                onClick={refineWithAi}
-                disabled={aiState === "generating"}
-                className={aiButtonClass}
+                onClick={() => translateSlideWithAi(selectedSlide.slideId)}
+                disabled={!isAiIdle}
+                className={translateButtonClass}
               >
-                {aiState === "generating" ? (
+                {aiState === "translating" ? (
                   <span className="inline-flex items-center gap-2">
-                    <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                    Refining...
+                    <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-secondary border-t-transparent" />
+                    Translating...
                   </span>
-                ) : "Refine with AI"}
+                ) : (
+                  <span className="inline-flex items-center gap-2">
+                    <span aria-hidden="true">🌐</span>
+                    Translate to {getLanguageLabel(projectLanguage)}
+                  </span>
+                )}
               </button>
             )}
             <button
@@ -340,16 +459,73 @@ export default function PitchPage() {
                 </section>
 
                 <div className="mt-6 flex flex-wrap items-center gap-2">
-                  <button
-                    onClick={() => refineSlideWithAi(selectedSlide.slideId)}
-                    disabled={aiState === "generating" || !selectedSlide.speech.trim()}
-                    className={aiButtonClass}
-                  >
-                    {aiState === "generating" ? "Refining..." : "Refine"}
-                  </button>
+                  <div className="relative" ref={slideRefinePopoverRef}>
+                    <button
+                      onClick={() => setSlideRefineOpen(true)}
+                      disabled={!isAiIdle || !selectedSlide.speech.trim()}
+                      className={aiButtonClass}
+                    >
+                      {aiState === "refining" ? "Refining..." : "Refine"}
+                    </button>
+
+                    {slideRefineOpen && (
+                      <div
+                        className="absolute left-0 bottom-full z-30 mb-2 w-[min(22rem,calc(100vw-2rem))] rounded-md border border-outline-variant bg-surface-bright p-3 shadow-xl"
+                        style={{ animation: "pitch-popover-in 150ms ease-out" }}
+                      >
+                        <textarea
+                          value={slideRefineInstructions}
+                          onChange={(event) => setSlideRefineInstructions(event.target.value)}
+                          placeholder="Tell AI what you'd like to improve (optional)..."
+                          rows={4}
+                          className="w-full resize-none rounded-md border border-outline-variant bg-surface px-3 py-2 text-body-md text-on-surface outline-none transition-colors placeholder:text-on-surface-variant focus:border-primary focus:ring-1 focus:ring-primary"
+                          autoFocus
+                        />
+                        <div className="mt-3 flex items-center justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSlideRefineInstructions("");
+                              setSlideRefineOpen(false);
+                            }}
+                            className="px-3 py-1.5 rounded-md border border-outline-variant bg-surface text-label-sm font-medium text-on-surface hover:bg-surface-container transition-colors"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleSlideRefineSubmit}
+                            disabled={aiState === "refining"}
+                            className="px-3 py-1.5 rounded-md bg-primary text-label-sm font-semibold text-on-primary hover:opacity-90 transition-opacity disabled:opacity-50"
+                          >
+                            {aiState === "refining" ? "Refining..." : "Refine"}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  {shouldShowTranslate && (
+                    <button
+                      onClick={() => translateSlideWithAi(selectedSlide.slideId)}
+                      disabled={!isAiIdle}
+                      className={translateButtonClass}
+                    >
+                      {aiState === "translating" ? (
+                        <span className="inline-flex items-center gap-2">
+                          <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-secondary border-t-transparent" />
+                          Translating...
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-2">
+                          <span aria-hidden="true">🌐</span>
+                          Translate to {getLanguageLabel(projectLanguage)}
+                        </span>
+                      )}
+                    </button>
+                  )}
                   <button
                     onClick={() => generateSlideWithAi(selectedSlide.slideId)}
-                    disabled={aiState === "generating"}
+                    disabled={!isAiIdle}
                     className={aiButtonClass}
                   >
                     {aiState === "generating" ? "Generating..." : "Regenerate"}
