@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import InfoTooltip from "@/components/ui/InfoTooltip";
 import { useProblemStatement } from "./hooks/useProblemStatement";
+import { getLanguageLabel } from "./hooks/useProblemStatement";
 import RichTextEditor from "./components/RichTextEditor";
 import AiActionBar from "./components/AiActionBar";
 import AiSuggestionPanel from "./components/AiSuggestionPanel";
@@ -18,6 +19,9 @@ export default function ProblemStatement() {
     markUnsaved,
     generateWithAi,
     refineWithAi,
+    translateWithAi,
+    projectLanguage,
+    problemStatementLanguage,
     acceptSuggestion,
     discardSuggestion,
     dismissError,
@@ -84,22 +88,42 @@ export default function ProblemStatement() {
     if (generatedText) {
       // Directly inject generated text into the editor (bypassing suggestion panel)
       setExternalUpdate({ content: generatedText, timestamp: Date.now() });
-      saveContent(generatedText);
+      saveContent(generatedText, projectLanguage || undefined);
     }
   };
 
-  const handleRefine = () => {
+  const handleRefine = async (instructions?: string) => {
     setSnapshotHtml(editorHtmlRef.current);
-    refineWithAi(editorPlainRef.current);
+    await refineWithAi(editorPlainRef.current, instructions);
+  };
+
+  const handleTranslate = async () => {
+    if (!projectLanguage) return;
+    if (autosaveTimerRef.current) {
+      window.clearTimeout(autosaveTimerRef.current);
+    }
+    setSnapshotHtml(editorHtmlRef.current);
+    const translatedText = await translateWithAi(editorHtmlRef.current);
+    if (translatedText) {
+      setExternalUpdate({ content: translatedText, timestamp: Date.now() });
+      saveContent(translatedText, projectLanguage);
+    }
   };
 
   const handleAccept = () => {
     if (suggestion) {
       setExternalUpdate({ content: suggestion, timestamp: Date.now() });
-      saveContent(suggestion);
+      saveContent(suggestion, projectLanguage || undefined);
     }
     acceptSuggestion();
   };
+
+  const isAiBusy = aiState === "generating" || aiState === "refining" || aiState === "translating";
+  const shouldShowTranslate = Boolean(
+    projectLanguage &&
+    !isEditorEmpty &&
+    problemStatementLanguage !== projectLanguage
+  );
 
   if (loading) {
     return (
@@ -167,9 +191,12 @@ export default function ProblemStatement() {
       <AiActionBar
         onGenerate={handleGenerate}
         onRefine={handleRefine}
-        loading={aiState === "generating"}
+        onTranslate={handleTranslate}
+        activeAction={isAiBusy ? aiState : null}
         editorIsEmpty={isEditorEmpty}
         disabled={aiState === "suggestion_ready"}
+        showTranslate={shouldShowTranslate}
+        translateLabel={`Translate to ${getLanguageLabel(projectLanguage)}`}
       />
 
       {/* Editor */}
@@ -185,7 +212,7 @@ export default function ProblemStatement() {
             }
             scheduleAutosave(html);
           }}
-          readOnly={aiState === "generating" || aiState === "suggestion_ready"}
+          readOnly={isAiBusy || aiState === "suggestion_ready"}
         />
       </div>
 

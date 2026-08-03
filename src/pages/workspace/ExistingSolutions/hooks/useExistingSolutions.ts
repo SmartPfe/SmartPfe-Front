@@ -14,8 +14,34 @@ export type ExistingSolution = {
   differentiation: string;
 };
 
-export type AiState = "idle" | "generating" | "suggestion_ready";
+export type AiState = "idle" | "generating" | "refining" | "translating" | "suggestion_ready";
 export type SaveStatus = "unsaved" | "saving" | "saved";
+
+const LANGUAGE_CODES: Record<string, string> = {
+  english: "en",
+  french: "fr",
+  arabic: "ar",
+  en: "en",
+  fr: "fr",
+  ar: "ar",
+};
+
+const LANGUAGE_LABELS: Record<string, string> = {
+  en: "English",
+  fr: "French",
+  ar: "Arabic",
+};
+
+export function normalizeLanguage(language?: string | null) {
+  const value = String(language || "").trim();
+  if (!value) return "";
+  return LANGUAGE_CODES[value.toLowerCase()] || value.toLowerCase();
+}
+
+export function getLanguageLabel(language?: string | null) {
+  const normalized = normalizeLanguage(language);
+  return LANGUAGE_LABELS[normalized] || language || "current language";
+}
 
 const normalizeList = (items: string[] = []) =>
   items.map((item) => item || "").filter((item) => item.trim().length > 0);
@@ -70,7 +96,7 @@ export function useExistingSolutions() {
     setSaveStatus("unsaved");
   }, []);
 
-  const saveSolutions = useCallback(async (nextSolutions = solutions, showValidation = false) => {
+  const saveSolutions = useCallback(async (nextSolutions = solutions, showValidation = false, language?: string) => {
     if (!project?._id) {
       setError("Project is not ready yet. Please refresh the page.");
       return;
@@ -95,12 +121,19 @@ export function useExistingSolutions() {
     setError(null);
 
     try {
+      const payload = language
+        ? { existingSolutions: nextSolutions, language }
+        : { existingSolutions: nextSolutions };
       const res = await fetchApi(`/projects/${project._id}/existing-solutions`, {
         method: "PUT",
-        body: JSON.stringify({ existingSolutions: nextSolutions }),
+        body: JSON.stringify(payload),
       });
       if (JSON.stringify(solutionsRef.current) === JSON.stringify(nextSolutions)) {
         setSolutions(normalizeSolutions(res.existingSolutions || []));
+        setProject((current: any) => current ? {
+          ...current,
+          existingSolutionsLanguage: res.language ?? current.existingSolutionsLanguage ?? "",
+        } : current);
         setSaveStatus("saved");
       } else {
         setSaveStatus("unsaved");
@@ -112,7 +145,7 @@ export function useExistingSolutions() {
   }, [project?._id, solutions]);
 
   useEffect(() => {
-    if (saveStatus !== "unsaved" || !project?._id || aiState === "generating") {
+    if (saveStatus !== "unsaved" || !project?._id || aiState !== "idle") {
       return;
     }
 
@@ -155,23 +188,54 @@ export function useExistingSolutions() {
     }
   };
 
-  const refineWithAi = async () => {
+  const projectLanguage = normalizeLanguage(project?.basics?.language || project?.language);
+  const existingSolutionsLanguage = normalizeLanguage(project?.existingSolutionsLanguage);
+
+  const refineWithAi = async (instructions = "") => {
     if (solutions.length === 0) {
       setError("Add or generate existing solutions before asking AI to refine them.");
       return;
     }
 
-    setAiState("generating");
+    setAiState("refining");
     setError(null);
     try {
+      const trimmedInstructions = instructions.trim();
+      const payload = trimmedInstructions
+        ? { existingSolutions: solutions, instructions: trimmedInstructions }
+        : { existingSolutions: solutions };
       const res = await fetchApi("/ai/existing-solutions/refine", {
         method: "POST",
-        body: JSON.stringify({ existingSolutions: solutions }),
+        body: JSON.stringify(payload),
       });
       setSuggestion(normalizeSolutions(res.existingSolutions || []));
       setAiState("suggestion_ready");
     } catch (err: any) {
       setError(err.message || "AI refinement failed. Please try again.");
+      setAiState("idle");
+    }
+  };
+
+  const translateWithAi = async () => {
+    if (solutions.length === 0) {
+      setError("Add or generate existing solutions before asking AI to translate them.");
+      return;
+    }
+
+    setAiState("translating");
+    setError(null);
+    try {
+      const res = await fetchApi("/ai/existing-solutions/translate", {
+        method: "POST",
+        body: JSON.stringify({ existingSolutions: solutions }),
+      });
+      const translatedSolutions = normalizeSolutions(res.existingSolutions || []);
+      solutionsRef.current = translatedSolutions;
+      setSolutions(translatedSolutions);
+      await saveSolutions(translatedSolutions, false, projectLanguage || undefined);
+      setAiState("idle");
+    } catch (err: any) {
+      setError(err.message || "AI existing solution translation failed. Please try again.");
       setAiState("idle");
     }
   };
@@ -182,12 +246,12 @@ export function useExistingSolutions() {
       setSolutions(suggestion);
       setSuggestion(null);
       setAiState("idle");
-      await saveSolutions(suggestion);
+      await saveSolutions(suggestion, false, projectLanguage || undefined);
       return;
     }
     setSuggestion(null);
     setAiState("idle");
-  }, [saveSolutions, suggestion]);
+  }, [projectLanguage, saveSolutions, suggestion]);
 
   const discardSuggestion = useCallback(() => {
     setSuggestion(null);
@@ -197,6 +261,7 @@ export function useExistingSolutions() {
   const dismissError = useCallback(() => setError(null), []);
 
   return {
+    project,
     solutions,
     setSolutions,
     loading,
@@ -208,6 +273,9 @@ export function useExistingSolutions() {
     saveSolutions,
     generateWithAi,
     refineWithAi,
+    translateWithAi,
+    projectLanguage,
+    existingSolutionsLanguage,
     acceptSuggestion,
     discardSuggestion,
     dismissError,

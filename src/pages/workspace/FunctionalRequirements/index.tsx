@@ -1,10 +1,11 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import InfoTooltip from "@/components/ui/InfoTooltip";
 import {
   FunctionalRequirement,
   RequirementPriority,
   RequirementStatus,
+  getLanguageLabel,
   renumberRequirements,
   useFunctionalRequirements,
 } from "./hooks/useFunctionalRequirements";
@@ -51,6 +52,9 @@ export default function FunctionalRequirements() {
     saveRequirements,
     generateWithAi,
     refineWithAi,
+    translateWithAi,
+    projectLanguage,
+    functionalRequirementsLanguage,
     acceptSuggestion,
     discardSuggestion,
     dismissError,
@@ -59,6 +63,15 @@ export default function FunctionalRequirements() {
   const [activeTab, setActiveTab] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [refineOpen, setRefineOpen] = useState(false);
+  const [refineInstructions, setRefineInstructions] = useState("");
+  const refinePopoverRef = useRef<HTMLDivElement>(null);
+  const isAiBusy = aiState === "generating" || aiState === "refining" || aiState === "translating";
+  const shouldShowTranslate = Boolean(
+    projectLanguage &&
+    requirements.length > 0 &&
+    functionalRequirementsLanguage !== projectLanguage
+  );
 
   const modules = useMemo(() => {
     const uniqueModules = Array.from(new Set(requirements.map((requirement) => requirement.module).filter(Boolean)));
@@ -76,6 +89,32 @@ export default function FunctionalRequirements() {
       requirement.description.toLowerCase().includes(query);
     return matchesTab && matchesSearch;
   });
+
+  useEffect(() => {
+    const handlePointerDown = (event: MouseEvent) => {
+      if (refinePopoverRef.current && !refinePopoverRef.current.contains(event.target as Node)) {
+        setRefineOpen(false);
+      }
+    };
+
+    if (refineOpen) {
+      document.addEventListener("mousedown", handlePointerDown);
+    }
+
+    return () => document.removeEventListener("mousedown", handlePointerDown);
+  }, [refineOpen]);
+
+  useEffect(() => {
+    if (aiState === "generating" || aiState === "translating" || aiState === "suggestion_ready" || requirements.length === 0) {
+      setRefineOpen(false);
+    }
+  }, [aiState, requirements.length]);
+
+  const handleRefineSubmit = async () => {
+    await refineWithAi(refineInstructions);
+    setRefineInstructions("");
+    setRefineOpen(false);
+  };
 
   const updateRequirement = (id: string, updates: Partial<FunctionalRequirement>) => {
     setRequirements((prev) =>
@@ -141,16 +180,79 @@ export default function FunctionalRequirements() {
           }`}>
             {saveStatus === "saving" ? "Autosaving..." : saveStatus === "saved" ? "All changes saved" : "Unsaved changes"}
           </span>
-          <button onClick={() => saveRequirements(requirements, true)} disabled={saveStatus === "saving" || aiState === "generating"} className="px-4 py-2 rounded-md bg-primary text-on-primary text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50">
+          <style>{`
+            @keyframes functional-requirements-popover-in {
+              from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+              to { opacity: 1; transform: translateY(0) scale(1); }
+            }
+          `}</style>
+          <button onClick={() => saveRequirements(requirements, true)} disabled={saveStatus === "saving" || isAiBusy} className="px-4 py-2 rounded-md bg-primary text-on-primary text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50">
             Save now
           </button>
-          <button onClick={generateWithAi} disabled={aiState === "generating" || aiState === "suggestion_ready"} className={aiButtonClass}>
+          <button onClick={generateWithAi} disabled={isAiBusy || aiState === "suggestion_ready"} className={aiButtonClass}>
             {aiState === "generating" ? "Generating..." : "Generate with AI"}
           </button>
-          <button onClick={refineWithAi} disabled={aiState === "generating" || aiState === "suggestion_ready" || requirements.length === 0} className={aiButtonClass}>
-            Refine with AI
-          </button>
-          <button onClick={addRequirement} disabled={aiState === "generating"} className="flex items-center gap-2 px-4 py-2 bg-primary text-on-primary rounded-md text-sm font-medium hover:opacity-90 transition-colors shadow-sm disabled:opacity-50">
+          <div className="relative" ref={refinePopoverRef}>
+            <button onClick={() => setRefineOpen(true)} disabled={isAiBusy || aiState === "suggestion_ready" || requirements.length === 0} className={aiButtonClass}>
+              {aiState === "refining" ? "Refining..." : "Refine with AI"}
+            </button>
+
+            {refineOpen && (
+              <div
+                className="absolute right-0 top-full z-30 mt-2 w-[min(22rem,calc(100vw-2rem))] rounded-md border border-outline-variant bg-surface-bright p-3 shadow-xl"
+                style={{ animation: "functional-requirements-popover-in 150ms ease-out" }}
+              >
+                <textarea
+                  value={refineInstructions}
+                  onChange={(event) => setRefineInstructions(event.target.value)}
+                  placeholder="Tell AI what you'd like to improve (optional)..."
+                  rows={4}
+                  className="w-full resize-none rounded-md border border-outline-variant bg-surface px-3 py-2 text-body-md text-on-surface outline-none transition-colors placeholder:text-on-surface-variant focus:border-primary focus:ring-1 focus:ring-primary"
+                  autoFocus
+                />
+                <div className="mt-3 flex items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRefineInstructions("");
+                      setRefineOpen(false);
+                    }}
+                    className="px-3 py-1.5 rounded-md border border-outline-variant bg-surface text-label-sm font-medium text-on-surface hover:bg-surface-container transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleRefineSubmit}
+                    disabled={aiState === "refining"}
+                    className="px-3 py-1.5 rounded-md bg-primary text-label-sm font-semibold text-on-primary hover:opacity-90 transition-opacity disabled:opacity-50"
+                  >
+                    {aiState === "refining" ? "Refining..." : "Refine"}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+          {shouldShowTranslate && (
+            <button
+              onClick={translateWithAi}
+              disabled={isAiBusy || aiState === "suggestion_ready"}
+              className="px-5 py-2 rounded-md border border-secondary/30 bg-secondary-container/60 text-secondary text-label-md font-semibold hover:bg-secondary-container transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed disabled:grayscale"
+            >
+              {aiState === "translating" ? (
+                <span className="inline-flex items-center gap-2">
+                  <span className="w-3.5 h-3.5 border-2 border-secondary border-t-transparent rounded-full animate-spin" />
+                  Translating...
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-2">
+                  <span aria-hidden="true">🌐</span>
+                  Translate to {getLanguageLabel(projectLanguage)}
+                </span>
+              )}
+            </button>
+          )}
+          <button onClick={addRequirement} disabled={isAiBusy} className="flex items-center gap-2 px-4 py-2 bg-primary text-on-primary rounded-md text-sm font-medium hover:opacity-90 transition-colors shadow-sm disabled:opacity-50">
             <span className="material-symbols-outlined text-[18px]">add</span>
             Add Requirement
           </button>

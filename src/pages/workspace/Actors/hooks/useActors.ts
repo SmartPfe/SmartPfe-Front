@@ -12,8 +12,34 @@ export type Actor = {
   icon: string;
 };
 
-export type AiState = "idle" | "generating" | "suggestion_ready";
+export type AiState = "idle" | "generating" | "refining" | "translating" | "suggestion_ready";
 export type SaveStatus = "unsaved" | "saving" | "saved";
+
+const LANGUAGE_CODES: Record<string, string> = {
+  english: "en",
+  french: "fr",
+  arabic: "ar",
+  en: "en",
+  fr: "fr",
+  ar: "ar",
+};
+
+const LANGUAGE_LABELS: Record<string, string> = {
+  en: "English",
+  fr: "French",
+  ar: "Arabic",
+};
+
+export function normalizeLanguage(language?: string | null) {
+  const value = String(language || "").trim();
+  if (!value) return "";
+  return LANGUAGE_CODES[value.toLowerCase()] || value.toLowerCase();
+}
+
+export function getLanguageLabel(language?: string | null) {
+  const normalized = normalizeLanguage(language);
+  return LANGUAGE_LABELS[normalized] || language || "current language";
+}
 
 const normalizeActors = (actors: Actor[] = []): Actor[] =>
   actors.map((actor) => ({
@@ -61,7 +87,7 @@ export function useActors() {
     setSaveStatus("unsaved");
   }, []);
 
-  const saveActors = useCallback(async (nextActors = actors, showValidation = false) => {
+  const saveActors = useCallback(async (nextActors = actors, showValidation = false, language?: string) => {
     if (!project?._id) {
       setError("Project is not ready yet. Please refresh the page.");
       return;
@@ -82,12 +108,19 @@ export function useActors() {
     setError(null);
 
     try {
+      const payload = language
+        ? { actors: nextActors, language }
+        : { actors: nextActors };
       const res = await fetchApi(`/projects/${project._id}/actors`, {
         method: "PUT",
-        body: JSON.stringify({ actors: nextActors }),
+        body: JSON.stringify(payload),
       });
       if (JSON.stringify(actorsRef.current) === JSON.stringify(nextActors)) {
         setActors(normalizeActors(res.actors || []));
+        setProject((current: any) => current ? {
+          ...current,
+          actorsLanguage: res.language ?? current.actorsLanguage ?? "",
+        } : current);
         setSaveStatus("saved");
       } else {
         setSaveStatus("unsaved");
@@ -99,7 +132,7 @@ export function useActors() {
   }, [actors, project?._id]);
 
   useEffect(() => {
-    if (saveStatus !== "unsaved" || !project?._id || aiState === "generating") {
+    if (saveStatus !== "unsaved" || !project?._id || aiState !== "idle") {
       return;
     }
 
@@ -138,18 +171,25 @@ export function useActors() {
     }
   };
 
-  const refineWithAi = async () => {
+  const projectLanguage = normalizeLanguage(project?.basics?.language || project?.language);
+  const actorsLanguage = normalizeLanguage(project?.actorsLanguage);
+
+  const refineWithAi = async (instructions = "") => {
     if (actors.length === 0) {
       setError("Add or generate actors before asking AI to refine them.");
       return;
     }
 
-    setAiState("generating");
+    setAiState("refining");
     setError(null);
     try {
+      const trimmedInstructions = instructions.trim();
+      const payload = trimmedInstructions
+        ? { actors, instructions: trimmedInstructions }
+        : { actors };
       const res = await fetchApi("/ai/actors/refine", {
         method: "POST",
-        body: JSON.stringify({ actors }),
+        body: JSON.stringify(payload),
       });
       setSuggestion(normalizeActors(res.actors || []));
       setAiState("suggestion_ready");
@@ -159,14 +199,39 @@ export function useActors() {
     }
   };
 
-  const acceptSuggestion = useCallback(() => {
+  const translateWithAi = async () => {
+    if (actors.length === 0) {
+      setError("Add or generate actors before asking AI to translate them.");
+      return;
+    }
+
+    setAiState("translating");
+    setError(null);
+    try {
+      const res = await fetchApi("/ai/actors/translate", {
+        method: "POST",
+        body: JSON.stringify({ actors }),
+      });
+      const translatedActors = normalizeActors(res.actors || []);
+      actorsRef.current = translatedActors;
+      setActors(translatedActors);
+      await saveActors(translatedActors, false, projectLanguage || undefined);
+      setAiState("idle");
+    } catch (err: any) {
+      setError(err.message || "AI actor translation failed. Please try again.");
+      setAiState("idle");
+    }
+  };
+
+  const acceptSuggestion = useCallback(async () => {
     if (suggestion) {
+      actorsRef.current = suggestion;
       setActors(suggestion);
-      setSaveStatus("unsaved");
+      await saveActors(suggestion, false, projectLanguage || undefined);
     }
     setSuggestion(null);
     setAiState("idle");
-  }, [suggestion]);
+  }, [projectLanguage, saveActors, suggestion]);
 
   const discardSuggestion = useCallback(() => {
     setSuggestion(null);
@@ -176,6 +241,7 @@ export function useActors() {
   const dismissError = useCallback(() => setError(null), []);
 
   return {
+    project,
     actors,
     setActors,
     loading,
@@ -187,6 +253,9 @@ export function useActors() {
     saveActors,
     generateWithAi,
     refineWithAi,
+    translateWithAi,
+    projectLanguage,
+    actorsLanguage,
     acceptSuggestion,
     discardSuggestion,
     dismissError,

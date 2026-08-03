@@ -15,8 +15,34 @@ export type NonFunctionalRequirement = {
   status: RequirementStatus;
 };
 
-export type AiState = "idle" | "generating" | "suggestion_ready";
+export type AiState = "idle" | "generating" | "refining" | "translating" | "suggestion_ready";
 export type SaveStatus = "unsaved" | "saving" | "saved";
+
+const LANGUAGE_CODES: Record<string, string> = {
+  english: "en",
+  french: "fr",
+  arabic: "ar",
+  en: "en",
+  fr: "fr",
+  ar: "ar",
+};
+
+const LANGUAGE_LABELS: Record<string, string> = {
+  en: "English",
+  fr: "French",
+  ar: "Arabic",
+};
+
+export function normalizeLanguage(language?: string | null) {
+  const value = String(language || "").trim();
+  if (!value) return "";
+  return LANGUAGE_CODES[value.toLowerCase()] || value.toLowerCase();
+}
+
+export function getLanguageLabel(language?: string | null) {
+  const normalized = normalizeLanguage(language);
+  return LANGUAGE_LABELS[normalized] || language || "current language";
+}
 
 const normalizePriority = (priority: string): RequirementPriority => {
   if (priority === "Must Have" || priority === "Could Have" || priority === "Won't Have") return priority;
@@ -80,7 +106,7 @@ export function useNonFunctionalRequirements() {
 
   const markUnsaved = useCallback(() => setSaveStatus("unsaved"), []);
 
-  const saveRequirements = useCallback(async (nextRequirements = requirements, showValidation = false) => {
+  const saveRequirements = useCallback(async (nextRequirements = requirements, showValidation = false, language?: string) => {
     if (!project?._id) {
       setError("Project is not ready yet. Please refresh the page.");
       return;
@@ -105,12 +131,19 @@ export function useNonFunctionalRequirements() {
     setError(null);
 
     try {
+      const payload = language
+        ? { nonFunctionalRequirements: normalized, language }
+        : { nonFunctionalRequirements: normalized };
       const res = await fetchApi(`/projects/${project._id}/non-functional-requirements`, {
         method: "PUT",
-        body: JSON.stringify({ nonFunctionalRequirements: normalized }),
+        body: JSON.stringify(payload),
       });
       if (JSON.stringify(renumberRequirements(requirementsRef.current)) === JSON.stringify(normalized)) {
         setRequirements(normalizeRequirements(res.nonFunctionalRequirements || []));
+        setProject((current: any) => current ? {
+          ...current,
+          nonFunctionalRequirementsLanguage: res.language ?? current.nonFunctionalRequirementsLanguage ?? "",
+        } : current);
         setSaveStatus("saved");
       } else {
         setSaveStatus("unsaved");
@@ -122,7 +155,7 @@ export function useNonFunctionalRequirements() {
   }, [project?._id, requirements]);
 
   useEffect(() => {
-    if (saveStatus !== "unsaved" || !project?._id || aiState === "generating") return;
+    if (saveStatus !== "unsaved" || !project?._id || aiState !== "idle") return;
 
     const hasIncompleteRequirement = requirements.some(
       (requirement) =>
@@ -156,23 +189,54 @@ export function useNonFunctionalRequirements() {
     }
   };
 
-  const refineWithAi = async () => {
+  const projectLanguage = normalizeLanguage(project?.basics?.language || project?.language);
+  const nonFunctionalRequirementsLanguage = normalizeLanguage(project?.nonFunctionalRequirementsLanguage);
+
+  const refineWithAi = async (instructions = "") => {
     if (requirements.length === 0) {
       setError("Add or generate non-functional requirements before asking AI to refine them.");
       return;
     }
 
-    setAiState("generating");
+    setAiState("refining");
     setError(null);
     try {
+      const trimmedInstructions = instructions.trim();
+      const payload = trimmedInstructions
+        ? { nonFunctionalRequirements: requirements, instructions: trimmedInstructions }
+        : { nonFunctionalRequirements: requirements };
       const res = await fetchApi("/ai/non-functional-requirements/refine", {
         method: "POST",
-        body: JSON.stringify({ nonFunctionalRequirements: requirements }),
+        body: JSON.stringify(payload),
       });
       setSuggestion(normalizeRequirements(res.nonFunctionalRequirements || []));
       setAiState("suggestion_ready");
     } catch (err: any) {
       setError(err.message || "AI refinement failed. Please try again.");
+      setAiState("idle");
+    }
+  };
+
+  const translateWithAi = async () => {
+    if (requirements.length === 0) {
+      setError("Add or generate non-functional requirements before asking AI to translate them.");
+      return;
+    }
+
+    setAiState("translating");
+    setError(null);
+    try {
+      const res = await fetchApi("/ai/non-functional-requirements/translate", {
+        method: "POST",
+        body: JSON.stringify({ nonFunctionalRequirements: requirements }),
+      });
+      const translatedRequirements = renumberRequirements(normalizeRequirements(res.nonFunctionalRequirements || []));
+      requirementsRef.current = translatedRequirements;
+      setRequirements(translatedRequirements);
+      await saveRequirements(translatedRequirements, false, projectLanguage || undefined);
+      setAiState("idle");
+    } catch (err: any) {
+      setError(err.message || "AI non-functional requirement translation failed. Please try again.");
       setAiState("idle");
     }
   };
@@ -184,12 +248,12 @@ export function useNonFunctionalRequirements() {
       setRequirements(nextRequirements);
       setSuggestion(null);
       setAiState("idle");
-      await saveRequirements(nextRequirements);
+      await saveRequirements(nextRequirements, false, projectLanguage || undefined);
       return;
     }
     setSuggestion(null);
     setAiState("idle");
-  }, [saveRequirements, suggestion]);
+  }, [projectLanguage, saveRequirements, suggestion]);
 
   const discardSuggestion = useCallback(() => {
     setSuggestion(null);
@@ -199,6 +263,7 @@ export function useNonFunctionalRequirements() {
   const dismissError = useCallback(() => setError(null), []);
 
   return {
+    project,
     requirements,
     setRequirements,
     loading,
@@ -210,6 +275,9 @@ export function useNonFunctionalRequirements() {
     saveRequirements,
     generateWithAi,
     refineWithAi,
+    translateWithAi,
+    projectLanguage,
+    nonFunctionalRequirementsLanguage,
     acceptSuggestion,
     discardSuggestion,
     dismissError,

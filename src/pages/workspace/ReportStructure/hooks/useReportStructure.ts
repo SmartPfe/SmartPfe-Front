@@ -8,8 +8,34 @@ export type ReportSection = {
   children: ReportSection[];
 };
 
-export type AiState = "idle" | "generating" | "suggestion_ready";
+export type AiState = "idle" | "generating" | "refining" | "translating" | "suggestion_ready";
 export type SaveStatus = "unsaved" | "saving" | "saved";
+
+const LANGUAGE_CODES: Record<string, string> = {
+  english: "en",
+  french: "fr",
+  arabic: "ar",
+  en: "en",
+  fr: "fr",
+  ar: "ar",
+};
+
+const LANGUAGE_LABELS: Record<string, string> = {
+  en: "English",
+  fr: "French",
+  ar: "Arabic",
+};
+
+export function normalizeLanguage(language?: string | null) {
+  const value = String(language || "").trim();
+  if (!value) return "";
+  return LANGUAGE_CODES[value.toLowerCase()] || value.toLowerCase();
+}
+
+export function getLanguageLabel(language?: string | null) {
+  const normalized = normalizeLanguage(language);
+  return LANGUAGE_LABELS[normalized] || language || "current language";
+}
 
 const createId = () => `section-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
@@ -66,7 +92,7 @@ export function useReportStructure() {
 
   const markUnsaved = useCallback(() => setSaveStatus("unsaved"), []);
 
-  const saveReportStructure = useCallback(async (nextStructure = reportStructure, showValidation = false) => {
+  const saveReportStructure = useCallback(async (nextStructure = reportStructure, showValidation = false, language?: string) => {
     if (!project?._id) {
       setError("Project is not ready yet. Please refresh the page.");
       return;
@@ -83,12 +109,19 @@ export function useReportStructure() {
     setError(null);
 
     try {
+      const payload = language
+        ? { reportStructure: normalized, language }
+        : { reportStructure: normalized };
       const res = await fetchApi(`/projects/${project._id}/report-structure`, {
         method: "PUT",
-        body: JSON.stringify({ reportStructure: normalized }),
+        body: JSON.stringify(payload),
       });
       if (JSON.stringify(structureRef.current) === JSON.stringify(normalized)) {
         setReportStructure(normalizeReportStructure(res.reportStructure || []));
+        setProject((current: any) => current ? {
+          ...current,
+          reportStructureLanguage: res.language ?? current.reportStructureLanguage ?? "",
+        } : current);
         setSaveStatus("saved");
       } else {
         setSaveStatus("unsaved");
@@ -100,7 +133,7 @@ export function useReportStructure() {
   }, [project?._id, reportStructure]);
 
   useEffect(() => {
-    if (saveStatus !== "unsaved" || !project?._id || aiState === "generating") return;
+    if (saveStatus !== "unsaved" || !project?._id || aiState !== "idle") return;
     if (reportStructure.length === 0) return;
 
     if (autosaveTimerRef.current) window.clearTimeout(autosaveTimerRef.current);
@@ -124,23 +157,54 @@ export function useReportStructure() {
     }
   };
 
-  const refineWithAi = async () => {
+  const projectLanguage = normalizeLanguage(project?.basics?.language || project?.language);
+  const reportStructureLanguage = normalizeLanguage(project?.reportStructureLanguage);
+
+  const refineWithAi = async (instructions = "") => {
     if (reportStructure.length === 0) {
       setError("Add or generate a report structure before asking AI to refine it.");
       return;
     }
 
-    setAiState("generating");
+    setAiState("refining");
     setError(null);
     try {
+      const trimmedInstructions = instructions.trim();
+      const payload = trimmedInstructions
+        ? { reportStructure, instructions: trimmedInstructions }
+        : { reportStructure };
       const res = await fetchApi("/ai/report-structure/refine", {
         method: "POST",
-        body: JSON.stringify({ reportStructure }),
+        body: JSON.stringify(payload),
       });
       setSuggestion(normalizeReportStructure(res.reportStructure || []));
       setAiState("suggestion_ready");
     } catch (err: any) {
       setError(err.message || "AI refinement failed. Please try again.");
+      setAiState("idle");
+    }
+  };
+
+  const translateWithAi = async () => {
+    if (reportStructure.length === 0) {
+      setError("Add or generate a report structure before asking AI to translate it.");
+      return;
+    }
+
+    setAiState("translating");
+    setError(null);
+    try {
+      const res = await fetchApi("/ai/report-structure/translate", {
+        method: "POST",
+        body: JSON.stringify({ reportStructure }),
+      });
+      const translatedStructure = normalizeReportStructure(res.reportStructure || []);
+      structureRef.current = translatedStructure;
+      setReportStructure(translatedStructure);
+      await saveReportStructure(translatedStructure, false, projectLanguage || undefined);
+      setAiState("idle");
+    } catch (err: any) {
+      setError(err.message || "AI report structure translation failed. Please try again.");
       setAiState("idle");
     }
   };
@@ -151,12 +215,12 @@ export function useReportStructure() {
       setReportStructure(suggestion);
       setSuggestion(null);
       setAiState("idle");
-      await saveReportStructure(suggestion);
+      await saveReportStructure(suggestion, false, projectLanguage || undefined);
       return;
     }
     setSuggestion(null);
     setAiState("idle");
-  }, [saveReportStructure, suggestion]);
+  }, [projectLanguage, saveReportStructure, suggestion]);
 
   const discardSuggestion = useCallback(() => {
     setSuggestion(null);
@@ -166,6 +230,7 @@ export function useReportStructure() {
   const dismissError = useCallback(() => setError(null), []);
 
   return {
+    project,
     reportStructure,
     setReportStructure,
     loading,
@@ -177,6 +242,9 @@ export function useReportStructure() {
     saveReportStructure,
     generateWithAi,
     refineWithAi,
+    translateWithAi,
+    projectLanguage,
+    reportStructureLanguage,
     acceptSuggestion,
     discardSuggestion,
     dismissError,

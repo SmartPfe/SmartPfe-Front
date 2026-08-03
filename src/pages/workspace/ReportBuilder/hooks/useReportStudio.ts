@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { fetchApi } from "@/lib/api";
 import { normalizeReportStructure, ReportSection } from "../../ReportStructure/hooks/useReportStructure";
 
 export type ChapterStatus = "not-started" | "in-progress" | "completed";
 export type DetailLevel = "summary" | "standard" | "detailed";
 export type SaveStatus = "unsaved" | "saving" | "saved";
-export type AiState = "idle" | "generating" | "acting" | "finalizing";
+export type AiState = "idle" | "generating" | "refining" | "acting" | "translating" | "finalizing";
 
 export type ReportChapter = {
   _id?: string;
@@ -18,6 +19,7 @@ export type ReportChapter = {
   status: ChapterStatus;
   generatedFrom: string[];
   sourceFingerprint: string;
+  language: string;
   lastModified?: string;
 };
 
@@ -49,6 +51,32 @@ export const AI_ACTIONS = [
 ] as const;
 
 export type AiAction = typeof AI_ACTIONS[number];
+
+const LANGUAGE_CODES: Record<string, string> = {
+  english: "en",
+  french: "fr",
+  arabic: "ar",
+  en: "en",
+  fr: "fr",
+  ar: "ar",
+};
+
+const LANGUAGE_LABELS: Record<string, string> = {
+  en: "English",
+  fr: "French",
+  ar: "Arabic",
+};
+
+export function normalizeLanguage(language?: string | null) {
+  const value = String(language || "").trim();
+  if (!value) return "";
+  return LANGUAGE_CODES[value.toLowerCase()] || value.toLowerCase();
+}
+
+export function getLanguageLabel(language?: string | null) {
+  const normalized = normalizeLanguage(language);
+  return LANGUAGE_LABELS[normalized] || language || "current language";
+}
 
 const createLocalId = () => `chapter-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
@@ -116,6 +144,7 @@ export const normalizeChapter = (chapter: Partial<ReportChapter> = {}): ReportCh
     status: chapter.status || (hasContent ? "in-progress" : "not-started"),
     generatedFrom: Array.isArray(chapter.generatedFrom) ? chapter.generatedFrom.filter(Boolean) : [],
     sourceFingerprint: String(chapter.sourceFingerprint || "").trim(),
+    language: normalizeLanguage(chapter.language),
     lastModified: chapter.lastModified,
   };
 };
@@ -133,7 +162,9 @@ export const hasChapterContent = (chapter?: ReportChapter) => Boolean(chapter &&
 export const isLeafReportSection = (item?: FlatReportSection) => Boolean(item && !item.section.children?.length);
 
 export function useReportStudio() {
+  const location = useLocation();
   const [project, setProject] = useState<any>(null);
+  const [currentProjectLanguage, setCurrentProjectLanguage] = useState("");
   const [reportStructure, setReportStructure] = useState<ReportSection[]>([]);
   const [reportChapters, setReportChapters] = useState<ReportChapter[]>([]);
   const [sourceFingerprint, setSourceFingerprint] = useState("");
@@ -156,6 +187,7 @@ export function useReportStudio() {
       try {
         const projectData = await fetchApi("/projects/my-project");
         setProject(projectData);
+        setCurrentProjectLanguage(normalizeLanguage(projectData?.basics?.language || projectData?.language));
 
         const [structureData, chapterData] = await Promise.all([
           fetchApi(`/projects/${projectData._id}/report-structure`),
@@ -175,6 +207,35 @@ export function useReportStudio() {
 
     fetchStudio();
   }, []);
+
+  useEffect(() => {
+    const refreshProjectLanguage = async () => {
+      try {
+        const projectData = await fetchApi("/projects/my-project");
+        setProject((current: any) => current ? { ...current, basics: projectData.basics || current.basics } : projectData);
+        setCurrentProjectLanguage(normalizeLanguage(projectData?.basics?.language || projectData?.language));
+      } catch {
+        // Keep the loaded project language if a background refresh fails.
+      }
+    };
+
+    window.addEventListener("focus", refreshProjectLanguage);
+    return () => window.removeEventListener("focus", refreshProjectLanguage);
+  }, []);
+
+  useEffect(() => {
+    const refreshProjectLanguage = async () => {
+      try {
+        const projectData = await fetchApi("/projects/my-project");
+        setProject((current: any) => current ? { ...current, basics: projectData.basics || current.basics } : projectData);
+        setCurrentProjectLanguage(normalizeLanguage(projectData?.basics?.language || projectData?.language));
+      } catch {
+        // Keep the loaded project language if a route refresh fails.
+      }
+    };
+
+    refreshProjectLanguage();
+  }, [location.key]);
 
   const getChapter = useCallback(
     (sectionId: string) => reportChapters.find((chapter) => chapter.sectionId === sectionId),
@@ -286,19 +347,29 @@ export function useReportStudio() {
     }
   };
 
-  const runChapterAction = async (sectionId: string, action: AiAction, currentContent: string, selectedText = "") => {
+  const projectLanguage = currentProjectLanguage || normalizeLanguage(project?.basics?.language || project?.language);
+
+  const runChapterAction = async (sectionId: string, action: AiAction | "Translate", currentContent: string, selectedText = "", instructions = "") => {
     const targetSection = flatSections.find((item) => item.section.id === sectionId);
     if (!isLeafReportSection(targetSection)) {
       setError("Select a child report section before using AI tools.");
       return;
     }
 
-    setAiState("acting");
+    setAiState(action === "Improve Academic Style" ? "refining" : action === "Translate" ? "translating" : "acting");
     setError(null);
     try {
+      const trimmedInstructions = instructions.trim();
       const res = await fetchApi("/ai/report-studio/chapter/action", {
         method: "POST",
-        body: JSON.stringify({ sectionId, action, currentContent, selectedText, reportChapters: chaptersRef.current }),
+        body: JSON.stringify({
+          sectionId,
+          action,
+          currentContent,
+          selectedText,
+          reportChapters: chaptersRef.current,
+          ...(trimmedInstructions ? { instructions: trimmedInstructions } : {}),
+        }),
       });
       const nextChapter = normalizeChapter(res.chapter);
       const nextChapters = [
@@ -314,6 +385,10 @@ export function useReportStudio() {
     } finally {
       setAiState("idle");
     }
+  };
+
+  const translateChapter = async (sectionId: string, currentContent: string) => {
+    await runChapterAction(sectionId, "Translate", currentContent);
   };
 
   const generateCompleteReport = async () => {
@@ -356,6 +431,8 @@ export function useReportStudio() {
     saveReportChapters,
     generateChapter,
     runChapterAction,
+    translateChapter,
+    projectLanguage,
     generateCompleteReport,
     dismissError,
   };

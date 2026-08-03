@@ -1,8 +1,34 @@
 import { useState, useEffect, useCallback } from "react";
 import { fetchApi } from "@/lib/api";
 
-export type AiState = "idle" | "generating" | "suggestion_ready";
+export type AiState = "idle" | "generating" | "refining" | "translating" | "suggestion_ready";
 export type SaveStatus = "unsaved" | "saving" | "saved";
+
+const LANGUAGE_CODES: Record<string, string> = {
+  english: "en",
+  french: "fr",
+  arabic: "ar",
+  en: "en",
+  fr: "fr",
+  ar: "ar",
+};
+
+const LANGUAGE_LABELS: Record<string, string> = {
+  en: "English",
+  fr: "French",
+  ar: "Arabic",
+};
+
+export function normalizeLanguage(language?: string | null) {
+  const value = String(language || "").trim();
+  if (!value) return "";
+  return LANGUAGE_CODES[value.toLowerCase()] || value.toLowerCase();
+}
+
+export function getLanguageLabel(language?: string | null) {
+  const normalized = normalizeLanguage(language);
+  return LANGUAGE_LABELS[normalized] || language || "current language";
+}
 
 export function useProblemStatement() {
   const [project, setProject] = useState<any>(null);
@@ -30,14 +56,25 @@ export function useProblemStatement() {
 
   // Save — does NOT depend on `project` state to avoid stale closure / null guard bug.
   // The auth token in the header identifies the user; the backend finds the project by user ID.
-  const saveContent = useCallback(async (content: string) => {
+  const saveContent = useCallback(async (content: string, language?: string) => {
     setSaveStatus("saving");
     setError(null);
     try {
-      await fetchApi("/projects/problem-statement", {
+      const payload = language
+        ? { problemStatement: content, language }
+        : { problemStatement: content };
+      const res = await fetchApi("/projects/problem-statement", {
         method: "PATCH",
-        body: JSON.stringify({ problemStatement: content }),
+        body: JSON.stringify(payload),
       });
+      setProject((current: any) => current ? {
+        ...current,
+        description: {
+          ...current.description,
+          problemStatement: res.problemStatement ?? content,
+          problemStatementLanguage: res.language ?? current.description?.problemStatementLanguage ?? "",
+        },
+      } : current);
       setSaveStatus("saved");
     } catch (err: any) {
       setError(err.message || "Failed to save. Please try again.");
@@ -63,17 +100,21 @@ export function useProblemStatement() {
     }
   };
 
-  const refineWithAi = async (plainText: string) => {
+  const refineWithAi = async (plainText: string, instructions = "") => {
     if (!plainText.trim()) {
       setError("The editor is empty. Write something before asking AI to refine it.");
       return;
     }
-    setAiState("generating");
+    setAiState("refining");
     setError(null);
     try {
+      const trimmedInstructions = instructions.trim();
+      const payload = trimmedInstructions
+        ? { current: plainText, instructions: trimmedInstructions }
+        : { current: plainText };
       const res = await fetchApi("/ai/problem-statement/refine", {
         method: "POST",
-        body: JSON.stringify({ current: plainText }),
+        body: JSON.stringify(payload),
       });
       setSuggestion(res.suggestion);
       setAiState("suggestion_ready");
@@ -82,6 +123,32 @@ export function useProblemStatement() {
       setAiState("idle");
     }
   };
+
+  const translateWithAi = async (currentContent: string) => {
+    if (!currentContent.trim()) {
+      setError("The editor is empty. Write something before asking AI to translate it.");
+      return null;
+    }
+    setAiState("translating");
+    setError(null);
+    try {
+      const res = await fetchApi("/ai/problem-statement/translate", {
+        method: "POST",
+        body: JSON.stringify({ current: currentContent }),
+      });
+      setAiState("idle");
+      return res.suggestion;
+    } catch (err: any) {
+      setError(err.message || "AI translation failed. Please try again.");
+      setAiState("idle");
+      return null;
+    }
+  };
+
+  const projectLanguage = normalizeLanguage(project?.basics?.language || project?.language);
+  const problemStatementLanguage = normalizeLanguage(
+    project?.description?.problemStatementLanguage || project?.description?.generatedContent?.language
+  );
 
   const acceptSuggestion = useCallback(() => {
     setAiState("idle");
@@ -106,6 +173,9 @@ export function useProblemStatement() {
     markUnsaved,
     generateWithAi,
     refineWithAi,
+    translateWithAi,
+    projectLanguage,
+    problemStatementLanguage,
     acceptSuggestion,
     discardSuggestion,
     dismissError,

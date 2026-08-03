@@ -16,8 +16,34 @@ export type ProductBacklogItem = {
   notes: string;
 };
 
-export type AiState = "idle" | "generating" | "suggestion_ready";
+export type AiState = "idle" | "generating" | "refining" | "translating" | "suggestion_ready";
 export type SaveStatus = "unsaved" | "saving" | "saved";
+
+const LANGUAGE_CODES: Record<string, string> = {
+  english: "en",
+  french: "fr",
+  arabic: "ar",
+  en: "en",
+  fr: "fr",
+  ar: "ar",
+};
+
+const LANGUAGE_LABELS: Record<string, string> = {
+  en: "English",
+  fr: "French",
+  ar: "Arabic",
+};
+
+export function normalizeLanguage(language?: string | null) {
+  const value = String(language || "").trim();
+  if (!value) return "";
+  return LANGUAGE_CODES[value.toLowerCase()] || value.toLowerCase();
+}
+
+export function getLanguageLabel(language?: string | null) {
+  const normalized = normalizeLanguage(language);
+  return LANGUAGE_LABELS[normalized] || language || "current language";
+}
 
 const normalizePriority = (priority: string): BacklogPriority => {
   if (priority === "High" || priority === "Must") return "High";
@@ -134,7 +160,7 @@ export function useProductBacklog() {
 
   const markUnsaved = useCallback(() => setSaveStatus("unsaved"), []);
 
-  const saveProductBacklog = useCallback(async (nextBacklog = productBacklog, showValidation = false) => {
+  const saveProductBacklog = useCallback(async (nextBacklog = productBacklog, showValidation = false, language?: string) => {
     if (!project?._id) {
       setError("Project is not ready yet. Please refresh the page.");
       return;
@@ -154,12 +180,19 @@ export function useProductBacklog() {
     setError(null);
 
     try {
+      const payload = language
+        ? { productBacklog: normalized, language }
+        : { productBacklog: normalized };
       const res = await fetchApi(`/projects/${project._id}/product-backlog`, {
         method: "PUT",
-        body: JSON.stringify({ productBacklog: normalized }),
+        body: JSON.stringify(payload),
       });
       if (JSON.stringify(renumberProductBacklog(backlogRef.current)) === JSON.stringify(normalized)) {
         setProductBacklog(normalizeProductBacklog(res.productBacklog || [], primaryActorOptions));
+        setProject((current: any) => current ? {
+          ...current,
+          productBacklogLanguage: res.language ?? current.productBacklogLanguage ?? "",
+        } : current);
         setSaveStatus("saved");
       } else {
         setSaveStatus("unsaved");
@@ -171,7 +204,7 @@ export function useProductBacklog() {
   }, [primaryActorOptions, productBacklog, project?._id]);
 
   useEffect(() => {
-    if (saveStatus !== "unsaved" || !project?._id || aiState === "generating") return;
+    if (saveStatus !== "unsaved" || !project?._id || aiState !== "idle") return;
 
     const hasIncompleteItem = productBacklog.some(
       (item) => !item.epic.trim() || item.actors.length === 0 || !item.task.trim() || !item.sprint.trim() || normalizeDuration(item.durationDays) < 1
@@ -199,23 +232,54 @@ export function useProductBacklog() {
     }
   };
 
-  const refineWithAi = async () => {
+  const projectLanguage = normalizeLanguage(project?.basics?.language || project?.language);
+  const productBacklogLanguage = normalizeLanguage(project?.productBacklogLanguage);
+
+  const refineWithAi = async (instructions = "") => {
     if (productBacklog.length === 0) {
       setError("Add or generate product backlog tasks before asking AI to refine them.");
       return;
     }
 
-    setAiState("generating");
+    setAiState("refining");
     setError(null);
     try {
+      const trimmedInstructions = instructions.trim();
+      const payload = trimmedInstructions
+        ? { productBacklog, instructions: trimmedInstructions }
+        : { productBacklog };
       const res = await fetchApi("/ai/product-backlog/refine", {
         method: "POST",
-        body: JSON.stringify({ productBacklog }),
+        body: JSON.stringify(payload),
       });
       setSuggestion(normalizeProductBacklog(res.productBacklog || [], primaryActorOptions));
       setAiState("suggestion_ready");
     } catch (err: any) {
       setError(err.message || "AI refinement failed. Please try again.");
+      setAiState("idle");
+    }
+  };
+
+  const translateWithAi = async () => {
+    if (productBacklog.length === 0) {
+      setError("Add or generate product backlog tasks before asking AI to translate them.");
+      return;
+    }
+
+    setAiState("translating");
+    setError(null);
+    try {
+      const res = await fetchApi("/ai/product-backlog/translate", {
+        method: "POST",
+        body: JSON.stringify({ productBacklog }),
+      });
+      const translatedBacklog = renumberProductBacklog(normalizeProductBacklog(res.productBacklog || [], primaryActorOptions));
+      backlogRef.current = translatedBacklog;
+      setProductBacklog(translatedBacklog);
+      await saveProductBacklog(translatedBacklog, false, projectLanguage || undefined);
+      setAiState("idle");
+    } catch (err: any) {
+      setError(err.message || "AI product backlog translation failed. Please try again.");
       setAiState("idle");
     }
   };
@@ -227,12 +291,12 @@ export function useProductBacklog() {
       setProductBacklog(nextBacklog);
       setSuggestion(null);
       setAiState("idle");
-      await saveProductBacklog(nextBacklog);
+      await saveProductBacklog(nextBacklog, false, projectLanguage || undefined);
       return;
     }
     setSuggestion(null);
     setAiState("idle");
-  }, [saveProductBacklog, suggestion]);
+  }, [projectLanguage, saveProductBacklog, suggestion]);
 
   const discardSuggestion = useCallback(() => {
     setSuggestion(null);
@@ -255,6 +319,9 @@ export function useProductBacklog() {
     saveProductBacklog,
     generateWithAi,
     refineWithAi,
+    translateWithAi,
+    projectLanguage,
+    productBacklogLanguage,
     acceptSuggestion,
     discardSuggestion,
     dismissError,

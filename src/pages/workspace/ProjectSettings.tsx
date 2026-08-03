@@ -77,6 +77,7 @@ export default function ProjectSettings() {
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [problemStatementTouched, setProblemStatementTouched] = useState(false);
 
   const markSaved = () => {
     setSaved(true);
@@ -89,10 +90,25 @@ export default function ProjectSettings() {
     setSaved(false);
 
     try {
+      let payload = data;
+      if (!problemStatementTouched) {
+        const currentProject = await fetchApi("/projects/my-project");
+        payload = {
+          ...data,
+          description: {
+            ...data.description,
+            problemStatement: currentProject.description?.problemStatement || data.description.problemStatement,
+            problemStatementLanguage:
+              currentProject.description?.problemStatementLanguage || data.description.problemStatementLanguage,
+          },
+        };
+      }
+
       await fetchApi("/projects/my-project", {
         method: "PUT",
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       });
+      setProblemStatementTouched(false);
       markSaved();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save project settings.");
@@ -147,7 +163,10 @@ export default function ProjectSettings() {
           required
           rows={4}
           value={data.description.problemStatement}
-          onChange={(problemStatement) => updateSection("description", { problemStatement })}
+          onChange={(problemStatement) => {
+            setProblemStatementTouched(true);
+            updateSection("description", { problemStatement });
+          }}
         />
         <TextAreaField
           id="settings-objective"

@@ -7,6 +7,7 @@ import {
   DetailLevel,
   FlatReportSection,
   ReportChapter,
+  getLanguageLabel,
   htmlToMarkdown,
   markdownToLatex,
   useReportStudio,
@@ -51,6 +52,8 @@ export default function ReportBuilder() {
     saveReportChapters,
     generateChapter,
     runChapterAction,
+    translateChapter,
+    projectLanguage,
     generateCompleteReport,
     dismissError,
   } = useReportStudio();
@@ -60,6 +63,9 @@ export default function ReportBuilder() {
   const [activeTab, setActiveTab] = useState<StudioTab>("rich");
   const [selectedText, setSelectedText] = useState("");
   const [copied, setCopied] = useState<StudioTab | "final" | null>(null);
+  const [refineOpen, setRefineOpen] = useState(false);
+  const [refineInstructions, setRefineInstructions] = useState("");
+  const refinePopoverRef = useRef<HTMLDivElement>(null);
 
   const leafSections = useMemo(() => flatSections.filter((item) => isLeafSection(item)), [flatSections]);
 
@@ -85,6 +91,15 @@ export default function ReportBuilder() {
     sourceFingerprint &&
     activeChapter.sourceFingerprint !== sourceFingerprint
   );
+  const isAiIdle = aiState === "idle";
+  const activeChapterLanguage = activeChapter?.language || "";
+  const shouldShowTranslate = Boolean(
+    activeIsLeaf &&
+    activeChapter &&
+    hasContent(activeChapter) &&
+    projectLanguage &&
+    activeChapterLanguage !== projectLanguage
+  );
 
   const currentMarkdown = useMemo(
     () => activeChapter?.contentMarkdown || htmlToMarkdown(activeChapter?.contentHtml || ""),
@@ -94,6 +109,39 @@ export default function ReportBuilder() {
     () => activeChapter?.contentLatex || markdownToLatex(currentMarkdown),
     [activeChapter, currentMarkdown]
   );
+
+  useEffect(() => {
+    const handlePointerDown = (event: MouseEvent) => {
+      if (refinePopoverRef.current && !refinePopoverRef.current.contains(event.target as Node)) {
+        setRefineOpen(false);
+      }
+    };
+
+    if (refineOpen) {
+      document.addEventListener("mousedown", handlePointerDown);
+    }
+
+    return () => document.removeEventListener("mousedown", handlePointerDown);
+  }, [refineOpen]);
+
+  useEffect(() => {
+    if (aiState !== "idle" || !activeChapter || !hasContent(activeChapter)) {
+      setRefineOpen(false);
+    }
+  }, [activeChapter, aiState]);
+
+  const handleRefineSubmit = async () => {
+    if (!activeChapter) return;
+    await runChapterAction(
+      activeChapter.sectionId,
+      "Improve Academic Style",
+      activeChapter.contentHtml,
+      selectedText,
+      refineInstructions
+    );
+    setRefineInstructions("");
+    setRefineOpen(false);
+  };
 
   const handleEditorChange = (html: string) => {
     if (!activeFlatSection) return;
@@ -142,6 +190,12 @@ export default function ReportBuilder() {
           }`}>
             {saveStatus === "saving" ? "Autosaving..." : saveStatus === "saved" ? "All changes saved" : "Unsaved changes"}
           </span>
+          <style>{`
+            @keyframes report-builder-popover-in {
+              from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+              to { opacity: 1; transform: translateY(0) scale(1); }
+            }
+          `}</style>
           <button onClick={() => saveReportChapters(reportChapters, true)} disabled={saveStatus === "saving" || aiState !== "idle"} className="px-4 py-2 rounded-md bg-primary text-on-primary text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50">
             Save now
           </button>
@@ -218,15 +272,6 @@ export default function ReportBuilder() {
 
               <div className="mt-5 rounded-lg border border-outline-variant bg-surface p-3">
                 <div className="flex flex-col 2xl:flex-row 2xl:items-center justify-between gap-3">
-                  <div>
-                    <div className="flex items-center gap-2 text-label-md font-semibold text-on-surface">
-                      <span className="material-symbols-outlined text-[18px] text-primary">auto_awesome</span>
-                      AI Tools
-                    </div>
-                    <p className="text-body-sm text-on-surface-variant mt-1">
-                      Select a report section, then use AI tools to generate, refine, or improve it.
-                    </p>
-                  </div>
                   {activeIsLeaf && (
                     <div className="flex bg-surface-container-lowest rounded-lg p-1 border border-outline-variant w-fit">
                       {(Object.keys(detailLabels) as DetailLevel[]).map((level) => (
@@ -243,22 +288,81 @@ export default function ReportBuilder() {
                       ))}
                     </div>
                   )}
+                  {activeIsLeaf && (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button onClick={() => activeFlatSection && generateChapter(activeFlatSection.section.id, detailLevel)} disabled={!activeFlatSection || !isAiIdle} className={aiButtonClass}>
+                      {aiState === "generating" ? "Generating..." : hasContent(activeChapter) ? "Regenerate with AI" : "Generate with AI"}
+                    </button>
+                    <div className="relative" ref={refinePopoverRef}>
+                      <button onClick={() => setRefineOpen(true)} disabled={!activeChapter || !hasContent(activeChapter) || !isAiIdle} className={aiButtonClass}>
+                        {aiState === "refining" ? "Refining..." : "Refine with AI"}
+                      </button>
+
+                      {refineOpen && (
+                        <div
+                          className="absolute right-0 top-full z-30 mt-2 w-[min(22rem,calc(100vw-2rem))] rounded-md border border-outline-variant bg-surface-bright p-3 shadow-xl"
+                          style={{ animation: "report-builder-popover-in 150ms ease-out" }}
+                        >
+                          <textarea
+                            value={refineInstructions}
+                            onChange={(event) => setRefineInstructions(event.target.value)}
+                            placeholder="Tell AI what you'd like to improve (optional)..."
+                            rows={4}
+                            className="w-full resize-none rounded-md border border-outline-variant bg-surface px-3 py-2 text-body-md text-on-surface outline-none transition-colors placeholder:text-on-surface-variant focus:border-primary focus:ring-1 focus:ring-primary"
+                            autoFocus
+                          />
+                          <div className="mt-3 flex items-center justify-end gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setRefineInstructions("");
+                                setRefineOpen(false);
+                              }}
+                              className="px-3 py-1.5 rounded-md border border-outline-variant bg-surface text-label-sm font-medium text-on-surface hover:bg-surface-container transition-colors"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleRefineSubmit}
+                              disabled={aiState === "refining"}
+                              className="px-3 py-1.5 rounded-md bg-primary text-label-sm font-semibold text-on-primary hover:opacity-90 transition-opacity disabled:opacity-50"
+                            >
+                              {aiState === "refining" ? "Refining..." : "Refine"}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    {shouldShowTranslate && (
+                      <button
+                        onClick={() => activeChapter && translateChapter(activeChapter.sectionId, activeChapter.contentHtml)}
+                        disabled={!activeChapter || !isAiIdle}
+                        className="px-5 py-2 rounded-md border border-secondary/30 bg-secondary-container/60 text-secondary text-label-md font-semibold hover:bg-secondary-container transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed disabled:grayscale"
+                      >
+                        {aiState === "translating" ? (
+                          <span className="inline-flex items-center gap-2">
+                            <span className="w-3.5 h-3.5 border-2 border-secondary border-t-transparent rounded-full animate-spin" />
+                            Translating...
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-2">
+                            <span aria-hidden="true">🌐</span>
+                            Translate to {getLanguageLabel(projectLanguage)}
+                          </span>
+                        )}
+                      </button>
+                    )}
+                  </div>
+                  )}
                 </div>
                 {activeIsLeaf ? (
                   <div className="mt-3 flex flex-wrap items-center gap-2">
-                    <button onClick={() => activeFlatSection && generateChapter(activeFlatSection.section.id, detailLevel)} disabled={!activeFlatSection || aiState !== "idle"} className={aiButtonClass}>
-                      <span className="material-symbols-outlined text-[17px] align-[-3px] mr-1">auto_awesome</span>
-                      {hasContent(activeChapter) ? "Regenerate with AI" : "Generate with AI"}
-                    </button>
-                    <button onClick={() => activeChapter && runChapterAction(activeChapter.sectionId, "Improve Academic Style", activeChapter.contentHtml, selectedText)} disabled={!activeChapter || !hasContent(activeChapter) || aiState !== "idle"} className={aiButtonClass}>
-                      <span className="material-symbols-outlined text-[17px] align-[-3px] mr-1">school</span>
-                      Refine with AI
-                    </button>
-                    {hasContent(activeChapter) && AI_ACTIONS.slice(0, 5).map((action) => (
+                    {hasContent(activeChapter) && AI_ACTIONS.filter((action) => action !== "Improve Academic Style").map((action) => (
                       <button
                         key={action}
                         onClick={() => activeChapter && runChapterAction(activeChapter.sectionId, action, activeChapter.contentHtml, selectedText)}
-                        disabled={!activeChapter || aiState !== "idle"}
+                        disabled={!activeChapter || !isAiIdle}
                         className="h-9 px-3 bg-surface hover:bg-surface-container-low border border-outline-variant rounded-md font-label-sm text-on-surface flex items-center gap-1.5 transition-colors disabled:opacity-50"
                         title={selectedText ? `Apply to selected text: ${selectedText.slice(0, 60)}` : "Apply to the whole chapter"}
                       >
@@ -266,13 +370,13 @@ export default function ReportBuilder() {
                         {action}
                       </button>
                     ))}
-                    <button onClick={() => activeChapter && updateChapter(activeChapter.sectionId, { status: activeChapter.status === "completed" ? "in-progress" : "completed" })} disabled={!activeChapter || aiState !== "idle"} className="h-9 px-3 rounded-md border border-outline-variant bg-surface text-on-surface text-sm font-medium hover:bg-surface-container-low disabled:opacity-50">
+                    <button onClick={() => activeChapter && updateChapter(activeChapter.sectionId, { status: activeChapter.status === "completed" ? "in-progress" : "completed" })} disabled={!activeChapter || !isAiIdle} className="h-9 px-3 rounded-md border border-outline-variant bg-surface text-on-surface text-sm font-medium hover:bg-surface-container-low disabled:opacity-50">
                       <span className="material-symbols-outlined text-[17px] align-[-3px] mr-1">done_all</span>
                       {activeChapter?.status === "completed" ? "Reopen" : "Mark Complete"}
                     </button>
                   </div>
                 ) : (
-                  <div className="mt-3 flex items-center gap-2 rounded-md bg-surface-container-lowest border border-outline-variant px-3 py-2 text-body-sm text-on-surface-variant">
+                  <div className="flex items-center gap-2 rounded-md bg-surface-container-lowest border border-outline-variant px-3 py-2 text-body-sm text-on-surface-variant">
                     <span className="material-symbols-outlined text-[18px] text-primary">folder</span>
                     This is a parent section. Select one of its child sections to generate and edit report content.
                   </div>
@@ -360,26 +464,6 @@ export default function ReportBuilder() {
                 <SourcePreview value={activeTab === "markdown" ? currentMarkdown : currentLatex} dark={activeTab === "latex"} />
               )}
             </div>
-
-            {activeIsLeaf && hasContent(activeChapter) && (
-              <div className="border-t border-outline-variant p-4 bg-surface-container-lowest">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-label-sm text-on-surface-variant uppercase mr-1">More AI Tools</span>
-                  {AI_ACTIONS.map((action) => (
-                    <button
-                      key={action}
-                      onClick={() => activeChapter && runChapterAction(activeChapter.sectionId, action, activeChapter.contentHtml, selectedText)}
-                      disabled={!activeChapter || aiState !== "idle"}
-                      className="h-8 px-3 bg-surface hover:bg-surface-container-low border border-outline-variant rounded-md font-label-sm text-on-surface flex items-center gap-1.5 transition-colors disabled:opacity-50"
-                      title={selectedText ? `Apply to selected text: ${selectedText.slice(0, 60)}` : "Apply to the whole chapter"}
-                    >
-                      <span className="material-symbols-outlined text-[16px] text-primary">{actionIcons[action]}</span>
-                      {action}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
           </main>
         </div>
       )}

@@ -9,6 +9,7 @@ export interface ProjectOnboarding {
   };
   description: {
     problemStatement: string;
+    problemStatementLanguage?: string;
     objective: string;
     deliverables: string;
     company: string;
@@ -41,6 +42,7 @@ export const defaultOnboardingData: ProjectOnboarding = {
   },
   description: {
     problemStatement: "",
+    problemStatementLanguage: "",
     objective: "",
     deliverables: "",
     company: "",
