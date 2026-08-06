@@ -229,6 +229,18 @@ export default function PresentationPage() {
               </button>
             ) : (
               <>
+                <button
+                  onClick={() => generateWithAi(presentation.durationMinutes)}
+                  disabled={!isAiIdle}
+                  className={aiButtonClass}
+                >
+                  {aiState === "generating" ? (
+                    <span className="inline-flex items-center gap-2">
+                      <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                      Generating...
+                    </span>
+                  ) : "Generate with AI"}
+                </button>
                 <div className="relative" ref={refinePopoverRef}>
                   <button
                     onClick={() => setRefineOpen(true)}

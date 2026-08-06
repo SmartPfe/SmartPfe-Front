@@ -107,7 +107,8 @@ export function usePresentation() {
     presentationRef.current = presentation;
   }, [presentation]);
 
-  const onboardingLanguage = normalizeLanguage(onboardingData.basics.language);
+  const hasOnboardingProjectData = Boolean(onboardingData.basics.title.trim() || onboardingData.basics.domain.trim());
+  const onboardingLanguage = hasOnboardingProjectData ? normalizeLanguage(onboardingData.basics.language) : "";
   const projectLanguage = onboardingLanguage || currentProjectLanguage || normalizeLanguage(project?.basics?.language || project?.language);
 
   useEffect(() => {
