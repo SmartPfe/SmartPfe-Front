@@ -11,6 +11,7 @@ import WorkspaceLayout from "./layouts/WorkspaceLayout";
 import AdminLayout from "./layouts/AdminLayout";
 import Login from "./pages/auth/Login";
 import Signup from "./pages/auth/Signup";
+import VerifyEmail from "./pages/auth/VerifyEmail";
 import ProjectBasics from "./pages/onboarding/ProjectBasics";
 import ProjectDescription from "./pages/onboarding/ProjectDescription";
 import TechnicalContext from "./pages/onboarding/TechnicalContext";
@@ -50,6 +51,7 @@ export default function App() {
         <Route element={<AuthLayout />}>
           <Route path="login" element={<Login />} />
           <Route path="signup" element={<Signup />} />
+          <Route path="verify-email" element={<VerifyEmail />} />
           <Route path="forgot-password" element={<ForgotPassword />} />
           <Route path="reset-password/:token" element={<ResetPassword />} />
         </Route>

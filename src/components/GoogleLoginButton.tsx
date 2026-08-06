@@ -72,6 +72,7 @@ export default function GoogleLoginButton({ onError, onLoading }: GoogleLoginBut
           email: data.email,
           avatar: data.avatar,
           authProvider: data.authProvider || "google",
+          emailVerified: data.emailVerified !== false,
           hasCompletedOnboarding: data.hasCompletedOnboarding,
           role: data.role || "etudiant",
         })

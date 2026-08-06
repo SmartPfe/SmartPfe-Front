@@ -53,23 +53,13 @@ export default function Signup() {
         body: JSON.stringify(formData),
       });
 
-      // Save token to localStorage
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify({
-        _id: data._id,
-        fullName: data.fullName,
-        email: data.email,
-        avatar: data.avatar,
-        authProvider: data.authProvider || "email",
-        hasCompletedOnboarding: data.hasCompletedOnboarding,
-        role: data.role || "etudiant",
-      }));
-
-      if (data.hasCompletedOnboarding) {
-        navigate("/workspace/overview");
-      } else {
-        navigate("/onboarding/1");
-      }
+      sessionStorage.setItem("pendingVerificationEmail", data.email || formData.email);
+      navigate("/verify-email", {
+        state: {
+          email: data.email || formData.email,
+          devVerificationCode: data.devVerificationCode,
+        },
+      });
     } catch (err: any) {
       setError(err.message || "Failed to register. Please try again.");
     } finally {

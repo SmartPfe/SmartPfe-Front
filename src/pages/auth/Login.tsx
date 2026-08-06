@@ -37,6 +37,7 @@ export default function Login() {
         email: data.email,
         avatar: data.avatar,
         authProvider: data.authProvider || "email",
+        emailVerified: data.emailVerified !== false,
         hasCompletedOnboarding: data.hasCompletedOnboarding,
         role: data.role || "etudiant",
       }));
@@ -52,6 +53,19 @@ export default function Login() {
         navigate("/onboarding/1");
       }
     } catch (err: any) {
+      if (err.requiresEmailVerification) {
+        const email = err.email || formData.email;
+        sessionStorage.setItem("pendingVerificationEmail", email);
+        navigate("/verify-email", {
+          state: {
+            email,
+            devVerificationCode: err.devVerificationCode,
+            message: err.message,
+          },
+        });
+        return;
+      }
+
       setError(err.message || "Failed to login. Please check your credentials.");
     } finally {
       setLoading(false);
