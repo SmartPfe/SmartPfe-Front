@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import {
   createEmptySlide,
   getLanguageLabel,
+  normalizeLanguage,
   PresentationDuration,
   PresentationSlide,
   usePresentation,
@@ -52,7 +53,7 @@ export default function PresentationPage() {
   const shouldShowTranslate = Boolean(
     selectedSlideHasContent &&
     projectLanguage &&
-    (selectedSlide?.language || "") !== projectLanguage
+    normalizeLanguage(selectedSlide?.language) !== normalizeLanguage(projectLanguage)
   );
 
   useEffect(() => {

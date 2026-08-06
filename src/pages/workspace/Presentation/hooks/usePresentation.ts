@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
+import { useOnboarding } from "@/context/OnboardingContext";
 import { fetchApi } from "@/lib/api";
 
 export type PresentationDuration = 5 | 10 | 15 | 20;
@@ -91,6 +92,7 @@ export const createEmptySlide = (index: number): PresentationSlide => ({
 
 export function usePresentation() {
   const location = useLocation();
+  const { data: onboardingData } = useOnboarding();
   const [project, setProject] = useState<any>(null);
   const [currentProjectLanguage, setCurrentProjectLanguage] = useState("");
   const [presentation, setPresentation] = useState<PresentationDeck>(normalizePresentation());
@@ -104,6 +106,9 @@ export function usePresentation() {
   useEffect(() => {
     presentationRef.current = presentation;
   }, [presentation]);
+
+  const onboardingLanguage = normalizeLanguage(onboardingData.basics.language);
+  const projectLanguage = onboardingLanguage || currentProjectLanguage || normalizeLanguage(project?.basics?.language || project?.language);
 
   useEffect(() => {
     const fetchPresentation = async () => {
@@ -242,11 +247,18 @@ export function usePresentation() {
           ...(trimmedInstructions ? { instructions: trimmedInstructions } : {}),
         }),
       });
+      const targetLanguage = projectLanguage;
       const nextPresentation = normalizePresentation(res.presentation || {});
-      presentationRef.current = nextPresentation;
-      setPresentation(nextPresentation);
+      const refinedPresentation = slideId && targetLanguage
+        ? normalizePresentation({
+          ...nextPresentation,
+          slides: nextPresentation.slides.map((slide) => slide.id === slideId ? { ...slide, language: targetLanguage } : slide),
+        })
+        : nextPresentation;
+      presentationRef.current = refinedPresentation;
+      setPresentation(refinedPresentation);
       setSaveStatus("unsaved");
-      await savePresentation(nextPresentation);
+      await savePresentation(refinedPresentation);
     } catch (err: any) {
       setError(err.message || "AI presentation refinement failed. Please try again.");
     } finally {
@@ -264,11 +276,18 @@ export function usePresentation() {
         method: "POST",
         body: JSON.stringify({ presentation, slideId }),
       });
+      const targetLanguage = projectLanguage;
       const nextPresentation = normalizePresentation(res.presentation || {});
-      presentationRef.current = nextPresentation;
-      setPresentation(nextPresentation);
+      const translatedPresentation = targetLanguage
+        ? normalizePresentation({
+          ...nextPresentation,
+          slides: nextPresentation.slides.map((slide) => slide.id === slideId ? { ...slide, language: targetLanguage } : slide),
+        })
+        : nextPresentation;
+      presentationRef.current = translatedPresentation;
+      setPresentation(translatedPresentation);
       setSaveStatus("unsaved");
-      await savePresentation(nextPresentation);
+      await savePresentation(translatedPresentation);
     } catch (err: any) {
       setError(err.message || "AI presentation translation failed. Please try again.");
     } finally {
@@ -277,8 +296,6 @@ export function usePresentation() {
   };
 
   const dismissError = useCallback(() => setError(null), []);
-
-  const projectLanguage = currentProjectLanguage || normalizeLanguage(project?.basics?.language || project?.language);
 
   return {
     project,
