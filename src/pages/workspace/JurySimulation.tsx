@@ -1,445 +1,856 @@
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "react-router-dom";
+import { API_BASE_URL, fetchApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import { motion, AnimatePresence } from "motion/react";
+import { useWorkflow } from "@/context/WorkflowContext";
+import { normalizePresentation, PresentationDeck, PresentationSlide } from "./Presentation/hooks/usePresentation";
+import { formatDuration, normalizePitch, PitchDeck, PitchSlide } from "./Pitch/hooks/usePitch";
 
-type SimulationStage = "setup" | "recording_pitch" | "processing_pitch" | "jury_questions" | "processing_answers" | "final_feedback";
+type JuryStage = "loading" | "prepare" | "presenting" | "analyzing" | "results";
+type MicStatus = "unknown" | "checking" | "ready" | "denied" | "unavailable";
 
-interface JuryMember {
-  id: string;
-  name: string;
-  role: string;
-  icon: string;
-  color: string;
-  bgColor: string;
-  focus: string;
-}
+type CategoryScores = {
+  delivery: number;
+  clarity: number;
+  content: number;
+  timing: number;
+  structure: number;
+};
 
-const JURY_MEMBERS: JuryMember[] = [
-  { id: "academic", name: "Dr. Academic", role: "Professor", icon: "school", color: "text-blue-600", bgColor: "bg-blue-100", focus: "Methodology & Rigor" },
-  { id: "technical", name: "Eng. Tech", role: "Software Engineer", icon: "code", color: "text-emerald-600", bgColor: "bg-emerald-100", focus: "Architecture & Code" },
-  { id: "industry", name: "Mr. Reviewer", role: "Product Manager", icon: "business_center", color: "text-purple-600", bgColor: "bg-purple-100", focus: "Usability & Value" }
+type SectionFeedback = {
+  slideNumber: number;
+  slideTitle: string;
+  strengths: string[];
+  improvements: string[];
+  observations: string[];
+};
+
+type JuryAnalysis = {
+  overallScore: number;
+  overallLabel: string;
+  categoryScores: CategoryScores;
+  timing: {
+    targetSeconds: number;
+    actualSeconds: number;
+    differenceSeconds: number;
+    assessment: string;
+  };
+  fillerWords: {
+    total: number;
+    mostFrequent: string[];
+    examples: string[];
+  };
+  strengths: string[];
+  improvements: string[];
+  sectionFeedback: SectionFeedback[];
+  actionPlan: string[];
+};
+
+type JuryAttempt = {
+  _id?: string;
+  attemptNumber: number;
+  presentationVersion: number;
+  pitchVersion: number;
+  targetSeconds: number;
+  actualSeconds: number;
+  analysis: JuryAnalysis;
+  status: "completed" | "failed";
+  isCurrent?: boolean;
+  createdAt?: string;
+};
+
+const scoreCategories: Array<[keyof CategoryScores, string]> = [
+  ["delivery", "Delivery"],
+  ["content", "Content"],
+  ["clarity", "Clarity"],
+  ["timing", "Timing"],
+  ["structure", "Structure"],
 ];
 
-interface Question {
-  id: string;
-  juryId: string;
-  text: string;
-  studentAnswer?: string;
-}
+const normalizeSeconds = (value: number) => Math.max(0, Math.round(value));
+
+const supportedRecordingType = () => {
+  if (typeof MediaRecorder === "undefined") return "";
+  return [
+    "audio/ogg;codecs=opus",
+    "audio/ogg",
+    "audio/webm;codecs=opus",
+    "audio/webm",
+    "audio/mp4",
+  ].find((type) => MediaRecorder.isTypeSupported(type)) || "";
+};
+
+const recordingExtension = (mimeType = "") => {
+  const value = mimeType.toLowerCase();
+  if (value.includes("ogg")) return "ogg";
+  if (value.includes("mp4")) return "m4a";
+  if (value.includes("mpeg") || value.includes("mp3")) return "mp3";
+  if (value.includes("wav")) return "wav";
+  return "webm";
+};
+
+const authHeaders = () => {
+  const token = localStorage.getItem("token");
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
+const attemptVersionLabel = (attempt: JuryAttempt) =>
+  attempt.isCurrent ? "Current version" : "Based on an older version";
+
+const getPitchSpeech = (slide?: PitchSlide | null) => String(slide?.speech || "").trim();
+
+const alignPitchToPresentation = (pitch: PitchDeck, slides: PresentationSlide[]) => {
+  const pitchBySlideId = new Map(pitch.slides.map((slide) => [slide.slideId, slide]));
+  return slides.map((slide, index) => pitchBySlideId.get(slide.id) || pitch.slides[index] || null);
+};
 
 export default function JurySimulation() {
-  const [stage, setStage] = useState<SimulationStage>("setup");
-  const [timer, setTimer] = useState(0);
-  const [questions, setQuestions] = useState<Question[]>([]);
-  const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
-  const [currentAnswer, setCurrentAnswer] = useState("");
-  const [metrics, setMetrics] = useState({ clarity: 0, confidence: 0, fluency: 0, pace: 0, fillers: 0 });
+  const { refreshWorkflow } = useWorkflow();
+  const [stage, setStage] = useState<JuryStage>("loading");
+  const [project, setProject] = useState<any>(null);
+  const [presentation, setPresentation] = useState<PresentationDeck>(normalizePresentation());
+  const [pitch, setPitch] = useState<PitchDeck>(normalizePitch());
+  const [attempts, setAttempts] = useState<JuryAttempt[]>([]);
+  const [currentAttempt, setCurrentAttempt] = useState<JuryAttempt | null>(null);
+  const [micStatus, setMicStatus] = useState<MicStatus>("unknown");
+  const [error, setError] = useState("");
+  const [activeSlideIndex, setActiveSlideIndex] = useState(0);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [startedAt, setStartedAt] = useState<number | null>(null);
+
+  const streamRef = useRef<MediaStream | null>(null);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<BlobPart[]>([]);
+
+  const slides = presentation.slides;
+  const alignedPitchSlides = useMemo(() => alignPitchToPresentation(pitch, slides), [pitch, slides]);
+  const targetSeconds = (presentation.durationMinutes || pitch.durationMinutes || 10) * 60;
+  const hasPresentation = slides.length > 0;
+  const hasPitch = hasPresentation
+    ? alignedPitchSlides.some((slide) => getPitchSpeech(slide))
+    : pitch.slides.some((slide) => getPitchSpeech(slide));
+  const canStart = hasPresentation && hasPitch && micStatus !== "denied" && micStatus !== "unavailable" && stage !== "analyzing";
+  const currentSlide = slides[activeSlideIndex];
+  const currentPitch = alignedPitchSlides[activeSlideIndex] || pitch.slides[activeSlideIndex];
+  const olderAttemptsExist = attempts.some((attempt) => !attempt.isCurrent);
+  const latestCurrentAttempt = useMemo(
+    () => attempts.find((attempt) => attempt.isCurrent && attempt.status === "completed") || null,
+    [attempts]
+  );
+
+  const loadSimulation = useCallback(async () => {
+    setStage("loading");
+    setError("");
+    try {
+      const projectData = await fetchApi("/projects/my-project");
+      const [presentationData, pitchData, juryData] = await Promise.all([
+        fetchApi(`/projects/${projectData._id}/presentation`),
+        fetchApi(`/projects/${projectData._id}/pitch`),
+        fetchApi(`/projects/${projectData._id}/jury-simulation`),
+      ]);
+
+      setProject(projectData);
+      setPresentation(normalizePresentation(presentationData.presentation || {}));
+      setPitch(normalizePitch(pitchData.pitch || {}));
+      setAttempts(Array.isArray(juryData.attempts) ? juryData.attempts : []);
+      setCurrentAttempt(null);
+      setActiveSlideIndex(0);
+      setStage("prepare");
+    } catch (err: any) {
+      setError(err.message || "Failed to load Jury Simulation. Please refresh the page.");
+      setStage("prepare");
+    }
+  }, []);
 
   useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (stage === "recording_pitch") {
-      interval = setInterval(() => setTimer(prev => prev + 1), 1000);
-    }
-    return () => clearInterval(interval);
+    loadSimulation();
+  }, [loadSimulation]);
+
+  useEffect(() => {
+    const checkPermission = async () => {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        setMicStatus("unavailable");
+        return;
+      }
+
+      try {
+        const permission = await navigator.permissions?.query({ name: "microphone" as PermissionName });
+        if (permission?.state === "granted") setMicStatus("ready");
+        if (permission?.state === "denied") setMicStatus("denied");
+        if (permission) {
+          permission.onchange = () => {
+            if (permission.state === "granted") setMicStatus("ready");
+            if (permission.state === "denied") setMicStatus("denied");
+            if (permission.state === "prompt") setMicStatus("unknown");
+          };
+        }
+      } catch {
+        setMicStatus("unknown");
+      }
+    };
+
+    checkPermission();
+  }, []);
+
+  useEffect(() => {
+    if (stage !== "presenting" || !startedAt) return;
+    const interval = window.setInterval(() => {
+      setElapsedSeconds(normalizeSeconds((Date.now() - startedAt) / 1000));
+    }, 500);
+    return () => window.clearInterval(interval);
+  }, [stage, startedAt]);
+
+  useEffect(() => {
+    const warnBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (stage !== "presenting") return;
+      event.preventDefault();
+      event.returnValue = "";
+    };
+
+    window.addEventListener("beforeunload", warnBeforeUnload);
+    return () => window.removeEventListener("beforeunload", warnBeforeUnload);
   }, [stage]);
 
-  const handleStartRecording = () => {
-    setStage("recording_pitch");
-    setTimer(0);
-  };
+  useEffect(() => () => {
+    if (recorderRef.current?.state === "recording") recorderRef.current.stop();
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+  }, []);
 
-  const handleStopRecording = () => {
-    setStage("processing_pitch");
-    // Simulate processing delay
-    setTimeout(() => {
-      setMetrics({ clarity: 85, confidence: 78, fluency: 82, pace: 124, fillers: 4 });
-      setQuestions([
-        { id: "q1", juryId: "academic", text: "In your methodology, why did you choose this specific approach over traditional waterfall for a PFE project?" },
-        { id: "q2", juryId: "technical", text: "Can you elaborate on how your system architecture handles concurrent requests and ensures scalability?" },
-        { id: "q3", juryId: "industry", text: "From a business perspective, how do you see this platform differentiating itself from existing tools like Notion?" }
-      ]);
-      setStage("jury_questions");
-    }, 2500);
-  };
+  const requestMicrophone = async () => {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setMicStatus("unavailable");
+      setError("Your browser cannot access microphone recording. Try a modern browser such as Chrome or Edge.");
+      return null;
+    }
 
-  const handleAnswerSubmit = () => {
-    if (!currentAnswer.trim()) return;
-    
-    const newQuestions = [...questions];
-    newQuestions[activeQuestionIndex].studentAnswer = currentAnswer;
-    setQuestions(newQuestions);
-    setCurrentAnswer("");
-
-    if (activeQuestionIndex < questions.length - 1) {
-      setStage("processing_answers");
-      setTimeout(() => {
-        setActiveQuestionIndex(prev => prev + 1);
-        setStage("jury_questions");
-      }, 1500);
-    } else {
-      setStage("processing_answers");
-      setTimeout(() => {
-        setStage("final_feedback");
-      }, 2000);
+    setMicStatus("checking");
+    setError("");
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      });
+      setMicStatus("ready");
+      return stream;
+    } catch (err: any) {
+      const denied = err?.name === "NotAllowedError" || err?.name === "PermissionDeniedError";
+      setMicStatus(denied ? "denied" : "unavailable");
+      setError(
+        denied
+          ? "Microphone permission was denied. Enable microphone access in your browser site settings, then try again."
+          : "Microphone recording could not start. Check that a microphone is connected and not used by another app."
+      );
+      return null;
     }
   };
 
-  const currentQuestion = questions[activeQuestionIndex];
-  const currentJury = currentQuestion ? JURY_MEMBERS.find(j => j.id === currentQuestion.juryId) : null;
+  const checkMicrophone = async () => {
+    const stream = await requestMicrophone();
+    stream?.getTracks().forEach((track) => track.stop());
+  };
+
+  const startSimulation = async () => {
+    if (!hasPresentation || !hasPitch) return;
+    const stream = await requestMicrophone();
+    if (!stream) return;
+
+    try {
+      const mimeType = supportedRecordingType();
+      chunksRef.current = [];
+      streamRef.current = stream;
+      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+      recorderRef.current = recorder;
+      recorder.ondataavailable = (event) => {
+        if (event.data?.size) chunksRef.current.push(event.data);
+      };
+      recorder.onerror = () => setError("Recording failed. Please stop and retry the simulation.");
+      recorder.start();
+      setElapsedSeconds(0);
+      setStartedAt(Date.now());
+      setActiveSlideIndex(0);
+      setCurrentAttempt(null);
+      setStage("presenting");
+    } catch {
+      stream.getTracks().forEach((track) => track.stop());
+      setMicStatus("unavailable");
+      setError("Recording could not start in this browser. Please try again with another supported browser.");
+    }
+  };
+
+  const stopRecording = () =>
+    new Promise<Blob>((resolve, reject) => {
+      const recorder = recorderRef.current;
+      const stream = streamRef.current;
+      if (!recorder || recorder.state === "inactive") {
+        reject(new Error("Recording was not active."));
+        return;
+      }
+
+      recorder.onstop = () => {
+        stream?.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
+        resolve(new Blob(chunksRef.current, { type: recorder.mimeType || supportedRecordingType() || "audio/webm" }));
+      };
+      recorder.onerror = () => reject(new Error("Recording failed before it could be saved."));
+      recorder.stop();
+    });
+
+  const analyzeRecording = async (audioBlob: Blob, actualSeconds: number) => {
+    if (!project?._id) throw new Error("Project is not ready yet. Please refresh the page.");
+    if (!audioBlob.size) throw new Error("The recording is empty. Please try again.");
+    if (actualSeconds < 5) throw new Error("The recording is too short to analyze. Please record at least a short attempt.");
+
+    const formData = new FormData();
+    formData.append("projectId", project._id);
+    formData.append("actualSeconds", String(actualSeconds));
+    formData.append("presentation", JSON.stringify(presentation));
+    formData.append("pitch", JSON.stringify(pitch));
+    formData.append("objectiveMetrics", JSON.stringify({
+      actualSeconds,
+      targetSeconds,
+      slideCount: slides.length,
+      expectedSpeechSeconds: alignedPitchSlides.reduce((sum, slide) => sum + (Number(slide?.estimatedSeconds) || 0), 0),
+      mimeType: audioBlob.type,
+      sizeBytes: audioBlob.size,
+    }));
+    formData.append("audio", audioBlob, `jury-defense-${Date.now()}.${recordingExtension(audioBlob.type)}`);
+
+    const response = await fetch(`${API_BASE_URL}/ai/jury-simulation/analyze`, {
+      method: "POST",
+      headers: authHeaders(),
+      body: formData,
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.message || "AI analysis failed. Please try again.");
+    return data.attempt as JuryAttempt;
+  };
+
+  const finishDefense = async () => {
+    try {
+      const actualSeconds = normalizeSeconds(startedAt ? (Date.now() - startedAt) / 1000 : elapsedSeconds);
+      setElapsedSeconds(actualSeconds);
+      setStage("analyzing");
+      setError("");
+      const audioBlob = await stopRecording();
+      const attempt = await analyzeRecording(audioBlob, actualSeconds);
+      setCurrentAttempt(attempt);
+      setAttempts((current) => [
+        { ...attempt, isCurrent: true },
+        ...current.map((item) => ({
+          ...item,
+          isCurrent:
+            item.status === "completed" &&
+            item.presentationVersion === attempt.presentationVersion &&
+            item.pitchVersion === attempt.pitchVersion,
+        })),
+      ]);
+      await refreshWorkflow();
+      setStage("results");
+    } catch (err: any) {
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+      setError(err.message || "The attempt could not be analyzed. Please try again.");
+      setStage("prepare");
+    } finally {
+      setStartedAt(null);
+      recorderRef.current = null;
+      chunksRef.current = [];
+    }
+  };
+
+  const practiceAgain = () => {
+    setCurrentAttempt(null);
+    setActiveSlideIndex(0);
+    setElapsedSeconds(0);
+    setError("");
+    setStage("prepare");
+  };
+
+  if (stage === "loading") {
+    return (
+      <div className="min-h-[calc(100dvh-150px)] rounded-lg border border-outline-variant bg-surface p-xl">
+        <div className="flex min-h-[420px] items-center justify-center gap-3 text-on-surface-variant">
+          <span className="h-5 w-5 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+          <span className="font-label-md">Loading Jury Simulation...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (stage === "presenting") {
+    return (
+      <SimulationMode
+        slide={currentSlide}
+        pitch={currentPitch}
+        slideIndex={activeSlideIndex}
+        totalSlides={slides.length}
+        elapsedSeconds={elapsedSeconds}
+        targetSeconds={targetSeconds}
+        onPrevious={() => setActiveSlideIndex((index) => Math.max(0, index - 1))}
+        onNext={() => setActiveSlideIndex((index) => Math.min(slides.length - 1, index + 1))}
+        onFinish={finishDefense}
+      />
+    );
+  }
+
+  if (stage === "analyzing") {
+    return (
+      <div className="min-h-[calc(100dvh-150px)] rounded-lg border border-outline-variant bg-surface p-xl">
+        <div className="flex min-h-[520px] flex-col items-center justify-center text-center">
+          <span className="mb-5 h-12 w-12 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
+          <h1 className="text-headline-lg text-on-surface">Analyzing your defense...</h1>
+          <p className="mt-2 max-w-md text-body-md text-on-surface-variant">
+            Smart PFE is comparing your recording with the presentation and expected pitch.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (stage === "results" && currentAttempt) {
+    return (
+      <ResultsView
+        attempt={currentAttempt}
+        attempts={attempts}
+        onPracticeAgain={practiceAgain}
+        onSelectAttempt={setCurrentAttempt}
+      />
+    );
+  }
 
   return (
-    <div className="flex min-h-[calc(100dvh-150px)] lg:h-[calc(100dvh-150px)] w-full flex-col lg:flex-row overflow-hidden relative bg-surface rounded-xl border border-outline-variant">
-      
-      {/* CENTER PANEL: Main Simulation Workspace */}
-      <div className="flex-1 min-w-0 flex flex-col relative z-10 custom-scrollbar overflow-y-auto">
-        <div className="max-w-4xl w-full mx-auto p-md lg:p-xl flex-1 flex flex-col relative">
-          
-          <div className="flex items-center gap-3 mb-6 lg:mb-10 min-w-0">
-            <div className="w-12 h-12 rounded-xl bg-primary-container text-on-primary-container flex items-center justify-center">
-              <span className="material-symbols-outlined text-[24px]">Record_Voice_Over</span>
-            </div>
+    <div className="min-h-[calc(100dvh-150px)] rounded-lg border border-outline-variant bg-surface">
+      <div className="mx-auto flex w-full max-w-5xl flex-col gap-xl p-md sm:p-xl">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0 flex-1">
+            <p className="mb-2 text-label-sm font-semibold uppercase text-primary">Final step</p>
+            <h1 className="text-headline-lg text-on-surface">Jury Simulation</h1>
+            <p className="mt-2 max-w-3xl text-body-md leading-7 text-on-surface-variant">
+              Practice your PFE defense in realistic conditions using your generated slides, pitch, and microphone recording.
+            </p>
+          </div>
+          {latestCurrentAttempt && (
+            <button
+              type="button"
+              onClick={() => {
+                setCurrentAttempt(latestCurrentAttempt);
+                setStage("results");
+              }}
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-outline-variant bg-surface-container-low px-4 text-label-md font-semibold text-on-surface hover:bg-surface-container"
+            >
+              <span className="material-symbols-outlined text-[18px]">analytics</span>
+              Latest assessment
+            </button>
+          )}
+        </div>
+
+        {error && (
+          <div className="flex items-start gap-3 rounded-md border border-error/30 bg-error/5 p-4 text-body-sm text-on-surface">
+            <span className="material-symbols-outlined text-error">error</span>
             <div>
-              <h1 className="text-display text-on-surface tracking-tight mb-1">Defense Simulation</h1>
-              <p className="font-label-md text-on-surface-variant">Practice under pressure with AI jury members.</p>
+              <p className="font-semibold text-error">Simulation needs attention</p>
+              <p className="mt-1 text-on-surface-variant">{error}</p>
+            </div>
+          </div>
+        )}
+
+        {olderAttemptsExist && (
+          <div className="flex items-start gap-3 rounded-md border border-outline-variant bg-surface-container-low p-4 text-body-sm text-on-surface-variant">
+            <span className="material-symbols-outlined text-primary">history</span>
+            <p>Your previous defense attempts were based on an older version of your presentation or pitch.</p>
+          </div>
+        )}
+
+        <section className="grid gap-md md:grid-cols-[1fr_340px]">
+          <div className="rounded-lg border border-outline-variant bg-surface-container-lowest p-lg">
+            <h2 className="text-headline-sm text-on-surface">Prepare</h2>
+            <div className="mt-lg grid gap-3">
+              <ReadinessRow
+                icon="present_to_all"
+                label="Presentation"
+                value={hasPresentation ? `${slides.length} slides ready` : "Missing"}
+                ready={hasPresentation}
+                action={!hasPresentation ? <Link to="/workspace/presentation" className="text-label-sm font-semibold text-primary">Open</Link> : null}
+              />
+              <ReadinessRow
+                icon="campaign"
+                label="Pitch"
+                value={hasPitch ? `${alignedPitchSlides.filter((slide) => getPitchSpeech(slide)).length} slide speeches ready` : "Missing"}
+                ready={hasPitch}
+                action={!hasPitch ? <Link to="/workspace/pitch" className="text-label-sm font-semibold text-primary">Open</Link> : null}
+              />
+              <ReadinessRow icon="timer" label="Target Duration" value={formatDuration(targetSeconds)} ready />
+              <ReadinessRow
+                icon="mic"
+                label="Microphone"
+                value={micLabel(micStatus)}
+                ready={micStatus === "ready"}
+                action={
+                  <button
+                    type="button"
+                    onClick={checkMicrophone}
+                    className="text-label-sm font-semibold text-primary disabled:text-outline"
+                    disabled={micStatus === "checking"}
+                  >
+                    {micStatus === "checking" ? "Checking" : "Check"}
+                  </button>
+                }
+              />
+            </div>
+
+            <div className="mt-lg rounded-md border border-outline-variant bg-surface-container-low p-4 text-body-sm text-on-surface-variant">
+              Your recording will be sent to our AI service to analyze your defense performance.
+              Avoid including sensitive or confidential information while practicing.
+            </div>
+
+            <div className="mt-lg flex flex-col gap-3 sm:flex-row">
+              <button
+                type="button"
+                onClick={startSimulation}
+                disabled={!canStart}
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-primary px-5 text-label-lg font-semibold text-on-primary shadow-sm transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <span className="material-symbols-outlined text-[20px]">radio_button_checked</span>
+                Start Simulation
+              </button>
+              <button
+                type="button"
+                onClick={loadSimulation}
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-md border border-outline-variant bg-surface px-5 text-label-lg font-semibold text-on-surface hover:bg-surface-container-low"
+              >
+                <span className="material-symbols-outlined text-[20px]">refresh</span>
+                Refresh
+              </button>
             </div>
           </div>
 
-          {/* STAGE: SETUP OR RECORDING */}
-          <AnimatePresence mode="wait">
-            {(stage === "setup" || stage === "recording_pitch" || stage === "processing_pitch") && (
-              <motion.div 
-                key="recording"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="flex-1 w-full flex flex-col items-center justify-center -mt-10"
-              >
-                <div className="w-full max-w-2xl bg-surface-container-lowest border border-outline-variant rounded-3xl p-md sm:p-xl flex flex-col items-center text-center shadow-sm relative overflow-hidden">
-                  
-                  {stage === "processing_pitch" && (
-                     <div className="absolute inset-0 bg-surface/80 backdrop-blur-sm z-20 flex flex-col items-center justify-center">
-                        <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin mb-4" />
-                        <h3 className="font-headline-sm text-on-surface mb-2">Analyzing your pitch...</h3>
-                        <p className="font-body-sm text-on-surface-variant">Evaluating pace, tone, and filler words.</p>
-                     </div>
-                  )}
-
-                  <div className="relative mb-8 mt-4">
-                    <div className={cn(
-                      "w-32 h-32 rounded-full flex items-center justify-center transition-all duration-500",
-                      stage === "recording_pitch" ? "bg-error/10 scale-110" : "bg-primary-container text-on-primary-container"
-                    )}>
-                      <span className={cn(
-                        "material-symbols-outlined text-[48px] transition-colors",
-                        stage === "recording_pitch" ? "text-error animate-pulse" : "text-primary text-opacity-80"
-                      )}>
-                        {stage === "recording_pitch" ? "mic" : "videocam"}
-                      </span>
-                    </div>
-                    {stage === "recording_pitch" && (
-                      <div className="absolute -inset-4 border-2 border-error/50 rounded-full animate-ping" />
-                    )}
-                  </div>
-
-                  <h2 className="text-display text-on-surface mb-2 break-words">
-                    {stage === "recording_pitch" ? "Recording in progress..." : "Ready to present?"}
-                  </h2>
-                  <p className="font-body-lg text-on-surface-variant max-w-md mb-8">
-                    {stage === "recording_pitch" 
-                      ? "Speak clearly. The AI is listening to your pace and arguments." 
-                      : "Deliver your prepared pitch. We will analyze your performance and generate specific jury questions."}
-                  </p>
-
-                  {stage === "recording_pitch" ? (
-                    <div className="flex flex-col items-center gap-4">
-                      <div className="font-mono text-3xl font-bold tracking-wider text-error">
-                        {Math.floor(timer / 60).toString().padStart(2, '0')}:{(timer % 60).toString().padStart(2, '0')}
-                      </div>
-                      <button 
-                        onClick={handleStopRecording}
-                        className="h-12 px-8 bg-error text-white font-label-lg rounded-xl flex items-center gap-2 hover:bg-error/90 transition-all shadow-md"
-                      >
-                        <span className="material-symbols-outlined">stop_circle</span> Stop & Analyze
-                      </button>
-                    </div>
-                  ) : (
-                    <button 
-                      onClick={handleStartRecording}
-                      className="h-12 px-8 bg-primary text-on-primary font-label-lg rounded-xl flex items-center gap-2 hover:bg-primary/90 transition-all shadow-[0_4px_12px_rgba(var(--primary),0.2)] hover:-translate-y-0.5"
-                    >
-                      <span className="material-symbols-outlined">mic</span> Start Pitch
-                    </button>
-                  )}
-                </div>
-              </motion.div>
-            )}
-
-            {/* STAGE: JURY QUESTIONS & ANSWERS */}
-            {(stage === "jury_questions" || stage === "processing_answers") && currentJury && currentQuestion && (
-              <motion.div 
-                key="questions"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="flex-1 w-full flex flex-col"
-              >
-                <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                  <h3 className="font-headline-sm text-on-surface flex items-center gap-2">
-                    <span className="material-symbols-outlined text-primary">forum</span> Jury Q&A Session
-                  </h3>
-                  <span className="font-label-sm text-on-surface-variant bg-surface-container px-3 py-1 rounded-full">
-                    Question {activeQuestionIndex + 1} of {questions.length}
-                  </span>
-                </div>
-
-                <div className="flex-1 overflow-y-auto mb-6 pr-2 space-y-6">
-                  {questions.map((q, idx) => {
-                    const j = JURY_MEMBERS.find(m => m.id === q.juryId);
-                    if (!j || idx > activeQuestionIndex) return null;
-
-                    return (
-                      <div key={q.id} className="space-y-4">
-                        {/* Jury Question Bubble */}
-                        <motion.div 
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          className="flex items-start gap-3 sm:gap-4 max-w-full sm:max-w-[85%]"
-                        >
-                          <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border border-black/5 shadow-sm", j.bgColor, j.color)}>
-                            <span className="material-symbols-outlined text-[24px]">{j.icon}</span>
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="font-label-md font-bold text-on-surface">{j.name}</span>
-                              <span className="font-label-sm text-on-surface-variant px-2 py-0.5 rounded bg-surface-container">{j.role}</span>
-                            </div>
-                            <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl rounded-tl-none p-4 shadow-sm relative">
-                              <p className="font-body-lg text-on-surface leading-relaxed">{q.text}</p>
-                            </div>
-                          </div>
-                        </motion.div>
-
-                        {/* Student Answer Bubble */}
-                        {q.studentAnswer && (
-                          <motion.div 
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            className="flex items-start gap-3 sm:gap-4 max-w-full sm:max-w-[85%] ml-auto flex-row-reverse"
-                          >
-                            <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center shrink-0 text-on-primary shadow-sm">
-                              <span className="material-symbols-outlined text-[20px]">person</span>
-                            </div>
-                            <div>
-                              <div className="flex items-center justify-end gap-2 mb-1">
-                                <span className="font-label-md font-bold text-on-surface">You</span>
-                              </div>
-                              <div className="bg-primary text-on-primary rounded-2xl rounded-tr-none p-4 shadow-sm text-left">
-                                <p className="font-body-lg leading-relaxed whitespace-pre-wrap">{q.studentAnswer}</p>
-                              </div>
-                            </div>
-                          </motion.div>
-                        )}
-                      </div>
-                    )
-                  })}
-
-                  {stage === "processing_answers" && (
-                    <motion.div 
-                      initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                      className="flex items-center gap-3 text-on-surface-variant p-4 ml-16"
-                    >
-                      <div className="flex gap-1">
-                        <span className="w-2 h-2 bg-on-surface-variant/40 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-                        <span className="w-2 h-2 bg-on-surface-variant/40 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-                        <span className="w-2 h-2 bg-on-surface-variant/40 rounded-full animate-bounce"></span>
-                      </div>
-                      <span className="font-label-sm">Jury is evaluating...</span>
-                    </motion.div>
-                  )}
-                </div>
-
-                {stage === "jury_questions" && (
-                  <motion.div 
-                    initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                    className="mt-auto bg-surface-container-lowest border border-outline-variant p-2 rounded-2xl shadow-sm flex items-end gap-2"
-                  >
-                    <textarea 
-                      value={currentAnswer}
-                      onChange={e => setCurrentAnswer(e.target.value)}
-                      placeholder="Type your answer here, or use the mic to speak..."
-                      className="flex-1 bg-transparent border-none outline-none resize-none font-body-md text-on-surface p-3 min-h-[60px] max-h-[200px]"
-                      rows={2}
-                      onKeyDown={e => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                          e.preventDefault();
-                          handleAnswerSubmit();
-                        }
-                      }}
-                    />
-                    <div className="flex items-center gap-1 p-1">
-                      <button className="w-10 h-10 flex items-center justify-center rounded-xl text-on-surface-variant hover:bg-surface-container transition-colors">
-                        <span className="material-symbols-outlined">mic</span>
-                      </button>
-                      <button 
-                        onClick={handleAnswerSubmit}
-                        disabled={!currentAnswer.trim()}
-                        className="w-10 h-10 flex items-center justify-center rounded-xl bg-primary text-on-primary disabled:opacity-50 transition-colors shadow-sm"
-                      >
-                        <span className="material-symbols-outlined">send</span>
-                      </button>
-                    </div>
-                  </motion.div>
-                )}
-              </motion.div>
-            )}
-
-            {/* STAGE: FINAL FEEDBACK */}
-            {stage === "final_feedback" && (
-              <motion.div 
-                key="feedback"
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="flex-1 w-full flex flex-col mt-4"
-              >
-                 <div className="bg-surface-container-lowest border border-outline-variant rounded-3xl p-xl shadow-sm">
-                    <div className="flex items-start justify-between mb-8">
-                       <div>
-                         <h2 className="text-display text-on-surface mb-2">Defense Complete</h2>
-                         <p className="font-body-lg text-on-surface-variant">Here is your structured feedback from the jury.</p>
-                       </div>
-                       <div className="text-center">
-                          <div className="w-20 h-20 rounded-full border-4 border-[#10B981] flex items-center justify-center mb-2 mx-auto">
-                            <span className="text-[32px] font-bold text-[#059669]">82</span>
-                          </div>
-                          <span className="font-label-md text-on-surface-variant">Overall Score</span>
-                       </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                       <div className="bg-[#10B981]/5 border border-[#10B981]/20 p-5 rounded-2xl">
-                          <h4 className="font-label-lg font-bold text-[#059669] flex items-center gap-2 mb-3">
-                            <span className="material-symbols-outlined">thumb_up</span> Strengths
-                          </h4>
-                          <ul className="space-y-2 text-on-surface">
-                            <li className="flex items-start gap-2 font-body-sm"><span className="text-[#10B981] shrink-0 mt-0.5">•</span> Clear explanation of the architectural choices.</li>
-                            <li className="flex items-start gap-2 font-body-sm"><span className="text-[#10B981] shrink-0 mt-0.5">•</span> Confident delivery during the technical questions.</li>
-                            <li className="flex items-start gap-2 font-body-sm"><span className="text-[#10B981] shrink-0 mt-0.5">•</span> Excellent structural flow mirroring the report.</li>
-                          </ul>
-                       </div>
-                       <div className="bg-[#EF4444]/5 border border-[#EF4444]/20 p-5 rounded-2xl">
-                          <h4 className="font-label-lg font-bold text-[#B91C1C] flex items-center gap-2 mb-3">
-                            <span className="material-symbols-outlined">trending_down</span> Weaknesses
-                          </h4>
-                          <ul className="space-y-2 text-on-surface">
-                            <li className="flex items-start gap-2 font-body-sm"><span className="text-[#EF4444] shrink-0 mt-0.5">•</span> Hesitated on the business differentiation question.</li>
-                            <li className="flex items-start gap-2 font-body-sm"><span className="text-[#EF4444] shrink-0 mt-0.5">•</span> Used filler words ("um", "like") several times.</li>
-                            <li className="flex items-start gap-2 font-body-sm"><span className="text-[#EF4444] shrink-0 mt-0.5">•</span> Pacing was slightly rushed in the conclusion.</li>
-                          </ul>
-                       </div>
-                    </div>
-
-                    <div className="bg-surface-container-low border border-outline-variant p-6 rounded-2xl mb-8">
-                      <h4 className="font-label-lg font-bold text-on-surface flex items-center gap-2 mb-3">
-                        <span className="material-symbols-outlined text-primary">lightbulb</span> Actionable Improvements
-                      </h4>
-                      <p className="font-body-md text-on-surface-variant leading-relaxed">
-                        To improve your final defense, consider adding a slide explicitly comparing your platform's features to Notion and Word. This will pre-empt the industry reviewer's questions. Also, practice pausing instead of using filler words during transitions.
-                      </p>
-                    </div>
-
-                    <div className="flex flex-col sm:flex-row gap-4">
-                      <button 
-                        onClick={() => { setStage("setup"); setQuestions([]); }}
-                        className="h-10 px-6 bg-primary text-on-primary font-label-md rounded-lg flex items-center gap-2 hover:bg-primary/90 transition-all shadow-sm"
-                      >
-                        <span className="material-symbols-outlined">refresh</span> Retry Simulation
-                      </button>
-                      <button className="h-10 px-6 bg-surface-container-high text-on-surface font-label-md rounded-lg flex items-center gap-2 hover:bg-surface-container transition-colors">
-                        <span className="material-symbols-outlined">ios_share</span> Export Feedback
-                      </button>
-                    </div>
-                 </div>
-              </motion.div>
-            )}
-
-          </AnimatePresence>
-        </div>
+          <AttemptHistory
+            attempts={attempts}
+            onSelectAttempt={(attempt) => {
+              setCurrentAttempt(attempt);
+              setStage("results");
+            }}
+          />
+        </section>
       </div>
-
-      {/* RIGHT PANEL: Analytics Dashboard */}
-      <div className="w-full lg:w-[340px] shrink-0 border-t lg:border-t-0 lg:border-l border-outline-variant bg-surface-container-lowest flex flex-col lg:h-full max-h-[50vh] lg:max-h-full overflow-y-auto">
-        
-        <div className="p-md border-b border-outline-variant bg-surface-container-low/50">
-           <h3 className="font-headline-sm text-headline-sm text-on-surface mb-2 flex items-center gap-2">
-             <span className="material-symbols-outlined text-primary">monitoring</span> Analytics
-           </h3>
-           <p className="font-body-sm text-on-surface-variant">Real-time tracking of your pitch delivery and Q&A performance.</p>
-        </div>
-
-        <div className="p-md border-b border-outline-variant">
-           <h4 className="font-label-md font-bold text-on-surface mb-4">Speech Analysis</h4>
-           <div className="space-y-4">
-              <MetricBar label="Clarity" score={metrics.clarity} />
-              <MetricBar label="Confidence" score={metrics.confidence} />
-              <MetricBar label="Fluency" score={metrics.fluency} />
-              
-              <div className="grid grid-cols-2 gap-3 mt-4 pt-4 border-t border-outline-variant">
-                 <div className="bg-surface-container p-3 rounded-xl border border-outline-variant">
-                    <span className="block font-label-xs text-on-surface-variant uppercase tracking-wider mb-1">Pace</span>
-                    <div className="flex items-end gap-1">
-                      <span className="text-2xl font-bold text-on-surface leading-none">{metrics.pace || "—"}</span>
-                      <span className="font-label-xs text-on-surface-variant mb-0.5">wpm</span>
-                    </div>
-                 </div>
-                 <div className="bg-error/5 p-3 rounded-xl border border-error/10">
-                    <span className="block font-label-xs text-error uppercase tracking-wider mb-1">Fillers</span>
-                    <div className="flex items-end gap-1">
-                      <span className="text-2xl font-bold text-error leading-none">{metrics.fillers === 0 && stage === 'setup' ? "—" : metrics.fillers}</span>
-                      <span className="font-label-xs text-error/70 mb-0.5">detected</span>
-                    </div>
-                 </div>
-              </div>
-           </div>
-        </div>
-
-        <div className="p-md">
-           <h4 className="font-label-md font-bold text-on-surface mb-4">Jury Personalities</h4>
-           <div className="space-y-3">
-             {JURY_MEMBERS.map(j => (
-                <div key={j.id} className="flex gap-3 p-3 rounded-xl bg-surface-container-lowest border border-outline-variant">
-                   <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center shrink-0", j.bgColor, j.color)}>
-                     <span className="material-symbols-outlined text-[20px]">{j.icon}</span>
-                   </div>
-                   <div>
-                     <span className="block font-label-sm font-bold text-on-surface">{j.role}</span>
-                     <span className="block text-[11px] text-on-surface-variant mt-0.5">Focus: {j.focus}</span>
-                   </div>
-                </div>
-             ))}
-           </div>
-        </div>
-
-      </div>
-
     </div>
-  )
+  );
 }
 
-function MetricBar({ label, score }: { label: string, score: number }) {
-  const isZero = score === 0;
+function micLabel(status: MicStatus) {
+  if (status === "ready") return "Ready";
+  if (status === "denied") return "Not connected";
+  if (status === "unavailable") return "Unavailable";
+  if (status === "checking") return "Checking...";
+  return "Permission needed";
+}
+
+function ReadinessRow({
+  icon,
+  label,
+  value,
+  ready,
+  action,
+}: {
+  icon: string;
+  label: string;
+  value: string;
+  ready: boolean;
+  action?: React.ReactNode;
+}) {
   return (
-    <div className="space-y-1">
-      <div className="flex justify-between font-label-sm">
-        <span className="text-on-surface-variant">{label}</span>
-        <span className={cn(isZero ? "text-outline" : "text-primary font-bold")}>{isZero ? "—" : `${score}%`}</span>
+    <div className="flex items-center gap-3 rounded-md border border-outline-variant bg-surface p-3">
+      <span className="material-symbols-outlined text-[22px] text-primary">{icon}</span>
+      <div className="min-w-0 flex-1">
+        <p className="text-label-md font-semibold text-on-surface">{label}</p>
+        <p className="truncate text-body-sm text-on-surface-variant">{value}</p>
       </div>
-      <div className="h-1.5 w-full bg-surface-container-high rounded-full overflow-hidden">
-        <motion.div 
-          className="h-full bg-primary rounded-full transition-all duration-1000"
-          initial={{ width: 0 }}
-          animate={{ width: `${score}%` }}
-        />
+      {action}
+      <span className={cn("material-symbols-outlined text-[20px]", ready ? "text-[#10B981]" : "text-outline")}>
+        {ready ? "check_circle" : "radio_button_unchecked"}
+      </span>
+    </div>
+  );
+}
+
+function SimulationMode({
+  slide,
+  pitch,
+  slideIndex,
+  totalSlides,
+  elapsedSeconds,
+  targetSeconds,
+  onPrevious,
+  onNext,
+  onFinish,
+}: {
+  slide?: PresentationSlide;
+  pitch?: PitchSlide;
+  slideIndex: number;
+  totalSlides: number;
+  elapsedSeconds: number;
+  targetSeconds: number;
+  onPrevious: () => void;
+  onNext: () => void;
+  onFinish: () => void;
+}) {
+  return (
+    <div className="min-h-[calc(100dvh-150px)] rounded-lg border border-outline-variant bg-surface text-on-surface">
+      <div className="flex min-h-[calc(100dvh-150px)] flex-col">
+        <header className="flex flex-col gap-3 border-b border-outline-variant p-md sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <span className="flex h-3 w-3 rounded-full bg-error animate-pulse" />
+            <div>
+              <p className="text-label-md font-semibold text-error">Recording</p>
+              <p className="text-body-sm text-on-surface-variant">Slide {slideIndex + 1} of {totalSlides}</p>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <TimerPill label="Current" value={formatDuration(elapsedSeconds)} />
+            <TimerPill label="Target" value={formatDuration(targetSeconds)} />
+            <button
+              type="button"
+              onClick={onFinish}
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-error px-4 text-label-md font-semibold text-white hover:bg-error/90"
+            >
+              <span className="material-symbols-outlined text-[18px]">stop_circle</span>
+              Finish Defense
+            </button>
+          </div>
+        </header>
+
+        <main className="grid flex-1 gap-md p-md lg:grid-cols-[minmax(0,1fr)_360px]">
+          <section className="flex min-h-[420px] flex-col rounded-lg border border-outline-variant bg-surface-container-lowest p-lg">
+            <div className="mb-md flex items-center justify-between gap-3">
+              <p className="text-label-sm font-semibold uppercase text-primary">Current slide</p>
+              <div className="flex items-center gap-2">
+                <button type="button" onClick={onPrevious} disabled={slideIndex === 0} className="flex h-9 w-9 items-center justify-center rounded-md border border-outline-variant bg-surface disabled:opacity-40" title="Previous slide">
+                  <span className="material-symbols-outlined text-[20px]">chevron_left</span>
+                </button>
+                <button type="button" onClick={onNext} disabled={slideIndex >= totalSlides - 1} className="flex h-9 w-9 items-center justify-center rounded-md border border-outline-variant bg-surface disabled:opacity-40" title="Next slide">
+                  <span className="material-symbols-outlined text-[20px]">chevron_right</span>
+                </button>
+              </div>
+            </div>
+            <div className="flex flex-1 flex-col justify-center">
+              <h1 className="text-headline-lg text-on-surface">{slide?.title || "Untitled slide"}</h1>
+              <ul className="mt-lg space-y-3 text-body-lg text-on-surface">
+                {(slide?.bullets || []).map((bullet, index) => (
+                  <li key={`${bullet}-${index}`} className="flex gap-3">
+                    <span className="mt-2 h-2 w-2 rounded-full bg-primary" />
+                    <span>{bullet}</span>
+                  </li>
+                ))}
+              </ul>
+              {slide?.notes && (
+                <p className="mt-xl rounded-md border border-outline-variant bg-surface-container-low p-4 text-body-md text-on-surface-variant">
+                  {slide.notes}
+                </p>
+              )}
+            </div>
+          </section>
+
+          <aside className="rounded-lg border border-outline-variant bg-surface-container-lowest p-lg">
+            <p className="text-label-sm font-semibold uppercase text-primary">Speech reference</p>
+            <h2 className="mt-2 text-headline-sm text-on-surface">{pitch?.title || slide?.title || "Current slide"}</h2>
+            <div className="mt-md max-h-[52dvh] overflow-y-auto pr-1 text-body-md leading-7 text-on-surface-variant">
+              {pitch?.speech || "No pitch text is available for this slide."}
+            </div>
+          </aside>
+        </main>
       </div>
     </div>
-  )
+  );
 }
+
+function TimerPill({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-md border border-outline-variant bg-surface-container-low px-3 py-2">
+      <p className="text-[11px] font-semibold uppercase text-on-surface-variant">{label}</p>
+      <p className="font-mono text-label-lg text-on-surface">{value}</p>
+    </div>
+  );
+}
+
+function ResultsView({
+  attempt,
+  attempts,
+  onPracticeAgain,
+  onSelectAttempt,
+}: {
+  attempt: JuryAttempt;
+  attempts: JuryAttempt[];
+  onPracticeAgain: () => void;
+  onSelectAttempt: (attempt: JuryAttempt) => void;
+}) {
+  const analysis = attempt.analysis;
+
+  return (
+    <div className="min-h-[calc(100dvh-150px)] rounded-lg border border-outline-variant bg-surface">
+      <div className="mx-auto grid w-full max-w-6xl gap-xl p-md sm:p-xl lg:grid-cols-[minmax(0,1fr)_340px]">
+        <main className="space-y-xl">
+          <section className="rounded-lg border border-outline-variant bg-surface-container-lowest p-lg">
+            <p className="mb-2 text-label-sm font-semibold uppercase text-primary">Defense Assessment</p>
+            <div className="flex flex-col gap-lg sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h1 className="text-headline-lg text-on-surface">{analysis.overallScore} / 100</h1>
+                <p className="mt-1 text-headline-sm text-on-surface">{analysis.overallLabel}</p>
+                <p className="mt-2 text-body-sm text-on-surface-variant">
+                  {attemptVersionLabel(attempt)} - Presentation v{attempt.presentationVersion}, Pitch v{attempt.pitchVersion}
+                </p>
+              </div>
+              <button type="button" onClick={onPracticeAgain} className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-primary px-5 text-label-lg font-semibold text-on-primary hover:bg-primary/90">
+                <span className="material-symbols-outlined text-[20px]">refresh</span>
+                Practice Again
+              </button>
+            </div>
+            <div className="mt-lg grid gap-3 sm:grid-cols-5">
+              {scoreCategories.map(([key, label]) => (
+                <div key={key} className="rounded-md border border-outline-variant bg-surface p-3">
+                  <p className="text-label-sm font-semibold text-on-surface-variant">{label}</p>
+                  <p className="mt-1 text-headline-sm text-on-surface">{analysis.categoryScores[key]}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="grid gap-md md:grid-cols-2">
+            <FeedbackBlock title="Your strengths" icon="check_circle" tone="good" items={analysis.strengths} />
+            <FeedbackBlock title="Improve next time" icon="trending_up" tone="warn" items={analysis.improvements} />
+          </section>
+
+          <section className="rounded-lg border border-outline-variant bg-surface-container-lowest p-lg">
+            <div className="flex items-start gap-3">
+              <span className="material-symbols-outlined text-primary">timer</span>
+              <div>
+                <h2 className="text-headline-sm text-on-surface">Timing</h2>
+                <p className="mt-2 text-body-md text-on-surface-variant">{analysis.timing.assessment}</p>
+                <p className="mt-2 text-body-sm text-on-surface-variant">
+                  Actual {formatDuration(analysis.timing.actualSeconds)} / Target {formatDuration(analysis.timing.targetSeconds)}
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <section className="rounded-lg border border-outline-variant bg-surface-container-lowest p-lg">
+            <h2 className="text-headline-sm text-on-surface">Next attempt</h2>
+            <ol className="mt-md space-y-3">
+              {analysis.actionPlan.map((item, index) => (
+                <li key={`${item}-${index}`} className="flex gap-3 text-body-md text-on-surface-variant">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-label-sm font-semibold text-on-primary">{index + 1}</span>
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ol>
+          </section>
+
+          <section className="rounded-lg border border-outline-variant bg-surface-container-lowest p-lg">
+            <h2 className="text-headline-sm text-on-surface">Slide-by-slide feedback</h2>
+            <div className="mt-md space-y-3">
+              {analysis.sectionFeedback.length ? analysis.sectionFeedback.map((section) => (
+                <details key={`${section.slideNumber}-${section.slideTitle}`} className="rounded-md border border-outline-variant bg-surface p-4">
+                  <summary className="cursor-pointer text-label-lg font-semibold text-on-surface">
+                    Slide {section.slideNumber} - {section.slideTitle}
+                  </summary>
+                  <div className="mt-4 grid gap-4 md:grid-cols-2">
+                    <MiniList title="Good" items={section.strengths} />
+                    <MiniList title="Improve" items={section.improvements} />
+                  </div>
+                  {section.observations.length > 0 && (
+                    <div className="mt-4">
+                      <MiniList title="Observations" items={section.observations} />
+                    </div>
+                  )}
+                </details>
+              )) : (
+                <p className="text-body-md text-on-surface-variant">No slide-specific feedback was returned for this attempt.</p>
+              )}
+            </div>
+          </section>
+        </main>
+
+        <AttemptHistory attempts={attempts} onSelectAttempt={onSelectAttempt} selectedId={attempt._id} />
+      </div>
+    </div>
+  );
+}
+
+function FeedbackBlock({ title, icon, tone, items }: { title: string; icon: string; tone: "good" | "warn"; items: string[] }) {
+  const toneClass = tone === "good"
+    ? "border-[#10B981]/30 bg-[#10B981]/5 text-[#047857]"
+    : "border-[#F59E0B]/30 bg-[#F59E0B]/5 text-[#B45309]";
+
+  return (
+    <section className={cn("rounded-lg border p-lg", toneClass)}>
+      <h2 className="flex items-center gap-2 text-label-lg font-semibold uppercase">
+        <span className="material-symbols-outlined text-[20px]">{icon}</span>
+        {title}
+      </h2>
+      <ul className="mt-md space-y-2 text-body-md text-on-surface">
+        {items.length ? items.map((item, index) => (
+          <li key={`${item}-${index}`} className="flex gap-2">
+            <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-current" />
+            <span>{item}</span>
+          </li>
+        )) : (
+          <li className="text-on-surface-variant">No item was returned for this category.</li>
+        )}
+      </ul>
+    </section>
+  );
+}
+
+function MiniList({ title, items }: { title: string; items: string[] }) {
+  return (
+    <div>
+      <h3 className="text-label-md font-semibold text-on-surface">{title}</h3>
+      <ul className="mt-2 space-y-2 text-body-sm text-on-surface-variant">
+        {items.length ? items.map((item, index) => (
+          <li key={`${title}-${item}-${index}`} className="flex gap-2">
+            <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+            <span>{item}</span>
+          </li>
+        )) : (
+          <li>No feedback for this item.</li>
+        )}
+      </ul>
+    </div>
+  );
+}
+
+function AttemptHistory({ attempts, onSelectAttempt, selectedId }: { attempts: JuryAttempt[]; onSelectAttempt: (attempt: JuryAttempt) => void; selectedId?: string }) {
+  return (
+    <aside className="rounded-lg border border-outline-variant bg-surface-container-lowest p-lg">
+      <h2 className="text-headline-sm text-on-surface">Previous Attempts</h2>
+      <div className="mt-md space-y-3">
+        {attempts.length ? attempts.map((attempt) => (
+          <button
+            key={attempt._id || attempt.attemptNumber}
+            type="button"
+            onClick={() => onSelectAttempt(attempt)}
+            className={cn(
+              "w-full rounded-md border p-4 text-left transition hover:bg-surface-container-low",
+              selectedId === attempt._id ? "border-primary bg-primary/5" : "border-outline-variant bg-surface"
+            )}
+          >
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-label-lg font-semibold text-on-surface">Attempt #{attempt.attemptNumber}</span>
+              <span className="text-headline-sm text-on-surface">{attempt.analysis?.overallScore ?? 0}</span>
+            </div>
+            <p className={cn("mt-1 text-body-sm", attempt.isCurrent ? "text-[#047857]" : "text-on-surface-variant")}>
+              {attemptVersionLabel(attempt)}
+            </p>
+            <p className="mt-1 text-body-sm text-on-surface-variant">{formatDuration(attempt.actualSeconds)} recorded</p>
+          </button>
+        )) : (
+          <p className="rounded-md border border-dashed border-outline-variant p-4 text-body-sm text-on-surface-variant">
+            No previous attempts yet.
+          </p>
+        )}
+      </div>
+    </aside>
+  );
+}
+

@@ -19,6 +19,7 @@ export type PresentationDeck = {
   durationMinutes: PresentationDuration;
   slides: PresentationSlide[];
   sourceFingerprint?: string;
+  version?: number;
   updatedAt?: string;
 };
 
@@ -80,6 +81,7 @@ export const normalizePresentation = (presentation: Partial<PresentationDeck> = 
     }))
     : [],
   sourceFingerprint: presentation.sourceFingerprint,
+  version: Number(presentation.version) || (Array.isArray(presentation.slides) && presentation.slides.length ? 1 : 0),
   updatedAt: presentation.updatedAt,
 });
 

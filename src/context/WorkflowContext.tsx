@@ -85,9 +85,15 @@ export function WorkflowProvider({ children }: { children: ReactNode }) {
       "/workspace/report-structure": Boolean(data.reportStructure && data.reportStructure.length > 0),
       // Since these don't have backend storage yet, they will evaluate to false unless we add explicit completion triggers
       "/workspace/report-builder": false,
-      "/workspace/presentation": false,
-      "/workspace/pitch": false,
-      "/workspace/jury-simulation": false,
+      "/workspace/presentation": Boolean(data.presentation?.slides && data.presentation.slides.length > 0),
+      "/workspace/pitch": Boolean(data.pitch?.slides && data.pitch.slides.some((slide: any) => String(slide?.speech || "").trim())),
+      "/workspace/jury-simulation": Boolean(
+        data.jurySimulation?.attempts?.some((attempt: any) =>
+          attempt?.status === "completed" &&
+          Number(attempt.presentationVersion) === Number(data.presentation?.version || (data.presentation?.slides?.length ? 1 : 0)) &&
+          Number(attempt.pitchVersion) === Number(data.pitch?.version || (data.pitch?.slides?.length ? 1 : 0))
+        )
+      ),
     };
 
     const newSteps: Record<string, WorkflowStep> = {};

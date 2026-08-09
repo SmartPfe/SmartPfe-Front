@@ -19,6 +19,7 @@ export type PitchDeck = {
   durationMinutes: PresentationDuration;
   slides: PitchSlide[];
   sourceFingerprint?: string;
+  version?: number;
   updatedAt?: string;
 };
 
@@ -98,6 +99,7 @@ export const normalizePitch = (pitch: Partial<PitchDeck> = {}): PitchDeck => ({
     }).filter((slide) => slide.slideId && slide.title)
     : [],
   sourceFingerprint: pitch.sourceFingerprint,
+  version: Number(pitch.version) || (Array.isArray(pitch.slides) && pitch.slides.length ? 1 : 0),
   updatedAt: pitch.updatedAt,
 });
 
