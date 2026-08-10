@@ -1,5 +1,5 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import { fetchApi } from "@/lib/api";
+import { createContext, useCallback, useContext, useEffect, useRef, useState, ReactNode } from "react";
+import { fetchApi, PROJECT_DATA_UPDATED_EVENT } from "@/lib/api";
 import { useLocation } from "react-router-dom";
 
 export type StepStatus = "Locked" | "Available" | "Completed";
@@ -53,31 +53,54 @@ export function WorkflowProvider({ children }: { children: ReactNode }) {
   const [project, setProject] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [steps, setSteps] = useState<Record<string, WorkflowStep>>({});
+  const hasLoadedProjectRef = useRef(false);
+  const refreshTimerRef = useRef<number | null>(null);
   const location = useLocation();
 
-  const fetchProjectAndEvaluate = async () => {
+  const fetchProjectAndEvaluate = useCallback(async () => {
     try {
       const data = await fetchApi("/projects/my-project");
       setProject(data);
+      hasLoadedProjectRef.current = true;
       evaluateWorkflow(data);
     } catch (error) {
       console.error("Failed to fetch project for workflow:", error);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchProjectAndEvaluate();
-  }, []);
+  }, [fetchProjectAndEvaluate]);
+
+  useEffect(() => {
+    const handleProjectDataUpdated = () => {
+      if (refreshTimerRef.current) {
+        window.clearTimeout(refreshTimerRef.current);
+      }
+
+      refreshTimerRef.current = window.setTimeout(() => {
+        fetchProjectAndEvaluate();
+      }, 120);
+    };
+
+    window.addEventListener(PROJECT_DATA_UPDATED_EVENT, handleProjectDataUpdated);
+
+    return () => {
+      window.removeEventListener(PROJECT_DATA_UPDATED_EVENT, handleProjectDataUpdated);
+      if (refreshTimerRef.current) {
+        window.clearTimeout(refreshTimerRef.current);
+      }
+    };
+  }, [fetchProjectAndEvaluate]);
 
   // Refetch when location changes to ensure the workflow is up to date if the user saved something
   useEffect(() => {
-    if (project) {
+    if (hasLoadedProjectRef.current) {
       fetchProjectAndEvaluate();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.pathname]);
+  }, [fetchProjectAndEvaluate, location.pathname]);
 
   const evaluateWorkflow = (data: any) => {
     if (!data) return;
