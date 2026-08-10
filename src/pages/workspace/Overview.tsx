@@ -1,25 +1,92 @@
-import { useEffect, useState } from "react";
 import InfoTooltip from "@/components/ui/InfoTooltip";
-import { fetchApi } from "@/lib/api";
 import { Link } from "react-router-dom";
+import { useWorkflow, type StepStatus } from "@/context/WorkflowContext";
+
+const workflowItems = [
+  { path: "/workspace/overview", label: "Project Overview" },
+  { path: "/workspace/problem-statement", label: "Problem Statement" },
+  { path: "/workspace/actors", label: "Actors & Stakeholders" },
+  { path: "/workspace/solutions", label: "Existing Solutions Analysis" },
+  { path: "/workspace/functional-requirements", label: "Functional Requirements" },
+  { path: "/workspace/non-functional-requirements", label: "Non-Functional Requirements" },
+  { path: "/workspace/backlog", label: "Product Backlog" },
+  { path: "/workspace/uml-preparation", label: "UML Preparation" },
+  { path: "/workspace/report-structure", label: "Report Structure" },
+  { path: "/workspace/report-builder", label: "Report Builder" },
+  { path: "/workspace/presentation", label: "Presentation" },
+  { path: "/workspace/pitch", label: "Pitch" },
+  { path: "/workspace/jury-simulation", label: "Jury Simulation" },
+];
+
+function cleanText(value: unknown) {
+  if (Array.isArray(value)) return value.map(cleanText).filter(Boolean).join(", ");
+  if (typeof value === "number") return Number.isFinite(value) ? String(value) : "";
+  return String(value || "").trim();
+}
+
+function displayValue(value: unknown, fallback = "Not provided") {
+  return cleanText(value) || fallback;
+}
+
+function splitCustomValues(value: unknown) {
+  return cleanText(value)
+    .split(/[\n,]+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function uniqueValues(values: string[]) {
+  const result: string[] = [];
+  values.forEach((value) => {
+    const clean = value.trim();
+    if (clean && clean !== "Other" && !result.some((item) => item.toLowerCase() === clean.toLowerCase())) {
+      result.push(clean);
+    }
+  });
+  return result;
+}
+
+function projectList(values: unknown, customValues?: unknown) {
+  return uniqueValues([
+    ...(Array.isArray(values) ? values.map(cleanText) : splitCustomValues(values)),
+    ...splitCustomValues(customValues),
+  ]);
+}
+
+function statusClasses(status: StepStatus | undefined) {
+  if (status === "Completed") return "bg-surface-container-low border-outline-variant/50 opacity-70";
+  if (status === "Available") return "border-secondary/30 bg-secondary/5 hover:bg-secondary/10";
+  return "border-transparent opacity-60";
+}
+
+function statusDot(status: StepStatus | undefined) {
+  if (status === "Completed") {
+    return (
+      <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center shrink-0">
+        <span className="material-symbols-outlined text-[14px] text-on-primary">check</span>
+      </div>
+    );
+  }
+
+  if (status === "Available") {
+    return (
+      <div className="w-6 h-6 rounded-full border-2 border-secondary flex items-center justify-center shrink-0">
+        <div className="w-2.5 h-2.5 bg-secondary rounded-full"></div>
+      </div>
+    );
+  }
+
+  return <div className="w-6 h-6 rounded-full border-2 border-outline-variant flex items-center justify-center shrink-0"></div>;
+}
 
 export default function Overview() {
-  const [project, setProject] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchProject = async () => {
-      try {
-        const data = await fetchApi("/projects/my-project");
-        setProject(data);
-      } catch (error) {
-        console.error("Failed to fetch project:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchProject();
-  }, []);
+  const { project, loading, steps } = useWorkflow();
+  const technologies = projectList(project?.technicalContext?.technologies, project?.technicalContext?.otherTechnologies);
+  const developmentTypes = projectList(
+    project?.technicalContext?.developmentTypes,
+    project?.technicalContext?.otherDevelopmentType
+  );
+  const nextStep = workflowItems.find((item) => steps[item.path]?.status === "Available" && item.path !== "/workspace/overview");
 
   if (loading) {
     return (
@@ -70,27 +137,35 @@ export default function Overview() {
                   {project.basics?.title || "Untitled Project"}
                 </h2>
               </div>
-              <button className="text-on-surface-variant hover:text-primary transition-colors p-2 rounded-lg hover:bg-surface-container focus:outline-none focus:ring-2 focus:ring-primary">
+              <Link to="/workspace/settings/onboarding" className="text-on-surface-variant hover:text-primary transition-colors p-2 rounded-lg hover:bg-surface-container focus:outline-none focus:ring-2 focus:ring-primary">
                 <span className="material-symbols-outlined text-[20px]">edit</span>
-              </button>
+              </Link>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6 pt-6 border-t border-outline-variant/60">
               <div>
                 <p className="text-label-sm text-on-surface-variant uppercase tracking-wider mb-1.5">Domain</p>
-                <p className="text-body-lg text-on-surface font-medium">{project.basics?.domain || "N/A"}</p>
+                <p className="text-body-lg text-on-surface font-medium">{displayValue(project.basics?.domain)}</p>
               </div>
               <div>
                 <p className="text-label-sm text-on-surface-variant uppercase tracking-wider mb-1.5">Company Partner</p>
-                <p className="text-body-lg text-on-surface font-medium">{project.description?.company || "University / Self-directed"}</p>
+                <p className="text-body-lg text-on-surface font-medium">{displayValue(project.description?.company)}</p>
               </div>
               <div>
                 <p className="text-label-sm text-on-surface-variant uppercase tracking-wider mb-1.5">Methodology</p>
-                <p className="text-body-lg text-on-surface font-medium">{project.technicalContext?.methodology || "Agile"}</p>
+                <p className="text-body-lg text-on-surface font-medium">{displayValue(project.technicalContext?.methodology)}</p>
               </div>
               <div>
                 <p className="text-label-sm text-on-surface-variant uppercase tracking-wider mb-1.5">Academic Year</p>
-                <p className="text-body-lg text-on-surface font-medium">{project.basics?.academicYear || "2023-24"}</p>
+                <p className="text-body-lg text-on-surface font-medium">{displayValue(project.basics?.academicYear)}</p>
+              </div>
+              <div>
+                <p className="text-label-sm text-on-surface-variant uppercase tracking-wider mb-1.5">Project Type</p>
+                <p className="text-body-lg text-on-surface font-medium">{displayValue(project.basics?.type)}</p>
+              </div>
+              <div>
+                <p className="text-label-sm text-on-surface-variant uppercase tracking-wider mb-1.5">Language</p>
+                <p className="text-body-lg text-on-surface font-medium">{displayValue(project.basics?.language)}</p>
               </div>
             </div>
           </section>
@@ -99,29 +174,42 @@ export default function Overview() {
           <section className="bg-surface border border-outline-variant rounded-2xl p-8 shadow-sm">
             <h3 className="text-title-lg text-on-surface mb-6 font-medium">Methodology Roadmap</h3>
             <div className="flex flex-col gap-3">
-              <div className="flex items-center gap-4 p-4 rounded-xl bg-surface-container-low border border-outline-variant/50 opacity-70">
-                <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center shrink-0">
-                  <span className="material-symbols-outlined text-[14px] text-on-primary">check</span>
-                </div>
-                <p className="text-body-md font-medium text-on-surface line-through truncate">Project Onboarding</p>
-              </div>
-              <Link to="/workspace/problem-statement" className="flex items-center gap-4 p-4 rounded-xl border border-secondary/30 bg-secondary/5 hover:bg-secondary/10 transition-colors group">
-                <div className="w-6 h-6 rounded-full border-2 border-secondary flex items-center justify-center shrink-0">
-                  <div className="w-2.5 h-2.5 bg-secondary rounded-full"></div>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-body-md font-medium text-primary truncate">Problem Statement</p>
-                </div>
-                <span className="px-2.5 py-1 bg-surface rounded-md border border-secondary/20 text-secondary text-xs font-medium shadow-sm shrink-0">Current</span>
-              </Link>
-              <div className="flex items-center gap-4 p-4 rounded-xl border border-transparent hover:bg-surface-container-lowest transition-colors group cursor-pointer">
-                <div className="w-6 h-6 rounded-full border-2 border-outline-variant flex items-center justify-center shrink-0 group-hover:border-outline"></div>
-                <p className="text-body-md text-on-surface-variant group-hover:text-on-surface font-medium transition-colors truncate">Actors & Stakeholders</p>
-              </div>
-              <div className="flex items-center gap-4 p-4 rounded-xl border border-transparent hover:bg-surface-container-lowest transition-colors group cursor-pointer">
-                <div className="w-6 h-6 rounded-full border-2 border-outline-variant flex items-center justify-center shrink-0 group-hover:border-outline"></div>
-                <p className="text-body-md text-on-surface-variant group-hover:text-on-surface font-medium transition-colors truncate">Existing Solutions Analysis</p>
-              </div>
+              {workflowItems.map((item) => {
+                const status = steps[item.path]?.status;
+                const isAvailable = status === "Available" || status === "Completed";
+                const content = (
+                  <>
+                    {statusDot(status)}
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-body-md font-medium truncate ${status === "Available" ? "text-primary" : "text-on-surface"}`}>
+                        {item.label}
+                      </p>
+                    </div>
+                    {status === "Available" && (
+                      <span className="px-2.5 py-1 bg-surface rounded-md border border-secondary/20 text-secondary text-xs font-medium shadow-sm shrink-0">
+                        Current
+                      </span>
+                    )}
+                  </>
+                );
+
+                return isAvailable ? (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    className={`flex items-center gap-4 p-4 rounded-xl border transition-colors group ${statusClasses(status)}`}
+                  >
+                    {content}
+                  </Link>
+                ) : (
+                  <div
+                    key={item.path}
+                    className={`flex items-center gap-4 p-4 rounded-xl border transition-colors group ${statusClasses(status)}`}
+                  >
+                    {content}
+                  </div>
+                );
+              })}
             </div>
           </section>
         </div>
@@ -135,13 +223,34 @@ export default function Overview() {
               <span className="material-symbols-outlined text-[18px] text-primary">tips_and_updates</span>
               <span className="text-label-sm text-primary uppercase tracking-wider font-semibold">Next Step</span>
             </div>
-            <h3 className="text-title-lg text-on-surface font-medium mb-2">Draft Problem Statement</h3>
+            <h3 className="text-title-lg text-on-surface font-medium mb-2">
+              {nextStep ? nextStep.label : "Workspace Complete"}
+            </h3>
             <p className="text-body-sm text-on-surface-variant mb-6 leading-relaxed">
-              Define the core issue your project addresses to align with your academic goals.
+              {nextStep
+                ? "Continue from the next available workflow step using your saved project data."
+                : "All tracked workflow steps for this project are already complete."}
             </p>
-            <Link to="/workspace/problem-statement" className="w-full py-2.5 px-4 bg-primary text-on-primary rounded-xl text-label-md font-medium hover:bg-on-primary-fixed-variant transition-colors flex justify-center items-center gap-2 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary focus:ring-offset-surface">
-              Start Drafting <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+            <Link to={nextStep?.path || "/workspace/settings/onboarding"} className="w-full py-2.5 px-4 bg-primary text-on-primary rounded-xl text-label-md font-medium hover:bg-on-primary-fixed-variant transition-colors flex justify-center items-center gap-2 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary focus:ring-offset-surface">
+              {nextStep ? "Continue" : "Review Settings"} <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
             </Link>
+          </section>
+
+          <section className="bg-surface border border-outline-variant rounded-2xl p-6 shadow-sm">
+            <h3 className="text-title-md text-on-surface mb-4 font-medium flex items-center gap-2">
+              <span className="material-symbols-outlined text-outline">category</span> Development Type
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              {developmentTypes.length > 0 ? (
+                developmentTypes.map((type) => (
+                  <span key={type} className="px-3 py-1.5 bg-surface-container-low border border-outline-variant rounded-lg text-label-md text-on-surface font-medium">
+                    {type}
+                  </span>
+                ))
+              ) : (
+                <span className="text-body-sm text-on-surface-variant">No development type specified.</span>
+              )}
+            </div>
           </section>
 
           {/* Tech Stack Clean Card */}
@@ -150,8 +259,8 @@ export default function Overview() {
               <span className="material-symbols-outlined text-outline">code</span> Stack
             </h3>
             <div className="flex flex-wrap gap-2">
-              {project.technicalContext?.technologies?.length > 0 ? (
-                project.technicalContext.technologies.map((tech: string) => (
+              {technologies.length > 0 ? (
+                technologies.map((tech) => (
                   <span key={tech} className="px-3 py-1.5 bg-surface-container-low border border-outline-variant rounded-lg text-label-md text-on-surface font-medium">
                     {tech}
                   </span>
@@ -165,8 +274,8 @@ export default function Overview() {
           {/* Info Card */}
           <section className="bg-surface-container-lowest border border-outline-variant border-dashed rounded-2xl p-6 text-center">
              <span className="material-symbols-outlined text-[24px] text-outline mb-2">school</span>
-             <h4 className="text-label-md text-on-surface font-medium mb-1">Academic Year</h4>
-             <p className="text-body-sm text-on-surface-variant">{project.basics?.university || "University"}</p>
+             <h4 className="text-label-md text-on-surface font-medium mb-1">{displayValue(project.basics?.university, "University not provided")}</h4>
+             <p className="text-body-sm text-on-surface-variant">{displayValue(project.basics?.academicYear)}</p>
           </section>
         </div>
 

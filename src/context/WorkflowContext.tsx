@@ -35,6 +35,20 @@ const NAV_PATHS = [
   "/workspace/jury-simulation",
 ];
 
+const hasReportContent = (chapter: any) =>
+  Boolean(
+    String(chapter?.contentHtml || "").trim() ||
+    String(chapter?.contentMarkdown || "").trim() ||
+    String(chapter?.contentLatex || "").trim()
+  );
+
+const hasFinalReport = (finalReport: any) =>
+  Boolean(
+    String(finalReport?.contentHtml || "").trim() ||
+    String(finalReport?.contentMarkdown || "").trim() ||
+    String(finalReport?.contentLatex || "").trim()
+  );
+
 export function WorkflowProvider({ children }: { children: ReactNode }) {
   const [project, setProject] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -83,8 +97,10 @@ export function WorkflowProvider({ children }: { children: ReactNode }) {
         (data.umlPreparation?.sequence?.participants && data.umlPreparation.sequence.participants.length > 0)
       ),
       "/workspace/report-structure": Boolean(data.reportStructure && data.reportStructure.length > 0),
-      // Since these don't have backend storage yet, they will evaluate to false unless we add explicit completion triggers
-      "/workspace/report-builder": false,
+      "/workspace/report-builder": Boolean(
+        hasFinalReport(data.finalReport) ||
+        data.reportChapters?.some((chapter: any) => chapter?.status === "completed" || hasReportContent(chapter))
+      ),
       "/workspace/presentation": Boolean(data.presentation?.slides && data.presentation.slides.length > 0),
       "/workspace/pitch": Boolean(data.pitch?.slides && data.pitch.slides.some((slide: any) => String(slide?.speech || "").trim())),
       "/workspace/jury-simulation": Boolean(
