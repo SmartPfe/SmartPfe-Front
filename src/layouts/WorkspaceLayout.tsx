@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import { OnboardingProvider } from "@/context/OnboardingContext";
 import { WorkflowProvider } from "@/context/WorkflowContext";
+import { NotificationProvider } from "@/context/NotificationContext";
 
 export default function WorkspaceLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -17,8 +18,9 @@ export default function WorkspaceLayout() {
   }, []);
 
   return (
-    <OnboardingProvider>
-      <WorkflowProvider>
+    <NotificationProvider>
+      <OnboardingProvider>
+        <WorkflowProvider>
         <div className="flex h-dvh min-h-dvh bg-surface overflow-hidden">
           <Sidebar isOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} />
           <div className={cn(
@@ -33,7 +35,8 @@ export default function WorkspaceLayout() {
             </main>
           </div>
         </div>
-      </WorkflowProvider>
-    </OnboardingProvider>
+        </WorkflowProvider>
+      </OnboardingProvider>
+    </NotificationProvider>
   );
 }

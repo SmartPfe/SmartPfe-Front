@@ -57,6 +57,7 @@ export function useActors() {
   const [loading, setLoading] = useState(true);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
   const [aiState, setAiState] = useState<AiState>("idle");
+  const [suggestionSource, setSuggestionSource] = useState<"generate" | "refine" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const autosaveTimerRef = useRef<number | null>(null);
   const actorsRef = useRef<Actor[]>([]);
@@ -87,7 +88,7 @@ export function useActors() {
     setSaveStatus("unsaved");
   }, []);
 
-  const saveActors = useCallback(async (nextActors = actors, showValidation = false, language?: string) => {
+  const saveActors = useCallback(async (nextActors = actors, showValidation = false, language?: string, generationFeature?: string) => {
     if (!project?._id) {
       setError("Project is not ready yet. Please refresh the page.");
       return;
@@ -108,9 +109,11 @@ export function useActors() {
     setError(null);
 
     try {
-      const payload = language
-        ? { actors: nextActors, language }
-        : { actors: nextActors };
+      const payload = {
+        actors: nextActors,
+        ...(language ? { language } : {}),
+        ...(generationFeature ? { generationFeature } : {}),
+      };
       const res = await fetchApi(`/projects/${project._id}/actors`, {
         method: "PUT",
         body: JSON.stringify(payload),
@@ -164,6 +167,7 @@ export function useActors() {
     try {
       const res = await fetchApi("/ai/actors/generate", { method: "POST" });
       setSuggestion(normalizeActors(res.actors || []));
+      setSuggestionSource("generate");
       setAiState("suggestion_ready");
     } catch (err: any) {
       setError(err.message || "AI generation failed. Please try again.");
@@ -192,6 +196,7 @@ export function useActors() {
         body: JSON.stringify(payload),
       });
       setSuggestion(normalizeActors(res.actors || []));
+      setSuggestionSource("refine");
       setAiState("suggestion_ready");
     } catch (err: any) {
       setError(err.message || "AI refinement failed. Please try again.");
@@ -227,14 +232,22 @@ export function useActors() {
     if (suggestion) {
       actorsRef.current = suggestion;
       setActors(suggestion);
-      await saveActors(suggestion, false, projectLanguage || undefined);
+      await saveActors(
+        suggestion,
+        false,
+        projectLanguage || undefined,
+        suggestionSource === "generate" ? "actors" : undefined
+      );
+      setSuggestionSource(null);
     }
     setSuggestion(null);
+    setSuggestionSource(null);
     setAiState("idle");
-  }, [projectLanguage, saveActors, suggestion]);
+  }, [projectLanguage, saveActors, suggestion, suggestionSource]);
 
   const discardSuggestion = useCallback(() => {
     setSuggestion(null);
+    setSuggestionSource(null);
     setAiState("idle");
   }, []);
 

@@ -244,7 +244,7 @@ export function useReportStudio() {
 
   const markUnsaved = useCallback(() => setSaveStatus("unsaved"), []);
 
-  const saveReportChapters = useCallback(async (nextChapters = reportChapters, showValidation = false) => {
+  const saveReportChapters = useCallback(async (nextChapters = reportChapters, showValidation = false, generationFeature?: string) => {
     if (!project?._id) {
       setError("Project is not ready yet. Please refresh the page.");
       return;
@@ -263,7 +263,10 @@ export function useReportStudio() {
     try {
       const res = await fetchApi(`/projects/${project._id}/report-chapters`, {
         method: "PUT",
-        body: JSON.stringify({ reportChapters: normalized }),
+        body: JSON.stringify({
+          reportChapters: normalized,
+          ...(generationFeature ? { generationFeature } : {}),
+        }),
       });
       if (JSON.stringify(chaptersRef.current.map(normalizeChapter)) === JSON.stringify(normalized)) {
         setReportChapters((res.reportChapters || []).map(normalizeChapter));
@@ -339,7 +342,7 @@ export function useReportStudio() {
       chaptersRef.current = nextChapters;
       setReportChapters(nextChapters);
       setSaveStatus("unsaved");
-      await saveReportChapters(nextChapters);
+      await saveReportChapters(nextChapters, false, "reportBuilder");
     } catch (err: any) {
       setError(err.message || "AI chapter generation failed. Please try again.");
     } finally {

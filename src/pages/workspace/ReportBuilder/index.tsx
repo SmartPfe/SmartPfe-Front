@@ -200,7 +200,12 @@ export default function ReportBuilder() {
             Save now
           </button>
           <button onClick={generateCompleteReport} disabled={!allGenerated || aiState !== "idle"} className={cn(aiButtonClass, allGenerated && "bg-primary text-on-primary border-primary hover:bg-primary/90 hover:from-primary hover:to-primary")}>
-            {aiState === "finalizing" ? "Finalizing..." : "Generate Complete Report"}
+            {aiState === "finalizing" ? (
+              <span className="inline-flex items-center gap-2">
+                <span className="w-3.5 h-3.5 border-2 border-on-primary border-t-transparent rounded-full animate-spin" />
+                Finalizing...
+              </span>
+            ) : "Generate Complete Report"}
           </button>
         </div>
       </div>
@@ -291,11 +296,21 @@ export default function ReportBuilder() {
                   {activeIsLeaf && (
                     <div className="flex flex-wrap items-center gap-2">
                       <button onClick={() => activeFlatSection && generateChapter(activeFlatSection.section.id, detailLevel)} disabled={!activeFlatSection || !isAiIdle} className={aiButtonClass}>
-                      {aiState === "generating" ? "Generating..." : hasContent(activeChapter) ? "Regenerate with AI" : "Generate with AI"}
+                      {aiState === "generating" ? (
+                        <span className="inline-flex items-center gap-2">
+                          <span className="w-3.5 h-3.5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                          Generating...
+                        </span>
+                      ) : hasContent(activeChapter) ? "Regenerate with AI" : "Generate with AI"}
                     </button>
                     <div className="relative" ref={refinePopoverRef}>
                       <button onClick={() => setRefineOpen(true)} disabled={!activeChapter || !hasContent(activeChapter) || !isAiIdle} className={aiButtonClass}>
-                        {aiState === "refining" ? "Refining..." : "Refine with AI"}
+                        {aiState === "refining" ? (
+                          <span className="inline-flex items-center gap-2">
+                            <span className="w-3.5 h-3.5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                            Refining...
+                          </span>
+                        ) : "Refine with AI"}
                       </button>
 
                       {refineOpen && (
@@ -328,7 +343,12 @@ export default function ReportBuilder() {
                               disabled={aiState === "refining"}
                               className="px-3 py-1.5 rounded-md bg-primary text-label-sm font-semibold text-on-primary hover:opacity-90 transition-opacity disabled:opacity-50"
                             >
-                              {aiState === "refining" ? "Refining..." : "Refine"}
+                              {aiState === "refining" ? (
+                                <span className="inline-flex items-center gap-2">
+                                  <span className="w-3.5 h-3.5 border-2 border-on-primary border-t-transparent rounded-full animate-spin" />
+                                  Refining...
+                                </span>
+                              ) : "Refine"}
                             </button>
                           </div>
                         </div>
@@ -555,7 +575,12 @@ function EmptyChapter({
       </p>
       <button onClick={onGenerate} disabled={disabled} className="h-10 px-6 bg-primary text-on-primary font-label-md rounded-md flex items-center gap-2 hover:bg-primary/90 transition-colors shadow-sm disabled:opacity-50">
         <span className="material-symbols-outlined text-[18px]">auto_awesome</span>
-        {loading ? "Generating..." : `Generate ${detailLabels[detailLevel]} Draft`}
+        {loading ? (
+          <span className="inline-flex items-center gap-2">
+            <span className="w-3.5 h-3.5 border-2 border-on-primary border-t-transparent rounded-full animate-spin" />
+            Generating...
+          </span>
+        ) : `Generate ${detailLabels[detailLevel]} Draft`}
       </button>
     </div>
   );

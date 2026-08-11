@@ -14,7 +14,7 @@ type DropPosition = "before" | "after" | "child";
 type DropTarget = { path: number[]; position: DropPosition } | null;
 
 const aiButtonClass =
-  "px-5 py-2 rounded-md border border-primary/20 bg-gradient-to-r from-primary/5 to-secondary/5 text-primary text-label-md font-semibold hover:from-primary/10 hover:to-secondary/10 transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed disabled:grayscale";
+  "inline-flex w-full sm:w-auto items-center justify-center px-5 py-2 rounded-md border border-primary/20 bg-gradient-to-r from-primary/5 to-secondary/5 text-primary text-label-md font-semibold hover:from-primary/10 hover:to-secondary/10 transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed disabled:grayscale";
 
 export default function ReportStructure() {
   const {
@@ -131,10 +131,10 @@ export default function ReportStructure() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto flex flex-col h-full pb-24">
+    <div className="w-full min-w-0 max-w-6xl mx-auto flex flex-col h-full pb-24">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8 shrink-0">
-        <div>
-          <h1 className="text-display text-on-surface mb-2 flex items-center">
+        <div className="min-w-0">
+          <h1 className="text-headline-lg sm:text-display text-on-surface mb-2 flex items-center gap-2">
             Report Structure
             <InfoTooltip label="Structure" tooltip="Outline the chapters and sections of your final PFE report." />
           </h1>
@@ -142,7 +142,7 @@ export default function ReportStructure() {
             Define the table of contents that will guide the final report generator. Drag chapters, edit titles, and organize the hierarchy.
           </p>
         </div>
-        <div className="flex flex-wrap items-center justify-end gap-3">
+        <div className="flex w-full flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end md:w-auto">
           <style>{`
             @keyframes report-structure-popover-in {
               from { opacity: 0; transform: translateY(-4px) scale(0.98); }
@@ -156,15 +156,25 @@ export default function ReportStructure() {
           }`}>
             {saveStatus === "saving" ? "Autosaving..." : saveStatus === "saved" ? "All changes saved" : "Unsaved changes"}
           </span>
-          <button onClick={() => saveReportStructure(reportStructure, true)} disabled={saveStatus === "saving" || isAiBusy} className="px-4 py-2 rounded-md bg-primary text-on-primary text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50">
+          <button onClick={() => saveReportStructure(reportStructure, true)} disabled={saveStatus === "saving" || isAiBusy} className="w-full sm:w-auto px-4 py-2 rounded-md bg-primary text-on-primary text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50">
             Save now
           </button>
           <button onClick={generateWithAi} disabled={isAiBusy || aiState === "suggestion_ready"} className={aiButtonClass}>
-            {aiState === "generating" ? "Generating..." : "Generate with AI"}
+            {aiState === "generating" ? (
+              <span className="inline-flex items-center gap-2">
+                <span className="w-3.5 h-3.5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                Generating...
+              </span>
+            ) : "Generate with AI"}
           </button>
-          <div className="relative" ref={refinePopoverRef}>
+          <div className="relative w-full sm:w-auto" ref={refinePopoverRef}>
             <button onClick={() => setRefineOpen(true)} disabled={isAiBusy || aiState === "suggestion_ready" || reportStructure.length === 0} className={aiButtonClass}>
-              {aiState === "refining" ? "Refining..." : "Refine with AI"}
+              {aiState === "refining" ? (
+                <span className="inline-flex items-center gap-2">
+                  <span className="w-3.5 h-3.5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                  Refining...
+                </span>
+              ) : "Refine with AI"}
             </button>
 
             {refineOpen && (
@@ -197,7 +207,12 @@ export default function ReportStructure() {
                     disabled={aiState === "refining"}
                     className="px-3 py-1.5 rounded-md bg-primary text-label-sm font-semibold text-on-primary hover:opacity-90 transition-opacity disabled:opacity-50"
                   >
-                    {aiState === "refining" ? "Refining..." : "Refine"}
+                    {aiState === "refining" ? (
+                      <span className="inline-flex items-center gap-2">
+                        <span className="w-3.5 h-3.5 border-2 border-on-primary border-t-transparent rounded-full animate-spin" />
+                        Refining...
+                      </span>
+                    ) : "Refine"}
                   </button>
                 </div>
               </div>
@@ -207,7 +222,7 @@ export default function ReportStructure() {
             <button
               onClick={translateWithAi}
               disabled={isAiBusy || aiState === "suggestion_ready"}
-              className="px-5 py-2 rounded-md border border-secondary/30 bg-secondary-container/60 text-secondary text-label-md font-semibold hover:bg-secondary-container transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed disabled:grayscale"
+              className="inline-flex w-full sm:w-auto items-center justify-center px-5 py-2 rounded-md border border-secondary/30 bg-secondary-container/60 text-secondary text-label-md font-semibold hover:bg-secondary-container transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed disabled:grayscale"
             >
               {aiState === "translating" ? (
                 <span className="inline-flex items-center gap-2">
@@ -216,7 +231,7 @@ export default function ReportStructure() {
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-2">
-                  <span aria-hidden="true">🌐</span>
+                  <span className="material-symbols-outlined text-[18px]" aria-hidden="true">translate</span>
                   Translate to {getLanguageLabel(projectLanguage)}
                 </span>
               )}
@@ -235,16 +250,16 @@ export default function ReportStructure() {
       {aiState === "suggestion_ready" && suggestion && (
         <div className="mb-6 rounded-lg border border-primary/20 bg-primary-container/20 p-4">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
-            <div>
+            <div className="min-w-0">
               <h3 className="font-label-md font-bold text-on-surface">AI suggestion ready</h3>
               <p className="text-body-md text-on-surface-variant">Review the generated table of contents before applying it.</p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row">
               <button onClick={discardSuggestion} className="px-4 py-2 rounded-md border border-outline-variant bg-surface text-on-surface text-label-sm hover:bg-surface-container-low">Discard</button>
               <button onClick={acceptSuggestion} className="px-4 py-2 rounded-md bg-primary text-on-primary text-label-sm hover:opacity-90">Accept structure</button>
             </div>
           </div>
-          <div className="bg-surface rounded-lg border border-outline-variant p-3 max-h-[380px] overflow-y-auto">
+          <div className="bg-surface rounded-lg border border-outline-variant p-2 sm:p-3 max-h-[380px] overflow-y-auto overflow-x-hidden">
             <OutlineTree sections={suggestion} readOnly />
           </div>
         </div>
@@ -256,21 +271,21 @@ export default function ReportStructure() {
         <SummaryCard icon="auto_awesome" label="AI context" value="Synced" helper="Uses previous wizard artifacts" />
       </div>
 
-      <div className="bg-surface border border-outline-variant rounded-xl flex flex-col flex-1 min-h-0 overflow-hidden shadow-sm">
+      <div className="bg-surface border border-outline-variant rounded-lg sm:rounded-xl flex flex-col flex-1 min-h-0 overflow-hidden shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 border-b border-outline-variant bg-surface-container-lowest shrink-0">
-          <div>
+          <div className="min-w-0">
             <h2 className="font-headline-sm text-headline-sm text-on-surface">Table of Contents</h2>
             <p className="text-body-md text-on-surface-variant">Numbering updates automatically after every edit.</p>
           </div>
-          <button onClick={() => insertSection([Math.max(0, reportStructure.length - 1)], reportStructure.length ? "after" : "before")} className="flex items-center justify-center gap-2 px-4 py-2 bg-primary text-on-primary rounded-md text-sm font-medium hover:opacity-90 transition-colors shadow-sm">
+          <button onClick={() => insertSection([Math.max(0, reportStructure.length - 1)], reportStructure.length ? "after" : "before")} className="flex w-full sm:w-auto items-center justify-center gap-2 px-4 py-2 bg-primary text-on-primary rounded-md text-sm font-medium hover:opacity-90 transition-colors shadow-sm">
             <span className="material-symbols-outlined text-[18px]">add</span>
             Add Chapter
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 bg-surface-container-low/20">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-2 sm:p-4 bg-surface-container-low/20">
           {reportStructure.length === 0 ? (
-            <button onClick={() => insertSection([0], "before")} className="w-full rounded-xl border-2 border-dashed border-outline-variant bg-surface hover:bg-surface-container-low transition-colors py-14 flex flex-col items-center justify-center gap-4 text-on-surface-variant group">
+            <button onClick={() => insertSection([0], "before")} className="w-full rounded-xl border-2 border-dashed border-outline-variant bg-surface hover:bg-surface-container-low transition-colors px-4 py-14 flex flex-col items-center justify-center gap-4 text-center text-on-surface-variant group">
               <div className="w-12 h-12 rounded-full bg-surface-container border border-outline-variant flex items-center justify-center group-hover:scale-110 group-hover:text-primary transition-all duration-300">
                 <span className="material-symbols-outlined text-[24px]">add</span>
               </div>
@@ -344,7 +359,7 @@ function OutlineTree({
   onDrop?: () => void;
 }) {
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex min-w-0 flex-col gap-1">
       {sections.map((section, index) => (
         <OutlineNode
           key={section.id}
@@ -447,12 +462,12 @@ function OutlineNode({
           onDrop();
         }}
         className={cn(
-          "relative flex items-center gap-sm p-3 rounded-lg border transition-colors bg-surface",
+          "relative flex flex-wrap items-center gap-2 sm:gap-sm p-2.5 sm:p-3 rounded-lg border transition-colors bg-surface",
           "hover:bg-surface-container-low hover:border-outline-variant",
           targetPosition === "child" ? "border-primary bg-primary-container/20" : "border-transparent",
           targetPosition === "after" ? "mb-1" : ""
         )}
-        style={{ marginLeft: readOnly ? `${(level - 1) * 28}px` : `${(level - 1) * 34}px` }}
+        style={{ marginLeft: readOnly ? `${(level - 1) * 14}px` : `${(level - 1) * 16}px` }}
       >
         {!readOnly && (
           <span className="material-symbols-outlined text-outline cursor-grab active:cursor-grabbing shrink-0">drag_indicator</span>
@@ -485,7 +500,7 @@ function OutlineNode({
             <button
               type="button"
               onDoubleClick={() => !readOnly && onEdit(section.id)}
-              className={cn("text-left truncate w-full", level === 1 ? "font-headline-sm text-headline-sm text-on-surface" : "font-body-md text-body-md text-on-surface")}
+              className={cn("text-left w-full break-words sm:truncate", level === 1 ? "font-headline-sm text-headline-sm text-on-surface" : "font-body-md text-body-md text-on-surface")}
             >
               {section.title}
             </button>
@@ -493,7 +508,7 @@ function OutlineNode({
         </div>
 
         {!readOnly && (
-          <div className="opacity-100 md:opacity-0 md:group-hover/node:opacity-100 flex items-center gap-xs transition-opacity shrink-0">
+          <div className="ml-auto flex w-full items-center justify-end gap-xs border-t border-outline-variant/60 pt-2 opacity-100 transition-opacity sm:w-auto sm:border-t-0 sm:pt-0 md:opacity-0 md:group-hover/node:opacity-100 shrink-0">
             <button onClick={() => onInsert(path, "after")} className="text-on-surface-variant hover:text-primary p-1" title="Add sibling">
               <span className="material-symbols-outlined text-[19px]">add</span>
             </button>
@@ -521,7 +536,7 @@ function OutlineNode({
       {targetPosition === "after" && <div className="h-0.5 bg-primary rounded-full mt-1" />}
 
       {hasChildren && !section.collapsed && (
-        <div className="mt-1 border-l border-outline-variant/70 ml-8">
+        <div className="mt-1 border-l border-outline-variant/70 ml-3 sm:ml-8">
           {section.children.map((child, index) => (
             <OutlineNode
               key={child.id}

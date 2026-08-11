@@ -163,7 +163,7 @@ export function usePresentation() {
 
   const markUnsaved = useCallback(() => setSaveStatus("unsaved"), []);
 
-  const savePresentation = useCallback(async (nextPresentation = presentation, showValidation = false) => {
+  const savePresentation = useCallback(async (nextPresentation = presentation, showValidation = false, generationFeature?: string) => {
     if (!project?._id) {
       setError("Project is not ready yet. Please refresh the page.");
       return;
@@ -182,7 +182,10 @@ export function usePresentation() {
     try {
       const res = await fetchApi(`/projects/${project._id}/presentation`, {
         method: "PUT",
-        body: JSON.stringify({ presentation: normalized }),
+        body: JSON.stringify({
+          presentation: normalized,
+          ...(generationFeature ? { generationFeature } : {}),
+        }),
       });
 
       if (JSON.stringify(normalizePresentation(presentationRef.current)) === JSON.stringify(normalized)) {
@@ -224,7 +227,7 @@ export function usePresentation() {
       presentationRef.current = nextPresentation;
       setPresentation(nextPresentation);
       setSaveStatus("unsaved");
-      await savePresentation(nextPresentation);
+      await savePresentation(nextPresentation, false, "presentation");
     } catch (err: any) {
       setError(err.message || "AI presentation generation failed. Please try again.");
     } finally {

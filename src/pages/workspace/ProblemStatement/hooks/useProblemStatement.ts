@@ -56,13 +56,15 @@ export function useProblemStatement() {
 
   // Save — does NOT depend on `project` state to avoid stale closure / null guard bug.
   // The auth token in the header identifies the user; the backend finds the project by user ID.
-  const saveContent = useCallback(async (content: string, language?: string) => {
+  const saveContent = useCallback(async (content: string, language?: string, generationFeature?: string) => {
     setSaveStatus("saving");
     setError(null);
     try {
-      const payload = language
-        ? { problemStatement: content, language }
-        : { problemStatement: content };
+      const payload = {
+        problemStatement: content,
+        ...(language ? { language } : {}),
+        ...(generationFeature ? { generationFeature } : {}),
+      };
       const res = await fetchApi("/projects/problem-statement", {
         method: "PATCH",
         body: JSON.stringify(payload),

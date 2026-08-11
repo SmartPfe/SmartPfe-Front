@@ -126,6 +126,7 @@ export function useProductBacklog() {
   const [loading, setLoading] = useState(true);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
   const [aiState, setAiState] = useState<AiState>("idle");
+  const [suggestionSource, setSuggestionSource] = useState<"generate" | "refine" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const autosaveTimerRef = useRef<number | null>(null);
   const backlogRef = useRef<ProductBacklogItem[]>([]);
@@ -160,7 +161,7 @@ export function useProductBacklog() {
 
   const markUnsaved = useCallback(() => setSaveStatus("unsaved"), []);
 
-  const saveProductBacklog = useCallback(async (nextBacklog = productBacklog, showValidation = false, language?: string) => {
+  const saveProductBacklog = useCallback(async (nextBacklog = productBacklog, showValidation = false, language?: string, generationFeature?: string) => {
     if (!project?._id) {
       setError("Project is not ready yet. Please refresh the page.");
       return;
@@ -180,9 +181,11 @@ export function useProductBacklog() {
     setError(null);
 
     try {
-      const payload = language
-        ? { productBacklog: normalized, language }
-        : { productBacklog: normalized };
+      const payload = {
+        productBacklog: normalized,
+        ...(language ? { language } : {}),
+        ...(generationFeature ? { generationFeature } : {}),
+      };
       const res = await fetchApi(`/projects/${project._id}/product-backlog`, {
         method: "PUT",
         body: JSON.stringify(payload),
@@ -225,6 +228,7 @@ export function useProductBacklog() {
     try {
       const res = await fetchApi("/ai/product-backlog/generate", { method: "POST" });
       setSuggestion(normalizeProductBacklog(res.productBacklog || [], primaryActorOptions));
+      setSuggestionSource("generate");
       setAiState("suggestion_ready");
     } catch (err: any) {
       setError(err.message || "AI generation failed. Please try again.");
@@ -253,6 +257,7 @@ export function useProductBacklog() {
         body: JSON.stringify(payload),
       });
       setSuggestion(normalizeProductBacklog(res.productBacklog || [], primaryActorOptions));
+      setSuggestionSource("refine");
       setAiState("suggestion_ready");
     } catch (err: any) {
       setError(err.message || "AI refinement failed. Please try again.");
@@ -291,15 +296,23 @@ export function useProductBacklog() {
       setProductBacklog(nextBacklog);
       setSuggestion(null);
       setAiState("idle");
-      await saveProductBacklog(nextBacklog, false, projectLanguage || undefined);
+      await saveProductBacklog(
+        nextBacklog,
+        false,
+        projectLanguage || undefined,
+        suggestionSource === "generate" ? "productBacklog" : undefined
+      );
+      setSuggestionSource(null);
       return;
     }
     setSuggestion(null);
+    setSuggestionSource(null);
     setAiState("idle");
-  }, [projectLanguage, saveProductBacklog, suggestion]);
+  }, [projectLanguage, saveProductBacklog, suggestion, suggestionSource]);
 
   const discardSuggestion = useCallback(() => {
     setSuggestion(null);
+    setSuggestionSource(null);
     setAiState("idle");
   }, []);
 

@@ -370,7 +370,7 @@ export default function JurySimulation() {
 
   if (stage === "loading") {
     return (
-      <div className="min-h-[calc(100dvh-150px)] rounded-lg border border-outline-variant bg-surface p-xl">
+      <div className="min-h-[calc(100dvh-150px)] rounded-lg border border-outline-variant bg-surface p-md sm:p-xl">
         <div className="flex min-h-[420px] items-center justify-center gap-3 text-on-surface-variant">
           <span className="h-5 w-5 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
           <span className="font-label-md">Loading Jury Simulation...</span>
@@ -397,7 +397,7 @@ export default function JurySimulation() {
 
   if (stage === "analyzing") {
     return (
-      <div className="min-h-[calc(100dvh-150px)] rounded-lg border border-outline-variant bg-surface p-xl">
+      <div className="min-h-[calc(100dvh-150px)] rounded-lg border border-outline-variant bg-surface p-md sm:p-xl">
         <div className="flex min-h-[520px] flex-col items-center justify-center text-center">
           <span className="mb-5 h-12 w-12 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
           <h1 className="text-headline-lg text-on-surface">Analyzing your defense...</h1>
@@ -421,7 +421,7 @@ export default function JurySimulation() {
   }
 
   return (
-    <div className="min-h-[calc(100dvh-150px)] rounded-lg border border-outline-variant bg-surface">
+    <div className="w-full min-w-0 min-h-[calc(100dvh-150px)] rounded-lg border border-outline-variant bg-surface">
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-xl p-md sm:p-xl">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0 flex-1">
@@ -438,7 +438,7 @@ export default function JurySimulation() {
                 setCurrentAttempt(latestCurrentAttempt);
                 setStage("results");
               }}
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-outline-variant bg-surface-container-low px-4 text-label-md font-semibold text-on-surface hover:bg-surface-container"
+              className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-md border border-outline-variant bg-surface-container-low px-4 text-label-md font-semibold text-on-surface hover:bg-surface-container sm:w-auto"
             >
               <span className="material-symbols-outlined text-[18px]">analytics</span>
               Latest assessment
@@ -463,8 +463,8 @@ export default function JurySimulation() {
           </div>
         )}
 
-        <section className="grid gap-md md:grid-cols-[1fr_340px]">
-          <div className="rounded-lg border border-outline-variant bg-surface-container-lowest p-lg">
+        <section className="grid min-w-0 gap-md lg:grid-cols-[minmax(0,1fr)_340px]">
+          <div className="min-w-0 rounded-lg border border-outline-variant bg-surface-container-lowest p-md sm:p-lg">
             <h2 className="text-headline-sm text-on-surface">Prepare</h2>
             <div className="mt-lg grid gap-3">
               <ReadinessRow
@@ -510,7 +510,7 @@ export default function JurySimulation() {
                 type="button"
                 onClick={startSimulation}
                 disabled={!canStart}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-primary px-5 text-label-lg font-semibold text-on-primary shadow-sm transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-primary px-5 text-label-lg font-semibold text-on-primary shadow-sm transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
               >
                 <span className="material-symbols-outlined text-[20px]">radio_button_checked</span>
                 Start Simulation
@@ -518,7 +518,7 @@ export default function JurySimulation() {
               <button
                 type="button"
                 onClick={loadSimulation}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-md border border-outline-variant bg-surface px-5 text-label-lg font-semibold text-on-surface hover:bg-surface-container-low"
+                className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-md border border-outline-variant bg-surface px-5 text-label-lg font-semibold text-on-surface hover:bg-surface-container-low sm:w-auto"
               >
                 <span className="material-symbols-outlined text-[20px]">refresh</span>
                 Refresh
@@ -561,13 +561,13 @@ function ReadinessRow({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center gap-3 rounded-md border border-outline-variant bg-surface p-3">
+    <div className="flex flex-wrap items-center gap-3 rounded-md border border-outline-variant bg-surface p-3 sm:flex-nowrap">
       <span className="material-symbols-outlined text-[22px] text-primary">{icon}</span>
       <div className="min-w-0 flex-1">
         <p className="text-label-md font-semibold text-on-surface">{label}</p>
-        <p className="truncate text-body-sm text-on-surface-variant">{value}</p>
+        <p className="break-words text-body-sm text-on-surface-variant sm:truncate">{value}</p>
       </div>
-      {action}
+      {action && <div className="shrink-0">{action}</div>}
       <span className={cn("material-symbols-outlined text-[20px]", ready ? "text-[#10B981]" : "text-outline")}>
         {ready ? "check_circle" : "radio_button_unchecked"}
       </span>
@@ -597,23 +597,23 @@ function SimulationMode({
   onFinish: () => void;
 }) {
   return (
-    <div className="min-h-[calc(100dvh-150px)] rounded-lg border border-outline-variant bg-surface text-on-surface">
+    <div className="w-full min-w-0 min-h-[calc(100dvh-150px)] rounded-lg border border-outline-variant bg-surface text-on-surface">
       <div className="flex min-h-[calc(100dvh-150px)] flex-col">
         <header className="flex flex-col gap-3 border-b border-outline-variant p-md sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
+          <div className="flex min-w-0 items-center gap-3">
             <span className="flex h-3 w-3 rounded-full bg-error animate-pulse" />
             <div>
               <p className="text-label-md font-semibold text-error">Recording</p>
               <p className="text-body-sm text-on-surface-variant">Slide {slideIndex + 1} of {totalSlides}</p>
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="grid w-full grid-cols-2 gap-3 sm:flex sm:w-auto sm:flex-wrap sm:items-center">
             <TimerPill label="Current" value={formatDuration(elapsedSeconds)} />
             <TimerPill label="Target" value={formatDuration(targetSeconds)} />
             <button
               type="button"
               onClick={onFinish}
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-error px-4 text-label-md font-semibold text-white hover:bg-error/90"
+              className="col-span-2 inline-flex h-10 items-center justify-center gap-2 rounded-md bg-error px-4 text-label-md font-semibold text-white hover:bg-error/90 sm:col-span-1"
             >
               <span className="material-symbols-outlined text-[18px]">stop_circle</span>
               Finish Defense
@@ -621,8 +621,8 @@ function SimulationMode({
           </div>
         </header>
 
-        <main className="grid flex-1 gap-md p-md lg:grid-cols-[minmax(0,1fr)_360px]">
-          <section className="flex min-h-[420px] flex-col rounded-lg border border-outline-variant bg-surface-container-lowest p-lg">
+        <main className="grid min-w-0 flex-1 gap-md p-sm sm:p-md lg:grid-cols-[minmax(0,1fr)_360px]">
+          <section className="flex min-h-[320px] flex-col rounded-lg border border-outline-variant bg-surface-container-lowest p-md sm:min-h-[420px] sm:p-lg">
             <div className="mb-md flex items-center justify-between gap-3">
               <p className="text-label-sm font-semibold uppercase text-primary">Current slide</p>
               <div className="flex items-center gap-2">
@@ -635,12 +635,12 @@ function SimulationMode({
               </div>
             </div>
             <div className="flex flex-1 flex-col justify-center">
-              <h1 className="text-headline-lg text-on-surface">{slide?.title || "Untitled slide"}</h1>
-              <ul className="mt-lg space-y-3 text-body-lg text-on-surface">
+              <h1 className="text-headline-md sm:text-headline-lg text-on-surface break-words">{slide?.title || "Untitled slide"}</h1>
+              <ul className="mt-lg space-y-3 text-body-md sm:text-body-lg text-on-surface">
                 {(slide?.bullets || []).map((bullet, index) => (
                   <li key={`${bullet}-${index}`} className="flex gap-3">
                     <span className="mt-2 h-2 w-2 rounded-full bg-primary" />
-                    <span>{bullet}</span>
+                    <span className="min-w-0 break-words">{bullet}</span>
                   </li>
                 ))}
               </ul>
@@ -652,9 +652,9 @@ function SimulationMode({
             </div>
           </section>
 
-          <aside className="rounded-lg border border-outline-variant bg-surface-container-lowest p-lg">
+          <aside className="min-w-0 rounded-lg border border-outline-variant bg-surface-container-lowest p-md sm:p-lg">
             <p className="text-label-sm font-semibold uppercase text-primary">Speech reference</p>
-            <h2 className="mt-2 text-headline-sm text-on-surface">{pitch?.title || slide?.title || "Current slide"}</h2>
+            <h2 className="mt-2 text-headline-sm text-on-surface break-words">{pitch?.title || slide?.title || "Current slide"}</h2>
             <div className="mt-md max-h-[52dvh] overflow-y-auto pr-1 text-body-md leading-7 text-on-surface-variant">
               {pitch?.speech || "No pitch text is available for this slide."}
             </div>
@@ -688,25 +688,25 @@ function ResultsView({
   const analysis = attempt.analysis;
 
   return (
-    <div className="min-h-[calc(100dvh-150px)] rounded-lg border border-outline-variant bg-surface">
-      <div className="mx-auto grid w-full max-w-6xl gap-xl p-md sm:p-xl lg:grid-cols-[minmax(0,1fr)_340px]">
-        <main className="space-y-xl">
-          <section className="rounded-lg border border-outline-variant bg-surface-container-lowest p-lg">
+    <div className="w-full min-w-0 min-h-[calc(100dvh-150px)] rounded-lg border border-outline-variant bg-surface">
+      <div className="mx-auto grid w-full max-w-6xl min-w-0 gap-xl p-md sm:p-xl lg:grid-cols-[minmax(0,1fr)_340px]">
+        <main className="min-w-0 space-y-xl">
+          <section className="rounded-lg border border-outline-variant bg-surface-container-lowest p-md sm:p-lg">
             <p className="mb-2 text-label-sm font-semibold uppercase text-primary">Defense Assessment</p>
             <div className="flex flex-col gap-lg sm:flex-row sm:items-center sm:justify-between">
-              <div>
+              <div className="min-w-0">
                 <h1 className="text-headline-lg text-on-surface">{analysis.overallScore} / 100</h1>
                 <p className="mt-1 text-headline-sm text-on-surface">{analysis.overallLabel}</p>
                 <p className="mt-2 text-body-sm text-on-surface-variant">
                   {attemptVersionLabel(attempt)} - Presentation v{attempt.presentationVersion}, Pitch v{attempt.pitchVersion}
                 </p>
               </div>
-              <button type="button" onClick={onPracticeAgain} className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-primary px-5 text-label-lg font-semibold text-on-primary hover:bg-primary/90">
+              <button type="button" onClick={onPracticeAgain} className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-primary px-5 text-label-lg font-semibold text-on-primary hover:bg-primary/90 sm:w-auto">
                 <span className="material-symbols-outlined text-[20px]">refresh</span>
                 Practice Again
               </button>
             </div>
-            <div className="mt-lg grid gap-3 sm:grid-cols-5">
+            <div className="mt-lg grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
               {scoreCategories.map(([key, label]) => (
                 <div key={key} className="rounded-md border border-outline-variant bg-surface p-3">
                   <p className="text-label-sm font-semibold text-on-surface-variant">{label}</p>
@@ -721,7 +721,7 @@ function ResultsView({
             <FeedbackBlock title="Improve next time" icon="trending_up" tone="warn" items={analysis.improvements} />
           </section>
 
-          <section className="rounded-lg border border-outline-variant bg-surface-container-lowest p-lg">
+          <section className="rounded-lg border border-outline-variant bg-surface-container-lowest p-md sm:p-lg">
             <div className="flex items-start gap-3">
               <span className="material-symbols-outlined text-primary">timer</span>
               <div>
@@ -734,24 +734,24 @@ function ResultsView({
             </div>
           </section>
 
-          <section className="rounded-lg border border-outline-variant bg-surface-container-lowest p-lg">
+          <section className="rounded-lg border border-outline-variant bg-surface-container-lowest p-md sm:p-lg">
             <h2 className="text-headline-sm text-on-surface">Next attempt</h2>
             <ol className="mt-md space-y-3">
               {analysis.actionPlan.map((item, index) => (
                 <li key={`${item}-${index}`} className="flex gap-3 text-body-md text-on-surface-variant">
                   <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-label-sm font-semibold text-on-primary">{index + 1}</span>
-                  <span>{item}</span>
+                  <span className="min-w-0 break-words">{item}</span>
                 </li>
               ))}
             </ol>
           </section>
 
-          <section className="rounded-lg border border-outline-variant bg-surface-container-lowest p-lg">
+          <section className="rounded-lg border border-outline-variant bg-surface-container-lowest p-md sm:p-lg">
             <h2 className="text-headline-sm text-on-surface">Slide-by-slide feedback</h2>
             <div className="mt-md space-y-3">
               {analysis.sectionFeedback.length ? analysis.sectionFeedback.map((section) => (
                 <details key={`${section.slideNumber}-${section.slideTitle}`} className="rounded-md border border-outline-variant bg-surface p-4">
-                  <summary className="cursor-pointer text-label-lg font-semibold text-on-surface">
+                  <summary className="cursor-pointer text-label-lg font-semibold text-on-surface break-words">
                     Slide {section.slideNumber} - {section.slideTitle}
                   </summary>
                   <div className="mt-4 grid gap-4 md:grid-cols-2">
@@ -783,7 +783,7 @@ function FeedbackBlock({ title, icon, tone, items }: { title: string; icon: stri
     : "border-[#F59E0B]/30 bg-[#F59E0B]/5 text-[#B45309]";
 
   return (
-    <section className={cn("rounded-lg border p-lg", toneClass)}>
+    <section className={cn("rounded-lg border p-md sm:p-lg", toneClass)}>
       <h2 className="flex items-center gap-2 text-label-lg font-semibold uppercase">
         <span className="material-symbols-outlined text-[20px]">{icon}</span>
         {title}
@@ -792,7 +792,7 @@ function FeedbackBlock({ title, icon, tone, items }: { title: string; icon: stri
         {items.length ? items.map((item, index) => (
           <li key={`${item}-${index}`} className="flex gap-2">
             <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-current" />
-            <span>{item}</span>
+            <span className="min-w-0 break-words">{item}</span>
           </li>
         )) : (
           <li className="text-on-surface-variant">No item was returned for this category.</li>
@@ -810,7 +810,7 @@ function MiniList({ title, items }: { title: string; items: string[] }) {
         {items.length ? items.map((item, index) => (
           <li key={`${title}-${item}-${index}`} className="flex gap-2">
             <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
-            <span>{item}</span>
+            <span className="min-w-0 break-words">{item}</span>
           </li>
         )) : (
           <li>No feedback for this item.</li>
@@ -822,7 +822,7 @@ function MiniList({ title, items }: { title: string; items: string[] }) {
 
 function AttemptHistory({ attempts, onSelectAttempt, selectedId }: { attempts: JuryAttempt[]; onSelectAttempt: (attempt: JuryAttempt) => void; selectedId?: string }) {
   return (
-    <aside className="rounded-lg border border-outline-variant bg-surface-container-lowest p-lg">
+    <aside className="min-w-0 rounded-lg border border-outline-variant bg-surface-container-lowest p-md sm:p-lg">
       <h2 className="text-headline-sm text-on-surface">Previous Attempts</h2>
       <div className="mt-md space-y-3">
         {attempts.length ? attempts.map((attempt) => (
@@ -836,7 +836,7 @@ function AttemptHistory({ attempts, onSelectAttempt, selectedId }: { attempts: J
             )}
           >
             <div className="flex items-center justify-between gap-3">
-              <span className="text-label-lg font-semibold text-on-surface">Attempt #{attempt.attemptNumber}</span>
+              <span className="min-w-0 text-label-lg font-semibold text-on-surface break-words">Attempt #{attempt.attemptNumber}</span>
               <span className="text-headline-sm text-on-surface">{attempt.analysis?.overallScore ?? 0}</span>
             </div>
             <p className={cn("mt-1 text-body-sm", attempt.isCurrent ? "text-[#047857]" : "text-on-surface-variant")}>

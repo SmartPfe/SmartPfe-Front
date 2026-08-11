@@ -78,6 +78,7 @@ export function useNonFunctionalRequirements() {
   const [loading, setLoading] = useState(true);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
   const [aiState, setAiState] = useState<AiState>("idle");
+  const [suggestionSource, setSuggestionSource] = useState<"generate" | "refine" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const autosaveTimerRef = useRef<number | null>(null);
   const requirementsRef = useRef<NonFunctionalRequirement[]>([]);
@@ -106,7 +107,7 @@ export function useNonFunctionalRequirements() {
 
   const markUnsaved = useCallback(() => setSaveStatus("unsaved"), []);
 
-  const saveRequirements = useCallback(async (nextRequirements = requirements, showValidation = false, language?: string) => {
+  const saveRequirements = useCallback(async (nextRequirements = requirements, showValidation = false, language?: string, generationFeature?: string) => {
     if (!project?._id) {
       setError("Project is not ready yet. Please refresh the page.");
       return;
@@ -131,9 +132,11 @@ export function useNonFunctionalRequirements() {
     setError(null);
 
     try {
-      const payload = language
-        ? { nonFunctionalRequirements: normalized, language }
-        : { nonFunctionalRequirements: normalized };
+      const payload = {
+        nonFunctionalRequirements: normalized,
+        ...(language ? { language } : {}),
+        ...(generationFeature ? { generationFeature } : {}),
+      };
       const res = await fetchApi(`/projects/${project._id}/non-functional-requirements`, {
         method: "PUT",
         body: JSON.stringify(payload),
@@ -182,6 +185,7 @@ export function useNonFunctionalRequirements() {
     try {
       const res = await fetchApi("/ai/non-functional-requirements/generate", { method: "POST" });
       setSuggestion(normalizeRequirements(res.nonFunctionalRequirements || []));
+      setSuggestionSource("generate");
       setAiState("suggestion_ready");
     } catch (err: any) {
       setError(err.message || "AI generation failed. Please try again.");
@@ -210,6 +214,7 @@ export function useNonFunctionalRequirements() {
         body: JSON.stringify(payload),
       });
       setSuggestion(normalizeRequirements(res.nonFunctionalRequirements || []));
+      setSuggestionSource("refine");
       setAiState("suggestion_ready");
     } catch (err: any) {
       setError(err.message || "AI refinement failed. Please try again.");
@@ -248,15 +253,23 @@ export function useNonFunctionalRequirements() {
       setRequirements(nextRequirements);
       setSuggestion(null);
       setAiState("idle");
-      await saveRequirements(nextRequirements, false, projectLanguage || undefined);
+      await saveRequirements(
+        nextRequirements,
+        false,
+        projectLanguage || undefined,
+        suggestionSource === "generate" ? "nonFunctionalRequirements" : undefined
+      );
+      setSuggestionSource(null);
       return;
     }
     setSuggestion(null);
+    setSuggestionSource(null);
     setAiState("idle");
-  }, [projectLanguage, saveRequirements, suggestion]);
+  }, [projectLanguage, saveRequirements, suggestion, suggestionSource]);
 
   const discardSuggestion = useCallback(() => {
     setSuggestion(null);
+    setSuggestionSource(null);
     setAiState("idle");
   }, []);
 

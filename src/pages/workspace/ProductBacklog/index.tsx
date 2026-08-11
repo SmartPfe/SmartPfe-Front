@@ -18,7 +18,7 @@ const priorityStyles: Record<BacklogPriority, string> = {
 const priorityOptions: BacklogPriority[] = ["High", "Medium", "Low"];
 
 const aiButtonClass =
-  "px-5 py-2 rounded-md border border-primary/20 bg-gradient-to-r from-primary/5 to-secondary/5 text-primary text-label-md font-semibold hover:from-primary/10 hover:to-secondary/10 transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed disabled:grayscale";
+  "inline-flex w-full sm:w-auto items-center justify-center px-5 py-2 rounded-md border border-primary/20 bg-gradient-to-r from-primary/5 to-secondary/5 text-primary text-label-md font-semibold hover:from-primary/10 hover:to-secondary/10 transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed disabled:grayscale";
 
 const createEmptyBacklogItem = (index: number, primaryActorOptions: string[]): ProductBacklogItem => ({
   localId: `new-${Date.now()}`,
@@ -163,10 +163,10 @@ export default function ProductBacklog() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto flex flex-col h-full pb-24">
+    <div className="w-full min-w-0 max-w-6xl mx-auto flex flex-col h-full pb-24">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8 shrink-0">
-        <div>
-          <h1 className="text-display text-on-surface mb-2 flex items-center">
+        <div className="min-w-0">
+          <h1 className="text-headline-lg sm:text-display text-on-surface mb-2 flex items-center gap-2">
             Product Backlog
             <InfoTooltip label="Backlog" tooltip="Organize the project tasks, priorities, and planned durations for your PFE report." />
           </h1>
@@ -174,7 +174,7 @@ export default function ProductBacklog() {
             Build a report-ready Product Backlog with epics, primary actors, user stories, and priorities in your project language.
           </p>
         </div>
-        <div className="flex flex-wrap items-center justify-end gap-3">
+        <div className="flex w-full flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end md:w-auto">
           <span className={`text-label-sm transition-colors ${
             saveStatus === "saving" ? "text-on-surface-variant" :
             saveStatus === "saved" ? "text-secondary" :
@@ -188,15 +188,25 @@ export default function ProductBacklog() {
               to { opacity: 1; transform: translateY(0) scale(1); }
             }
           `}</style>
-          <button onClick={() => saveProductBacklog(productBacklog, true)} disabled={saveStatus === "saving" || isAiBusy} className="px-4 py-2 rounded-md bg-primary text-on-primary text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50">
+          <button onClick={() => saveProductBacklog(productBacklog, true)} disabled={saveStatus === "saving" || isAiBusy} className="w-full sm:w-auto px-4 py-2 rounded-md bg-primary text-on-primary text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50">
             Save now
           </button>
           <button onClick={generateWithAi} disabled={isAiBusy || aiState === "suggestion_ready"} className={aiButtonClass}>
-            {aiState === "generating" ? "Generating..." : "Generate with AI"}
+            {aiState === "generating" ? (
+              <span className="inline-flex items-center gap-2">
+                <span className="w-3.5 h-3.5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                Generating...
+              </span>
+            ) : "Generate with AI"}
           </button>
-          <div className="relative" ref={refinePopoverRef}>
+          <div className="relative w-full sm:w-auto" ref={refinePopoverRef}>
             <button onClick={() => setRefineOpen(true)} disabled={isAiBusy || aiState === "suggestion_ready" || productBacklog.length === 0} className={aiButtonClass}>
-              {aiState === "refining" ? "Refining..." : "Refine with AI"}
+              {aiState === "refining" ? (
+                <span className="inline-flex items-center gap-2">
+                  <span className="w-3.5 h-3.5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                  Refining...
+                </span>
+              ) : "Refine with AI"}
             </button>
 
             {refineOpen && (
@@ -229,7 +239,12 @@ export default function ProductBacklog() {
                     disabled={aiState === "refining"}
                     className="px-3 py-1.5 rounded-md bg-primary text-label-sm font-semibold text-on-primary hover:opacity-90 transition-opacity disabled:opacity-50"
                   >
-                    {aiState === "refining" ? "Refining..." : "Refine"}
+                    {aiState === "refining" ? (
+                      <span className="inline-flex items-center gap-2">
+                        <span className="w-3.5 h-3.5 border-2 border-on-primary border-t-transparent rounded-full animate-spin" />
+                        Refining...
+                      </span>
+                    ) : "Refine"}
                   </button>
                 </div>
               </div>
@@ -239,7 +254,7 @@ export default function ProductBacklog() {
             <button
               onClick={translateWithAi}
               disabled={isAiBusy || aiState === "suggestion_ready"}
-              className="px-5 py-2 rounded-md border border-secondary/30 bg-secondary-container/60 text-secondary text-label-md font-semibold hover:bg-secondary-container transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed disabled:grayscale"
+              className="inline-flex w-full sm:w-auto items-center justify-center px-5 py-2 rounded-md border border-secondary/30 bg-secondary-container/60 text-secondary text-label-md font-semibold hover:bg-secondary-container transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed disabled:grayscale"
             >
               {aiState === "translating" ? (
                 <span className="inline-flex items-center gap-2">
@@ -267,11 +282,11 @@ export default function ProductBacklog() {
       {aiState === "suggestion_ready" && suggestion && (
         <div className="mb-6 rounded-lg border border-primary/20 bg-primary-container/20 p-4">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
-            <div>
+            <div className="min-w-0">
               <h3 className="font-label-md font-bold text-on-surface">AI suggestion ready</h3>
               <p className="text-body-md text-on-surface-variant">Review the generated product backlog before applying it to your report.</p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row">
               <button onClick={discardSuggestion} className="px-4 py-2 rounded-md border border-outline-variant bg-surface text-on-surface text-label-sm hover:bg-surface-container-low">Discard</button>
               <button onClick={acceptSuggestion} className="px-4 py-2 rounded-md bg-primary text-on-primary text-label-sm hover:opacity-90">Accept backlog</button>
             </div>
@@ -302,7 +317,7 @@ export default function ProductBacklog() {
         </div>
       </div>
 
-      <div className="bg-surface border border-outline-variant rounded-xl flex flex-col flex-1 min-h-0 overflow-hidden shadow-sm">
+      <div className="bg-surface border border-outline-variant rounded-lg sm:rounded-xl flex flex-col flex-1 min-h-0 overflow-hidden shadow-sm">
         <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3 p-4 border-b border-outline-variant bg-surface-container-lowest shrink-0 min-w-0">
           <div className="min-w-0 flex-1 overflow-x-auto no-scrollbar">
             <div className="flex min-w-max items-center gap-2 pr-2">
@@ -322,16 +337,16 @@ export default function ProductBacklog() {
               ))}
             </div>
           </div>
-          <div className="flex flex-col sm:flex-row gap-2 shrink-0">
-            <select value={priorityFilter} onChange={(event) => setPriorityFilter(event.target.value)} className="px-3 py-1.5 bg-surface border border-outline-variant rounded-md text-sm focus:outline-none focus:border-primary">
+          <div className="flex w-full flex-col gap-2 shrink-0 sm:flex-row xl:w-auto">
+            <select value={priorityFilter} onChange={(event) => setPriorityFilter(event.target.value)} className="w-full sm:w-auto px-3 py-2 sm:py-1.5 bg-surface border border-outline-variant rounded-md text-sm focus:outline-none focus:border-primary">
               <option value="all">All priorities</option>
               {priorityOptions.map((priority) => <option key={priority} value={priority}>{priority}</option>)}
             </select>
-            <div className="relative">
+            <div className="relative min-w-0 flex-1 sm:flex-none">
               <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[18px]">search</span>
-              <input type="text" value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} placeholder="Search backlog..." className="pl-9 pr-4 py-1.5 bg-surface border border-outline-variant rounded-md text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary w-full sm:w-72" />
+              <input type="text" value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} placeholder="Search backlog..." className="pl-9 pr-4 py-2 sm:py-1.5 bg-surface border border-outline-variant rounded-md text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary w-full sm:w-72" />
             </div>
-            <button onClick={addBacklogItem} disabled={isAiBusy} className="flex items-center justify-center gap-2 px-4 py-1.5 bg-primary text-on-primary rounded-md text-sm font-medium hover:opacity-90 transition-colors shadow-sm disabled:opacity-50">
+            <button onClick={addBacklogItem} disabled={isAiBusy} className="flex items-center justify-center gap-2 px-4 py-2 sm:py-1.5 bg-primary text-on-primary rounded-md text-sm font-medium hover:opacity-90 transition-colors shadow-sm disabled:opacity-50">
               <span className="material-symbols-outlined text-[18px]">add</span>
               Add Story
             </button>
@@ -339,7 +354,7 @@ export default function ProductBacklog() {
         </div>
 
         {productBacklog.length === 0 ? (
-          <button onClick={addBacklogItem} disabled={isAiBusy} className="m-6 rounded-xl border-2 border-dashed border-outline-variant bg-surface hover:bg-surface-container-low transition-colors py-14 flex flex-col items-center justify-center gap-4 text-on-surface-variant group disabled:opacity-50">
+          <button onClick={addBacklogItem} disabled={isAiBusy} className="m-3 sm:m-6 rounded-xl border-2 border-dashed border-outline-variant bg-surface hover:bg-surface-container-low transition-colors px-4 py-14 flex flex-col items-center justify-center gap-4 text-center text-on-surface-variant group disabled:opacity-50">
             <div className="w-12 h-12 rounded-full bg-surface-container border border-outline-variant flex items-center justify-center group-hover:scale-110 group-hover:text-primary transition-all duration-300">
               <span className="material-symbols-outlined text-[24px]">add</span>
             </div>
@@ -407,7 +422,142 @@ function BacklogTable({
   };
 
   return (
-    <div className="overflow-x-auto flex-1">
+    <div className="flex-1 min-h-0 overflow-y-auto md:overflow-y-visible">
+      <div className="grid gap-3 p-3 sm:p-4 md:hidden">
+        {items.length === 0 ? (
+          <div className="rounded-lg border border-outline-variant bg-surface-container-lowest px-4 py-10 text-center text-on-surface-variant">
+            No matching backlog stories.
+          </div>
+        ) : items.map((item) => {
+          const id = getBacklogKey(item);
+          const isEditing = editingId === id;
+
+          return (
+            <article key={id} className="rounded-lg border border-outline-variant bg-surface p-4 shadow-sm">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <span className="font-mono text-xs font-semibold text-on-surface-variant">{item.code}</span>
+                  {isEditing ? (
+                    <input
+                      value={item.epic}
+                      onChange={(event) => onUpdate(id, { epic: event.target.value })}
+                      className="mt-1 w-full bg-surface border border-outline-variant rounded-md px-3 py-2 outline-none focus:border-primary text-sm font-semibold"
+                      placeholder="Epic"
+                    />
+                  ) : (
+                    <h3 className="mt-1 text-base font-bold leading-snug text-on-surface break-words">{item.epic || "Untitled epic"}</h3>
+                  )}
+                </div>
+                {isEditing ? (
+                  <select
+                    value={item.priority}
+                    onChange={(event) => onUpdate(id, { priority: event.target.value as BacklogPriority })}
+                    className="w-28 shrink-0 bg-surface border border-outline-variant rounded-md px-2 py-2 outline-none focus:border-primary text-sm"
+                  >
+                    {priorityOptions.map((priority) => <option key={priority} value={priority}>{priority}</option>)}
+                  </select>
+                ) : (
+                  <span className={cn("shrink-0 text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded border", priorityStyles[item.priority])}>{item.priority}</span>
+                )}
+              </div>
+
+              <div className="mt-4 grid gap-3">
+                <div>
+                  <p className="mb-1 text-xs font-bold uppercase text-on-surface-variant">As a</p>
+                  {isEditing ? (
+                    primaryActorOptions.length > 0 ? (
+                      <div className="grid gap-2">
+                        {primaryActorOptions.map((actor) => (
+                          <label key={actor} className="flex items-center gap-2 text-sm font-semibold text-on-surface">
+                            <input
+                              type="checkbox"
+                              checked={item.actors.includes(actor)}
+                              onChange={() => onUpdate(id, { actors: toggleActor(item, actor) })}
+                              className="h-4 w-4 accent-primary"
+                            />
+                            <span className="break-words">{actor}</span>
+                          </label>
+                        ))}
+                      </div>
+                    ) : (
+                      <textarea
+                        value={item.actors.join("\n")}
+                        onChange={(event) => onUpdate(id, { actors: event.target.value.split(/\r?\n/).map((actor) => actor.trim()).filter(Boolean) })}
+                        className="w-full min-h-[76px] bg-surface border border-outline-variant rounded-md px-3 py-2 outline-none focus:border-primary resize-y text-sm font-semibold"
+                        placeholder="Primary actor"
+                      />
+                    )
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {item.actors.map((actor) => (
+                        <span key={actor} className="rounded-md bg-surface-container-low px-2.5 py-1 text-sm font-semibold text-on-surface break-words">{actor}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <p className="mb-1 text-xs font-bold uppercase text-on-surface-variant">I want</p>
+                  {isEditing ? (
+                    <div className="grid gap-2">
+                      <textarea
+                        value={item.task}
+                        onChange={(event) => onUpdate(id, { task: event.target.value })}
+                        className="w-full min-h-[92px] bg-surface border border-outline-variant rounded-md px-3 py-2 outline-none focus:border-primary resize-y text-sm font-medium"
+                        placeholder="Create an account."
+                      />
+                      <input
+                        value={item.notes}
+                        onChange={(event) => onUpdate(id, { notes: event.target.value })}
+                        className="w-full bg-surface border border-outline-variant rounded-md px-3 py-2 outline-none focus:border-primary text-sm"
+                        placeholder="Optional details"
+                      />
+                    </div>
+                  ) : (
+                    <div className="grid gap-1">
+                      <p className="text-sm leading-6 text-on-surface break-words">{item.task || "Untitled user story"}</p>
+                      {item.notes && <p className="text-sm leading-relaxed text-on-surface-variant break-words">{item.notes}</p>}
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 rounded-md bg-surface-container-lowest p-3">
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold uppercase text-on-surface-variant">Sprint</p>
+                    {isEditing ? (
+                      <input
+                        value={item.sprint}
+                        onChange={(event) => onUpdate(id, { sprint: event.target.value })}
+                        className="mt-1 w-full bg-surface border border-outline-variant rounded-md px-2 py-2 outline-none focus:border-primary text-sm"
+                        placeholder="Sprint 1"
+                      />
+                    ) : (
+                      <p className="mt-1 text-sm font-semibold text-on-surface break-words">{item.sprint || "Sprint 1"}</p>
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold uppercase text-on-surface-variant">Duration</p>
+                    <p className="mt-1 text-sm font-semibold text-on-surface">{Number(item.durationDays || 0)} days</p>
+                  </div>
+                </div>
+              </div>
+
+              {!readOnly && (
+                <BacklogActions
+                  id={id}
+                  isEditing={isEditing}
+                  onEdit={onEdit}
+                  onDelete={onDelete}
+                  onMove={onMove}
+                  className="mt-4 justify-end border-t border-outline-variant pt-3"
+                />
+              )}
+            </article>
+          );
+        })}
+      </div>
+
+      <div className="hidden md:block overflow-x-auto h-full">
       <table className="w-full min-w-[940px] text-left border-collapse bg-surface">
         <thead className="bg-surface-container-low sticky top-0 z-10">
           <tr>
@@ -499,20 +649,14 @@ function BacklogTable({
                   )}
 
                   {!readOnly && (
-                    <div className="mt-3 flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => onMove(id, -1)} className="p-1.5 text-outline-variant hover:text-on-surface hover:bg-surface-container rounded-md" title="Move up">
-                        <span className="material-symbols-outlined text-[18px]">keyboard_arrow_up</span>
-                      </button>
-                      <button onClick={() => onMove(id, 1)} className="p-1.5 text-outline-variant hover:text-on-surface hover:bg-surface-container rounded-md" title="Move down">
-                        <span className="material-symbols-outlined text-[18px]">keyboard_arrow_down</span>
-                      </button>
-                      <button onClick={() => onEdit(isEditing ? null : id)} className="p-1.5 text-outline-variant hover:text-primary hover:bg-surface-container rounded-md" title={isEditing ? "Done" : "Edit"}>
-                        <span className="material-symbols-outlined text-[18px]">{isEditing ? "check" : "edit"}</span>
-                      </button>
-                      <button onClick={() => onDelete(id)} className="p-1.5 text-outline-variant hover:text-error hover:bg-error-container rounded-md" title="Delete">
-                        <span className="material-symbols-outlined text-[18px]">delete</span>
-                      </button>
-                    </div>
+                    <BacklogActions
+                      id={id}
+                      isEditing={isEditing}
+                      onEdit={onEdit}
+                      onDelete={onDelete}
+                      onMove={onMove}
+                      className="mt-3 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
+                    />
                   )}
                 </td>
               </tr>
@@ -520,6 +664,40 @@ function BacklogTable({
           })}
         </tbody>
       </table>
+      </div>
+    </div>
+  );
+}
+
+function BacklogActions({
+  id,
+  isEditing,
+  className,
+  onEdit,
+  onDelete,
+  onMove,
+}: {
+  id: string;
+  isEditing: boolean;
+  className?: string;
+  onEdit: (id: string | null) => void;
+  onDelete: (id: string) => void;
+  onMove: (id: string, direction: -1 | 1) => void;
+}) {
+  return (
+    <div className={cn("flex items-center gap-1", className)}>
+      <button onClick={() => onMove(id, -1)} className="p-1.5 text-outline-variant hover:text-on-surface hover:bg-surface-container rounded-md" title="Move up">
+        <span className="material-symbols-outlined text-[18px]">keyboard_arrow_up</span>
+      </button>
+      <button onClick={() => onMove(id, 1)} className="p-1.5 text-outline-variant hover:text-on-surface hover:bg-surface-container rounded-md" title="Move down">
+        <span className="material-symbols-outlined text-[18px]">keyboard_arrow_down</span>
+      </button>
+      <button onClick={() => onEdit(isEditing ? null : id)} className="p-1.5 text-outline-variant hover:text-primary hover:bg-surface-container rounded-md" title={isEditing ? "Done" : "Edit"}>
+        <span className="material-symbols-outlined text-[18px]">{isEditing ? "check" : "edit"}</span>
+      </button>
+      <button onClick={() => onDelete(id)} className="p-1.5 text-outline-variant hover:text-error hover:bg-error-container rounded-md" title="Delete">
+        <span className="material-symbols-outlined text-[18px]">delete</span>
+      </button>
     </div>
   );
 }

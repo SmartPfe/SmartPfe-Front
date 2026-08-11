@@ -190,6 +190,7 @@ export function useUmlPreparation() {
   const [loading, setLoading] = useState(true);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
   const [aiState, setAiState] = useState<AiState>("idle");
+  const [suggestionSource, setSuggestionSource] = useState<"generate" | "refine" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const autosaveTimerRef = useRef<number | null>(null);
   const umlRef = useRef<UmlPreparation>(emptyUmlPreparation);
@@ -247,7 +248,7 @@ export function useUmlPreparation() {
 
   const markUnsaved = useCallback(() => setSaveStatus("unsaved"), []);
 
-  const saveUmlPreparation = useCallback(async (nextPreparation = umlPreparation, language?: string) => {
+  const saveUmlPreparation = useCallback(async (nextPreparation = umlPreparation, language?: string, generationFeature?: string) => {
     if (!project?._id) {
       setError("Project is not ready yet. Please refresh the page.");
       return;
@@ -258,9 +259,11 @@ export function useUmlPreparation() {
     setError(null);
 
     try {
-      const payload = language
-        ? { umlPreparation: normalized, language }
-        : { umlPreparation: normalized };
+      const payload = {
+        umlPreparation: normalized,
+        ...(language ? { language } : {}),
+        ...(generationFeature ? { generationFeature } : {}),
+      };
       const res = await fetchApi(`/projects/${project._id}/uml-preparation`, {
         method: "PUT",
         body: JSON.stringify(payload),
@@ -296,6 +299,7 @@ export function useUmlPreparation() {
     try {
       const res = await fetchApi("/ai/uml-preparation/generate", { method: "POST" });
       setSuggestion(normalizeUmlPreparation(res.umlPreparation || {}));
+      setSuggestionSource("generate");
       setAiState("suggestion_ready");
     } catch (err: any) {
       setError(err.message || "AI generation failed. Please try again.");
@@ -323,6 +327,7 @@ export function useUmlPreparation() {
         body: JSON.stringify(payload),
       });
       setSuggestion(normalizeUmlPreparation(res.umlPreparation || {}));
+      setSuggestionSource("refine");
       setAiState("suggestion_ready");
     } catch (err: any) {
       setError(err.message || "AI refinement failed. Please try again.");
@@ -360,15 +365,22 @@ export function useUmlPreparation() {
       setUmlPreparation(suggestion);
       setSuggestion(null);
       setAiState("idle");
-      await saveUmlPreparation(suggestion, projectLanguage || undefined);
+      await saveUmlPreparation(
+        suggestion,
+        projectLanguage || undefined,
+        suggestionSource === "generate" ? "umlPreparation" : undefined
+      );
+      setSuggestionSource(null);
       return;
     }
     setSuggestion(null);
+    setSuggestionSource(null);
     setAiState("idle");
-  }, [projectLanguage, saveUmlPreparation, suggestion]);
+  }, [projectLanguage, saveUmlPreparation, suggestion, suggestionSource]);
 
   const discardSuggestion = useCallback(() => {
     setSuggestion(null);
+    setSuggestionSource(null);
     setAiState("idle");
   }, []);
 

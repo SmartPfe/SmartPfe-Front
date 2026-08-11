@@ -66,6 +66,7 @@ export function useExistingSolutions() {
   const [loading, setLoading] = useState(true);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
   const [aiState, setAiState] = useState<AiState>("idle");
+  const [suggestionSource, setSuggestionSource] = useState<"generate" | "refine" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const autosaveTimerRef = useRef<number | null>(null);
   const solutionsRef = useRef<ExistingSolution[]>([]);
@@ -96,7 +97,7 @@ export function useExistingSolutions() {
     setSaveStatus("unsaved");
   }, []);
 
-  const saveSolutions = useCallback(async (nextSolutions = solutions, showValidation = false, language?: string) => {
+  const saveSolutions = useCallback(async (nextSolutions = solutions, showValidation = false, language?: string, generationFeature?: string) => {
     if (!project?._id) {
       setError("Project is not ready yet. Please refresh the page.");
       return;
@@ -121,9 +122,11 @@ export function useExistingSolutions() {
     setError(null);
 
     try {
-      const payload = language
-        ? { existingSolutions: nextSolutions, language }
-        : { existingSolutions: nextSolutions };
+      const payload = {
+        existingSolutions: nextSolutions,
+        ...(language ? { language } : {}),
+        ...(generationFeature ? { generationFeature } : {}),
+      };
       const res = await fetchApi(`/projects/${project._id}/existing-solutions`, {
         method: "PUT",
         body: JSON.stringify(payload),
@@ -181,6 +184,7 @@ export function useExistingSolutions() {
     try {
       const res = await fetchApi("/ai/existing-solutions/generate", { method: "POST" });
       setSuggestion(normalizeSolutions(res.existingSolutions || []));
+      setSuggestionSource("generate");
       setAiState("suggestion_ready");
     } catch (err: any) {
       setError(err.message || "AI generation failed. Please try again.");
@@ -209,6 +213,7 @@ export function useExistingSolutions() {
         body: JSON.stringify(payload),
       });
       setSuggestion(normalizeSolutions(res.existingSolutions || []));
+      setSuggestionSource("refine");
       setAiState("suggestion_ready");
     } catch (err: any) {
       setError(err.message || "AI refinement failed. Please try again.");
@@ -246,15 +251,23 @@ export function useExistingSolutions() {
       setSolutions(suggestion);
       setSuggestion(null);
       setAiState("idle");
-      await saveSolutions(suggestion, false, projectLanguage || undefined);
+      await saveSolutions(
+        suggestion,
+        false,
+        projectLanguage || undefined,
+        suggestionSource === "generate" ? "existingSolutions" : undefined
+      );
+      setSuggestionSource(null);
       return;
     }
     setSuggestion(null);
+    setSuggestionSource(null);
     setAiState("idle");
-  }, [projectLanguage, saveSolutions, suggestion]);
+  }, [projectLanguage, saveSolutions, suggestion, suggestionSource]);
 
   const discardSuggestion = useCallback(() => {
     setSuggestion(null);
+    setSuggestionSource(null);
     setAiState("idle");
   }, []);
 

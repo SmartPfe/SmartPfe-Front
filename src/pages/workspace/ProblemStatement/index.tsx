@@ -88,7 +88,7 @@ export default function ProblemStatement() {
     if (generatedText) {
       // Directly inject generated text into the editor (bypassing suggestion panel)
       setExternalUpdate({ content: generatedText, timestamp: Date.now() });
-      saveContent(generatedText, projectLanguage || undefined);
+      saveContent(generatedText, projectLanguage || undefined, "problemStatement");
     }
   };
 

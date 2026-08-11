@@ -1,5 +1,6 @@
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import NotificationBell from "@/components/layout/NotificationBell";
+import { NotificationProvider } from "@/context/NotificationContext";
 
 const ADMIN_NAV_ITEMS = [
   { label: "Dashboard", icon: "dashboard", path: "/admin/dashboard" },
@@ -25,7 +26,8 @@ export default function AdminLayout() {
   };
 
   return (
-    <div className="min-h-screen bg-surface-container-lowest text-on-surface lg:flex">
+    <NotificationProvider>
+      <div className="min-h-screen bg-surface-container-lowest text-on-surface lg:flex">
       <aside className="w-full lg:w-72 lg:h-dvh lg:sticky lg:top-0 bg-surface border-b lg:border-b-0 lg:border-r border-outline-variant flex flex-col">
         <div className="h-16 px-md sm:px-lg border-b border-outline-variant flex items-center gap-sm">
           <div className="w-10 h-10 rounded-lg bg-primary text-on-primary flex items-center justify-center font-bold">
@@ -112,6 +114,7 @@ export default function AdminLayout() {
           <Outlet />
         </main>
       </div>
-    </div>
+      </div>
+    </NotificationProvider>
   );
 }

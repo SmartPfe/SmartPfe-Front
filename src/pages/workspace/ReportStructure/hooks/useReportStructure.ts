@@ -65,6 +65,7 @@ export function useReportStructure() {
   const [loading, setLoading] = useState(true);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
   const [aiState, setAiState] = useState<AiState>("idle");
+  const [suggestionSource, setSuggestionSource] = useState<"generate" | "refine" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const autosaveTimerRef = useRef<number | null>(null);
   const structureRef = useRef<ReportSection[]>([]);
@@ -92,7 +93,7 @@ export function useReportStructure() {
 
   const markUnsaved = useCallback(() => setSaveStatus("unsaved"), []);
 
-  const saveReportStructure = useCallback(async (nextStructure = reportStructure, showValidation = false, language?: string) => {
+  const saveReportStructure = useCallback(async (nextStructure = reportStructure, showValidation = false, language?: string, generationFeature?: string) => {
     if (!project?._id) {
       setError("Project is not ready yet. Please refresh the page.");
       return;
@@ -109,9 +110,11 @@ export function useReportStructure() {
     setError(null);
 
     try {
-      const payload = language
-        ? { reportStructure: normalized, language }
-        : { reportStructure: normalized };
+      const payload = {
+        reportStructure: normalized,
+        ...(language ? { language } : {}),
+        ...(generationFeature ? { generationFeature } : {}),
+      };
       const res = await fetchApi(`/projects/${project._id}/report-structure`, {
         method: "PUT",
         body: JSON.stringify(payload),
@@ -150,6 +153,7 @@ export function useReportStructure() {
     try {
       const res = await fetchApi("/ai/report-structure/generate", { method: "POST" });
       setSuggestion(normalizeReportStructure(res.reportStructure || []));
+      setSuggestionSource("generate");
       setAiState("suggestion_ready");
     } catch (err: any) {
       setError(err.message || "AI generation failed. Please try again.");
@@ -178,6 +182,7 @@ export function useReportStructure() {
         body: JSON.stringify(payload),
       });
       setSuggestion(normalizeReportStructure(res.reportStructure || []));
+      setSuggestionSource("refine");
       setAiState("suggestion_ready");
     } catch (err: any) {
       setError(err.message || "AI refinement failed. Please try again.");
@@ -215,15 +220,23 @@ export function useReportStructure() {
       setReportStructure(suggestion);
       setSuggestion(null);
       setAiState("idle");
-      await saveReportStructure(suggestion, false, projectLanguage || undefined);
+      await saveReportStructure(
+        suggestion,
+        false,
+        projectLanguage || undefined,
+        suggestionSource === "generate" ? "reportStructure" : undefined
+      );
+      setSuggestionSource(null);
       return;
     }
     setSuggestion(null);
+    setSuggestionSource(null);
     setAiState("idle");
-  }, [projectLanguage, saveReportStructure, suggestion]);
+  }, [projectLanguage, saveReportStructure, suggestion, suggestionSource]);
 
   const discardSuggestion = useCallback(() => {
     setSuggestion(null);
+    setSuggestionSource(null);
     setAiState("idle");
   }, []);
 

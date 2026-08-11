@@ -1,14 +1,6 @@
-import { useEffect, useState } from "react";
-import { API_BASE_URL, fetchApi } from "@/lib/api";
-
-type NotificationItem = {
-  _id: string;
-  title: string;
-  message: string;
-  type: "success" | "info" | "warning" | "error";
-  read: boolean;
-  createdAt: string;
-};
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { NotificationItem, useNotifications } from "@/context/NotificationContext";
 
 function formatNotificationTime(createdAt: string) {
   const diff = Date.now() - new Date(createdAt).getTime();
@@ -24,67 +16,61 @@ function formatNotificationTime(createdAt: string) {
 }
 
 export default function NotificationBell({ label = "Live updates" }: { label?: string }) {
+  const navigate = useNavigate();
+  const {
+    notifications,
+    unreadCount,
+    isConnected,
+    markAllAsRead,
+    markNotificationAsRead,
+  } = useNotifications();
   const [isOpen, setIsOpen] = useState(false);
-  const [isConnected, setIsConnected] = useState(false);
-  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
-  const unreadCount = notifications.filter((notification) => !notification.read).length;
 
-  useEffect(() => {
-    let eventSource: EventSource | undefined;
-
-    const loadNotifications = async () => {
-      try {
-        const data = await fetchApi("/notifications");
-        setNotifications(data);
-      } catch (error) {
-        console.error("Failed to load notifications:", error);
+  const handleNotificationClick = async (notification: NotificationItem) => {
+    try {
+      if (!notification.read) {
+        await markNotificationAsRead(notification._id);
       }
-    };
+    } catch (error) {
+      console.error("Failed to mark notification as read:", error);
+    }
 
-    const connectNotifications = () => {
-      const token = localStorage.getItem("token");
-      if (!token) return;
-
-      eventSource = new EventSource(`${API_BASE_URL}/notifications/stream?token=${encodeURIComponent(token)}`);
-      eventSource.addEventListener("connected", () => setIsConnected(true));
-      eventSource.addEventListener("heartbeat", () => setIsConnected(true));
-      eventSource.addEventListener("notification", (event) => {
-        setIsConnected(true);
-        const notification = JSON.parse((event as MessageEvent).data) as NotificationItem;
-        setNotifications((current) => [notification, ...current].slice(0, 20));
-      });
-      eventSource.onerror = () => {
-        setIsConnected(false);
-      };
-    };
-
-    loadNotifications();
-    connectNotifications();
-
-    return () => {
-      setIsConnected(false);
-      eventSource?.close();
-    };
-  }, []);
-
-  const handleToggle = async () => {
-    const nextOpenState = !isOpen;
-    setIsOpen(nextOpenState);
-
-    if (nextOpenState && unreadCount > 0) {
-      setNotifications((current) => current.map((notification) => ({ ...notification, read: true })));
-      try {
-        await fetchApi("/notifications/read", { method: "PATCH" });
-      } catch (error) {
-        console.error("Failed to mark notifications as read:", error);
-      }
+    setIsOpen(false);
+    if (notification.link) {
+      navigate(notification.link);
     }
   };
+
+  const handleMarkAllAsRead = async () => {
+    try {
+      await markAllAsRead();
+    } catch (error) {
+      console.error("Failed to mark notifications as read:", error);
+    }
+  };
+
+  const getNotificationIcon = (notification: NotificationItem) =>
+    notification.type === "generation_complete" || notification.type === "success"
+      ? "check_circle"
+      : notification.type === "error"
+        ? "error"
+        : notification.type === "warning"
+          ? "warning"
+          : "info";
+
+  const getNotificationColor = (notification: NotificationItem) =>
+    notification.type === "generation_complete" || notification.type === "success"
+      ? "text-secondary"
+      : notification.type === "error"
+        ? "text-error"
+        : notification.type === "warning"
+          ? "text-tertiary"
+          : "text-primary";
 
   return (
     <div className="relative">
       <button
-        onClick={handleToggle}
+        onClick={() => setIsOpen((value) => !value)}
         className="relative w-9 h-9 flex items-center justify-center text-outline hover:text-on-surface rounded-lg border border-transparent hover:border-outline-variant hover:bg-surface-container transition-colors"
         title="Notifications"
         type="button"
@@ -106,10 +92,21 @@ export default function NotificationBell({ label = "Live updates" }: { label?: s
                 <p className="font-label-md text-label-md text-on-surface">Notifications</p>
                 <p className="font-body-sm text-body-sm text-on-surface-variant">{label}</p>
               </div>
-              <span
-                className={`w-2 h-2 rounded-full ${isConnected ? "bg-secondary" : "bg-outline"}`}
-                title={isConnected ? "Realtime connected" : "Reconnecting"}
-              ></span>
+              <div className="flex items-center gap-2">
+                {unreadCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleMarkAllAsRead}
+                    className="rounded-md px-2 py-1 text-label-sm font-medium text-primary hover:bg-primary/10"
+                  >
+                    Mark all as read
+                  </button>
+                )}
+                <span
+                  className={`w-2 h-2 rounded-full ${isConnected ? "bg-secondary" : "bg-outline"}`}
+                  title={isConnected ? "Realtime connected" : "Reconnecting"}
+                ></span>
+              </div>
             </div>
 
             <div className="max-h-80 overflow-y-auto">
@@ -119,33 +116,30 @@ export default function NotificationBell({ label = "Live updates" }: { label?: s
                 </div>
               ) : (
                 notifications.map((notification) => (
-                  <div
+                  <button
                     key={notification._id}
-                    className="px-md py-sm border-b border-outline-variant last:border-b-0 hover:bg-surface-container-low transition-colors"
+                    type="button"
+                    onClick={() => handleNotificationClick(notification)}
+                    className={`w-full px-md py-sm text-left border-b border-outline-variant last:border-b-0 hover:bg-surface-container-low transition-colors ${
+                      notification.read ? "" : "bg-primary/5"
+                    }`}
                   >
                     <div className="flex items-start gap-sm">
-                      <span
-                        className={`material-symbols-outlined text-[18px] mt-base ${
-                          notification.type === "success"
-                            ? "text-secondary"
-                            : notification.type === "error"
-                              ? "text-error"
-                              : notification.type === "warning"
-                                ? "text-tertiary"
-                                : "text-primary"
-                        }`}
-                      >
-                        {notification.type === "success" ? "check_circle" : notification.type === "error" ? "error" : "info"}
+                      <span className={`material-symbols-outlined text-[18px] mt-base ${getNotificationColor(notification)}`}>
+                        {getNotificationIcon(notification)}
                       </span>
                       <div className="min-w-0 flex-1">
-                        <p className="font-label-md text-label-md text-on-surface">{notification.title}</p>
+                        <div className="flex items-center gap-2">
+                          {!notification.read && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />}
+                          <p className="font-label-md text-label-md text-on-surface">{notification.title}</p>
+                        </div>
                         <p className="font-body-sm text-body-sm text-on-surface-variant mt-base">{notification.message}</p>
                         <p className="font-body-sm text-body-sm text-outline mt-xs">
                           {formatNotificationTime(notification.createdAt)}
                         </p>
                       </div>
                     </div>
-                  </div>
+                  </button>
                 ))
               )}
             </div>

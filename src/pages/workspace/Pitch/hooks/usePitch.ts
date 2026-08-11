@@ -172,7 +172,7 @@ export function usePitch() {
 
   const markUnsaved = useCallback(() => setSaveStatus("unsaved"), []);
 
-  const savePitch = useCallback(async (nextPitch = pitch, showValidation = false) => {
+  const savePitch = useCallback(async (nextPitch = pitch, showValidation = false, generationFeature?: string) => {
     if (!project?._id) {
       setError("Project is not ready yet. Please refresh the page.");
       return;
@@ -196,7 +196,10 @@ export function usePitch() {
     try {
       const res = await fetchApi(`/projects/${project._id}/pitch`, {
         method: "PUT",
-        body: JSON.stringify({ pitch: normalized }),
+        body: JSON.stringify({
+          pitch: normalized,
+          ...(generationFeature ? { generationFeature } : {}),
+        }),
       });
 
       if (JSON.stringify(normalizePitch(pitchRef.current)) === JSON.stringify(normalized)) {
@@ -230,7 +233,8 @@ export function usePitch() {
     endpoint: string,
     body?: Record<string, unknown>,
     nextAiState: AiState = "generating",
-    errorMessage = "AI pitch generation failed. Please try again."
+    errorMessage = "AI pitch generation failed. Please try again.",
+    generationFeature?: string
   ) => {
     setAiState(nextAiState);
     setError(null);
@@ -243,7 +247,7 @@ export function usePitch() {
       pitchRef.current = nextPitch;
       setPitch(nextPitch);
       setSaveStatus("unsaved");
-      await savePitch(nextPitch);
+      await savePitch(nextPitch, false, generationFeature);
     } catch (err: any) {
       setError(err.message || errorMessage);
     } finally {
@@ -252,7 +256,7 @@ export function usePitch() {
   }, [savePitch]);
 
   const generateWithAi = async () => {
-    await replaceWithAiPitch("/ai/pitch/generate");
+    await replaceWithAiPitch("/ai/pitch/generate", undefined, "generating", "AI pitch generation failed. Please try again.", "pitch");
   };
 
   const refineWithAi = async (instructions = "") => {
@@ -271,7 +275,7 @@ export function usePitch() {
   };
 
   const generateSlideWithAi = async (slideId: string) => {
-    await replaceWithAiPitch("/ai/pitch/slide/generate", { pitch, slideId });
+    await replaceWithAiPitch("/ai/pitch/slide/generate", { pitch, slideId }, "generating", "AI slide speech generation failed. Please try again.", "pitchSlide");
   };
 
   const refineSlideWithAi = async (slideId: string, instructions = "") => {

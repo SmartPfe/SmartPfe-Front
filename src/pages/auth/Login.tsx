@@ -80,7 +80,6 @@ export default function Login() {
         </div>
         <h1 className="font-headline-lg text-headline-lg text-primary mb-xs">Welcome Back</h1>
         <p className="font-body-md text-body-md text-on-surface-variant">PFE Guidance Platform</p>
-        <p className="font-label-md text-label-md text-outline mt-1 uppercase tracking-wider">Academic Year 2023-24</p>
       </div>
 
       {error && (

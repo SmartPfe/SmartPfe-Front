@@ -185,7 +185,12 @@ export default function Actors() {
               disabled={isAiBusy || aiState === "suggestion_ready" || actors.length === 0}
               className={aiButtonClass}
             >
-              {aiState === "refining" ? "Refining..." : "Refine with AI"}
+              {aiState === "refining" ? (
+                <span className="inline-flex items-center gap-2">
+                  <span className="w-3.5 h-3.5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                  Refining...
+                </span>
+              ) : "Refine with AI"}
             </button>
 
             {refineOpen && (
@@ -218,7 +223,12 @@ export default function Actors() {
                     disabled={aiState === "refining"}
                     className="px-3 py-1.5 rounded-md bg-primary text-label-sm font-semibold text-on-primary hover:opacity-90 transition-opacity disabled:opacity-50"
                   >
-                    {aiState === "refining" ? "Refining..." : "Refine"}
+                    {aiState === "refining" ? (
+                      <span className="inline-flex items-center gap-2">
+                        <span className="w-3.5 h-3.5 border-2 border-on-primary border-t-transparent rounded-full animate-spin" />
+                        Refining...
+                      </span>
+                    ) : "Refine"}
                   </button>
                 </div>
               </div>
