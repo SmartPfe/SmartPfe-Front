@@ -1,4 +1,9 @@
-export const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const getDefaultApiBaseUrl = () => {
+  if (typeof window === "undefined") return "http://localhost:5000/api";
+  return `${window.location.protocol}//${window.location.hostname}:5000/api`;
+};
+
+export const API_BASE_URL = import.meta.env.VITE_API_URL || getDefaultApiBaseUrl();
 export const PROJECT_DATA_UPDATED_EVENT = "smartpfe:project-data-updated";
 
 const getRequestMethod = (options: RequestInit) => String(options.method || "GET").toUpperCase();

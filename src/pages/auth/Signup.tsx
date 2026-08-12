@@ -76,7 +76,6 @@ export default function Signup() {
         <h1 className="font-headline-md text-headline-md text-on-surface">Create your Workspace</h1>
         <p className="font-body-md text-body-md text-on-surface-variant max-w-[280px]">Join your academic journey and start building your PFE project.</p>
         <div className="mt-xs pt-xs border-t border-outline-variant w-full max-w-[200px] flex justify-center">
-          <span className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">PFE Guidance · Academic Year 2023-24</span>
         </div>
       </header>
       
