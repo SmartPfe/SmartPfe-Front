@@ -398,10 +398,10 @@ export default function JurySimulation() {
   if (stage === "analyzing") {
     return (
       <div className="min-h-[calc(100dvh-150px)] rounded-lg border border-outline-variant bg-surface p-md sm:p-xl">
-        <div className="flex min-h-[520px] flex-col items-center justify-center text-center">
+        <div className="mx-auto flex min-h-[520px] w-full max-w-lg flex-col items-center justify-center text-center">
           <span className="mb-5 h-12 w-12 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
           <h1 className="text-headline-lg text-on-surface">Analyzing your defense...</h1>
-          <p className="mt-2 max-w-md text-body-md text-on-surface-variant">
+          <p className="mt-2 w-full max-w-md text-body-md text-on-surface-variant">
             Smart PFE is comparing your recording with the presentation and expected pitch.
           </p>
         </div>

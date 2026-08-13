@@ -76,6 +76,14 @@
   --spacing-gutter: 16px;
   --spacing-margin: 24px;
 
+  /* Preserve Tailwind's content-width scale so max-w-md/lg/xl/2xl do not resolve to spacing tokens. */
+  --container-xs: 20rem;
+  --container-sm: 24rem;
+  --container-md: 28rem;
+  --container-lg: 32rem;
+  --container-xl: 36rem;
+  --container-2xl: 42rem;
+
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 }
@@ -215,6 +223,32 @@
   textarea,
   select {
     min-width: 0;
+  }
+}
+
+@layer utilities {
+  .max-w-xs {
+    max-width: 20rem;
+  }
+
+  .max-w-sm {
+    max-width: 24rem;
+  }
+
+  .max-w-md {
+    max-width: 28rem;
+  }
+
+  .max-w-lg {
+    max-width: 32rem;
+  }
+
+  .max-w-xl {
+    max-width: 36rem;
+  }
+
+  .max-w-2xl {
+    max-width: 42rem;
   }
 }
 
