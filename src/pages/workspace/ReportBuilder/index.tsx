@@ -87,6 +87,7 @@ export default function ReportBuilder() {
   const [copied, setCopied] = useState<StudioTab | "final" | null>(null);
   const [refineOpen, setRefineOpen] = useState(false);
   const [refineInstructions, setRefineInstructions] = useState("");
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const refinePopoverRef = useRef<HTMLDivElement>(null);
 
   const leafSections = useMemo(() => flatSections.filter((item) => isLeafSection(item)), [flatSections]);
@@ -267,44 +268,66 @@ export default function ReportBuilder() {
           </p>
         </div>
       ) : (
-        <div className="w-full grid grid-cols-1 xl:grid-cols-[340px_1fr] gap-md min-h-[calc(100dvh-250px)]">
-          <aside className="rounded-xl border border-outline-variant bg-surface overflow-hidden flex flex-col min-h-[420px] xl:min-h-0">
-            <div className="p-4 border-b border-outline-variant bg-surface-container-lowest">
-              <div className="flex items-end justify-between mb-3">
-                <div>
-                  <h2 className="font-headline-sm text-headline-sm text-on-surface">Report Structure</h2>
-                  <p className="text-body-sm text-on-surface-variant">{generatedCount} of {leafSections.length} sections generated</p>
-                </div>
-                <span className="font-headline-sm text-headline-sm text-primary">{progressPercent}%</span>
-              </div>
-              <div className="h-2 w-full bg-surface-container-high rounded-full overflow-hidden">
-                <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${progressPercent}%` }} />
-              </div>
+        <div className={cn(
+          "w-full grid gap-md min-h-[calc(100dvh-250px)] min-w-0 transition-all duration-300 ease-in-out",
+          sidebarCollapsed
+            ? "grid-cols-1 xl:grid-cols-[68px_minmax(0,1fr)]"
+            : "grid-cols-1 xl:grid-cols-[340px_minmax(0,1fr)]"
+        )}>
+          <aside className={cn(
+            "rounded-xl border border-outline-variant bg-surface overflow-hidden flex flex-col min-h-[420px] xl:min-h-0 min-w-0 transition-all duration-300",
+            sidebarCollapsed && "items-center"
+          )}>
+            <div className={cn(
+              "p-3.5 border-b border-outline-variant bg-surface-container-lowest flex items-center justify-between gap-2 w-full",
+              sidebarCollapsed ? "justify-center px-2" : "justify-between"
+            )}>
+              {!sidebarCollapsed && (
+                <h2 className="font-headline-sm text-headline-sm text-on-surface truncate">Report Structure</h2>
+              )}
+              <button
+                type="button"
+                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-on-surface-variant hover:text-primary hover:bg-surface-container transition-colors cursor-pointer shrink-0"
+                title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              >
+                <span className="material-symbols-outlined text-[20px]">
+                  {sidebarCollapsed ? "dock_to_right" : "dock_to_left"}
+                </span>
+              </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-2">
+            <div className="flex-1 overflow-y-auto p-2 w-full">
               <button
                 onClick={() => setActiveSectionId("overview")}
                 className={cn(
-                  "w-full flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-left transition-colors border mb-2 cursor-pointer",
+                  "w-full flex items-center rounded-lg transition-colors border mb-2 cursor-pointer",
+                  sidebarCollapsed ? "justify-center p-2" : "gap-2.5 px-3 py-2.5 text-left",
                   activeSectionId === "overview"
                     ? "bg-primary-container/80 text-primary font-bold border-primary/30 shadow-sm"
                     : "bg-surface-container-low text-on-surface hover:bg-surface-container hover:text-on-surface border-outline-variant/60"
                 )}
+                title={sidebarCollapsed ? `Report Overview (${progressPercent}%)` : undefined}
               >
                 <span className="material-symbols-outlined text-[20px] shrink-0 text-primary">space_dashboard</span>
-                <span className="text-body-sm font-semibold truncate flex-1">Report Overview</span>
-                <span className={cn(
-                  "px-2 py-0.5 rounded-full text-[11px] font-bold",
-                  activeSectionId === "overview" ? "bg-primary text-on-primary" : "bg-surface-container-high text-on-surface-variant"
-                )}>
-                  {progressPercent}%
-                </span>
+                {!sidebarCollapsed && (
+                  <>
+                    <span className="text-body-sm font-semibold truncate flex-1">Report Overview</span>
+                    <span className={cn(
+                      "px-2 py-0.5 rounded-full text-[11px] font-bold",
+                      activeSectionId === "overview" ? "bg-primary text-on-primary" : "bg-surface-container-high text-on-surface-variant"
+                    )}>
+                      {progressPercent}%
+                    </span>
+                  </>
+                )}
               </button>
 
-              <div className="px-2 pt-2 pb-1 text-[11px] font-bold tracking-wider text-on-surface-variant uppercase">
-                Chapters & Sections
-              </div>
+              {!sidebarCollapsed && (
+                <div className="px-2 pt-2 pb-1 text-[11px] font-bold tracking-wider text-on-surface-variant uppercase">
+                  Chapters & Sections
+                </div>
+              )}
 
               {flatSections.map((item) => {
                 const chapter = getChapter(item.section.id);
@@ -316,6 +339,7 @@ export default function ReportBuilder() {
                     active={item.section.id === activeSectionId}
                     outdated={Boolean(chapter?.sourceFingerprint && sourceFingerprint && chapter.sourceFingerprint !== sourceFingerprint)}
                     isLeaf={isLeafSection(item)}
+                    collapsed={sidebarCollapsed}
                     onClick={() => {
                       setActiveSectionId(item.section.id);
                       setActiveTab("rich");
@@ -326,7 +350,7 @@ export default function ReportBuilder() {
             </div>
           </aside>
 
-          <main className="w-full rounded-xl border border-outline-variant bg-surface relative z-10 flex flex-col min-h-[620px]">
+          <main className="w-full rounded-xl border border-outline-variant bg-surface relative z-10 flex flex-col min-h-[620px] min-w-0 overflow-hidden">
             {activeSectionId === "overview" ? (
               <ReportOverviewDashboard
                 flatSections={flatSections}
@@ -640,6 +664,7 @@ function SectionNavItem({
   active,
   outdated,
   isLeaf,
+  collapsed = false,
   onClick,
 }: {
   item: FlatReportSection;
@@ -647,9 +672,20 @@ function SectionNavItem({
   active: boolean;
   outdated: boolean;
   isLeaf: boolean;
+  collapsed?: boolean;
   onClick: () => void;
 }) {
   if (!isLeaf) {
+    if (collapsed) {
+      return (
+        <div
+          className="w-full flex items-center justify-center py-1.5 text-primary opacity-80 my-1"
+          title={`Chapter ${item.number}: ${item.section.title}`}
+        >
+          <span className="material-symbols-outlined text-[18px]">folder</span>
+        </div>
+      );
+    }
     return (
       <div
         className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-left border border-transparent bg-surface-container-lowest/60 text-on-surface opacity-85 select-none my-0.5"
@@ -665,6 +701,22 @@ function SectionNavItem({
   const generated = hasContent(chapter);
   const icon = outdated ? "warning" : chapter?.status === "completed" ? "check_circle" : generated ? "edit_document" : "radio_button_unchecked";
   const iconClass = outdated ? "text-error" : chapter?.status === "completed" ? "text-secondary" : generated ? "text-primary" : "text-outline";
+
+  if (collapsed) {
+    return (
+      <button
+        onClick={onClick}
+        className={cn(
+          "w-full flex flex-col items-center justify-center p-2 rounded-lg transition-colors border cursor-pointer my-1 group",
+          active ? "bg-primary-container text-primary border-primary/30 shadow-xs" : "text-on-surface-variant border-transparent hover:bg-surface-container-low hover:text-on-surface"
+        )}
+        title={`${item.number} ${item.section.title}`}
+      >
+        <span className={cn("material-symbols-outlined text-[18px]", iconClass)}>{icon}</span>
+        <span className="text-[10px] font-mono font-bold mt-0.5 text-primary">{item.number}</span>
+      </button>
+    );
+  }
 
   return (
     <button
@@ -1298,7 +1350,7 @@ function ReportOverviewDashboard({
   const toggleChapter = (chapterId: string) => {
     setExpandedChapters((prev) => ({
       ...prev,
-      [chapterId]: prev[chapterId] === false ? true : false,
+      [chapterId]: !prev[chapterId],
     }));
   };
 
@@ -1432,9 +1484,9 @@ function ReportOverviewDashboard({
       </div>
 
       {/* Main Two-Column Layout */}
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-6 items-start">
+      <div className="grid grid-cols-1 2xl:grid-cols-[minmax(0,1fr)_320px] gap-6 items-start min-w-0 w-full">
         {/* Left: Structured Chapter Matrix */}
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4 min-w-0">
           <div className="flex items-center justify-between">
             <h2 className="text-headline-sm font-bold text-on-surface flex items-center gap-2">
               <span className="material-symbols-outlined text-primary text-[22px]">format_list_bulleted</span>
@@ -1447,7 +1499,7 @@ function ReportOverviewDashboard({
 
           <div className="flex flex-col gap-4">
             {topLevelSections.map((topItem) => {
-              const isCollapsed = expandedChapters[topItem.section.id] === false;
+              const isCollapsed = !expandedChapters[topItem.section.id];
               const childLeaves = leafSections.filter(
                 (leaf) => leaf.number === topItem.number || leaf.number.startsWith(`${topItem.number}.`)
               );
