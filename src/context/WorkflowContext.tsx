@@ -35,6 +35,21 @@ const NAV_PATHS = [
   "/workspace/jury-simulation",
 ];
 
+const getLeafSectionIds = (sections: any[] = []): string[] => {
+  const ids: string[] = [];
+  const walk = (items: any[]) => {
+    (items || []).forEach((item) => {
+      if (item?.children && item.children.length > 0) {
+        walk(item.children);
+      } else if (item?.id) {
+        ids.push(item.id);
+      }
+    });
+  };
+  walk(sections);
+  return ids;
+};
+
 const hasReportContent = (chapter: any) =>
   Boolean(
     String(chapter?.contentHtml || "").trim() ||
@@ -97,10 +112,16 @@ export function WorkflowProvider({ children }: { children: ReactNode }) {
         (data.umlPreparation?.sequence?.participants && data.umlPreparation.sequence.participants.length > 0)
       ),
       "/workspace/report-structure": Boolean(data.reportStructure && data.reportStructure.length > 0),
-      "/workspace/report-builder": Boolean(
-        hasFinalReport(data.finalReport) ||
-        data.reportChapters?.some((chapter: any) => chapter?.status === "completed" || hasReportContent(chapter))
-      ),
+      "/workspace/report-builder": (() => {
+        if (hasFinalReport(data.finalReport)) return true;
+        const leafIds = getLeafSectionIds(data.reportStructure || []);
+        if (leafIds.length === 0) return false;
+        const generatedLeafCount = leafIds.filter((id) => {
+          const chapter = (data.reportChapters || []).find((c: any) => c.sectionId === id);
+          return hasReportContent(chapter);
+        }).length;
+        return generatedLeafCount === leafIds.length;
+      })(),
       "/workspace/presentation": Boolean(data.presentation?.slides && data.presentation.slides.length > 0),
       "/workspace/pitch": Boolean(data.pitch?.slides && data.pitch.slides.some((slide: any) => String(slide?.speech || "").trim())),
       "/workspace/jury-simulation": Boolean(

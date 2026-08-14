@@ -308,6 +308,7 @@ export function useReportStudio() {
         title: section?.title || existing?.title || "Untitled chapter",
         ...updates,
         status: updates.status || existing?.status || "in-progress",
+        language: updates.language || existing?.language || projectLanguage,
       });
       const exists = current.some((chapter) => chapter.sectionId === sectionId);
       return exists

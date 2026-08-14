@@ -8,6 +8,7 @@ import {
   FlatReportSection,
   ReportChapter,
   getLanguageLabel,
+  normalizeLanguage,
   htmlToMarkdown,
   markdownToLatex,
   useReportStudio,
@@ -39,6 +40,7 @@ const actionIcons: Record<AiAction, string> = {
 
 export default function ReportBuilder() {
   const {
+    project,
     flatSections,
     reportChapters,
     sourceFingerprint,
@@ -70,10 +72,11 @@ export default function ReportBuilder() {
   const leafSections = useMemo(() => flatSections.filter((item) => isLeafSection(item)), [flatSections]);
 
   useEffect(() => {
-    if (!activeSectionId && flatSections.length) {
-      setActiveSectionId((leafSections[0] || flatSections[0]).section.id);
+    const isCurrentActiveLeaf = activeSectionId && leafSections.some((item) => item.section.id === activeSectionId);
+    if (!isCurrentActiveLeaf && leafSections.length > 0) {
+      setActiveSectionId(leafSections[0].section.id);
     }
-  }, [activeSectionId, flatSections, leafSections]);
+  }, [activeSectionId, leafSections]);
 
   const activeFlatSection = flatSections.find((item) => item.section.id === activeSectionId) || flatSections[0];
   const activeIsLeaf = Boolean(activeFlatSection && isLeafSection(activeFlatSection));
@@ -92,12 +95,14 @@ export default function ReportBuilder() {
     activeChapter.sourceFingerprint !== sourceFingerprint
   );
   const isAiIdle = aiState === "idle";
-  const activeChapterLanguage = activeChapter?.language || "";
+  const reportStructureLanguage = normalizeLanguage((project as any)?.reportStructureLanguage);
+  const activeChapterLanguage = normalizeLanguage(activeChapter?.language || reportStructureLanguage);
   const shouldShowTranslate = Boolean(
     activeIsLeaf &&
     activeChapter &&
     hasContent(activeChapter) &&
     projectLanguage &&
+    activeChapterLanguage &&
     activeChapterLanguage !== projectLanguage
   );
 
@@ -152,6 +157,7 @@ export default function ReportBuilder() {
       contentMarkdown: markdown,
       contentLatex: markdownToLatex(markdown),
       status: "in-progress",
+      language: activeChapter?.language || projectLanguage,
     });
   };
 
@@ -171,7 +177,7 @@ export default function ReportBuilder() {
   }
 
   return (
-    <div className="max-w-[1500px] mx-auto flex flex-col h-full pb-24">
+    <div className="w-full mx-auto flex flex-col h-full pb-24">
       <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-4 mb-8 shrink-0">
         <div>
           <h1 className="text-display text-on-surface mb-2 flex items-center">
@@ -199,9 +205,6 @@ export default function ReportBuilder() {
           <button onClick={() => saveReportChapters(reportChapters, true)} disabled={saveStatus === "saving" || aiState !== "idle"} className="px-4 py-2 rounded-md bg-primary text-on-primary text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50">
             Save now
           </button>
-          <button onClick={generateCompleteReport} disabled={!allGenerated || aiState !== "idle"} className={cn(aiButtonClass, allGenerated && "bg-primary text-on-primary border-primary hover:bg-primary/90 hover:from-primary hover:to-primary")}>
-            {aiState === "finalizing" ? "Finalizing..." : "Generate Complete Report"}
-          </button>
         </div>
       </div>
 
@@ -221,7 +224,7 @@ export default function ReportBuilder() {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 xl:grid-cols-[340px_minmax(0,1fr)] gap-md min-h-[calc(100dvh-250px)]">
+        <div className="w-full grid grid-cols-1 xl:grid-cols-[340px_1fr] gap-md min-h-[calc(100dvh-250px)]">
           <aside className="rounded-xl border border-outline-variant bg-surface overflow-hidden flex flex-col min-h-[420px] xl:min-h-0">
             <div className="p-4 border-b border-outline-variant bg-surface-container-lowest">
               <div className="flex items-end justify-between mb-3">
@@ -257,18 +260,37 @@ export default function ReportBuilder() {
             </div>
           </aside>
 
-          <main className="rounded-xl border border-outline-variant bg-surface overflow-hidden flex flex-col min-h-[620px]">
+          <main className="w-full rounded-xl border border-outline-variant bg-surface overflow-hidden flex flex-col min-h-[620px]">
             <div className="p-4 sm:p-5 border-b border-outline-variant bg-surface-container-lowest">
-              <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 text-label-sm text-on-surface-variant mb-1">
-                    <span>{activeFlatSection?.number}</span>
-                    <span>{activeIsLeaf ? "Editable section" : "Container folder"}</span>
-                  </div>
-                  <h2 className="text-headline-md text-on-surface break-words">{activeFlatSection?.section.title}</h2>
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 text-label-sm text-on-surface-variant mb-1">
+                  <span>{activeFlatSection?.number}</span>
+                  <span>Editable section</span>
                 </div>
-                <ChapterStatusBadge chapter={activeChapter} outdated={activeIsOutdated} isLeaf={activeIsLeaf} />
+                <h2 className="text-headline-md text-on-surface break-words">{activeFlatSection?.section.title}</h2>
               </div>
+              <div className="flex items-center gap-3 shrink-0">
+                <ChapterStatusBadge chapter={activeChapter} outdated={activeIsOutdated} isLeaf={activeIsLeaf} />
+                {activeIsLeaf && activeChapter && (
+                  <button
+                    onClick={() => updateChapter(activeChapter.sectionId, { status: activeChapter.status === "completed" ? "in-progress" : "completed" })}
+                    disabled={!isAiIdle}
+                    className={cn(
+                      "px-4 py-2 rounded-lg text-label-md font-semibold flex items-center gap-1.5 shadow-sm transition-all border cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed",
+                      activeChapter.status === "completed"
+                        ? "bg-surface text-on-surface-variant border-outline-variant hover:bg-surface-container-low"
+                        : "bg-secondary text-on-secondary border-secondary/30 hover:opacity-90 ring-2 ring-secondary/20"
+                    )}
+                  >
+                    <span className="material-symbols-outlined text-[18px]">
+                      {activeChapter.status === "completed" ? "undo" : "check_circle"}
+                    </span>
+                    {activeChapter.status === "completed" ? "Reopen Section" : "Mark Complete"}
+                  </button>
+                )}
+              </div>
+            </div>
 
               <div className="mt-5 rounded-lg border border-outline-variant bg-surface p-3">
                 <div className="flex flex-col 2xl:flex-row 2xl:items-center justify-between gap-3">
@@ -290,13 +312,37 @@ export default function ReportBuilder() {
                   )}
                   {activeIsLeaf && (
                     <div className="flex flex-wrap items-center gap-2">
-                      <button onClick={() => activeFlatSection && generateChapter(activeFlatSection.section.id, detailLevel)} disabled={!activeFlatSection || !isAiIdle} className={aiButtonClass}>
-                      {aiState === "generating" ? "Generating..." : hasContent(activeChapter) ? "Regenerate with AI" : "Generate with AI"}
-                    </button>
-                    <div className="relative" ref={refinePopoverRef}>
-                      <button onClick={() => setRefineOpen(true)} disabled={!activeChapter || !hasContent(activeChapter) || !isAiIdle} className={aiButtonClass}>
-                        {aiState === "refining" ? "Refining..." : "Refine with AI"}
+                      <button
+                        onClick={() => activeFlatSection && generateChapter(activeFlatSection.section.id, detailLevel)}
+                        disabled={!activeFlatSection || !isAiIdle}
+                        className={aiButtonClass}
+                      >
+                        {aiState === "generating" ? (
+                          <span className="inline-flex items-center gap-2">
+                            <span className="w-3.5 h-3.5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                            Generating...
+                          </span>
+                        ) : hasContent(activeChapter) ? (
+                          "Regenerate with AI"
+                        ) : (
+                          "Generate with AI"
+                        )}
                       </button>
+                      <div className="relative" ref={refinePopoverRef}>
+                        <button
+                          onClick={() => setRefineOpen(true)}
+                          disabled={!activeChapter || !hasContent(activeChapter) || !isAiIdle}
+                          className={aiButtonClass}
+                        >
+                          {aiState === "refining" ? (
+                            <span className="inline-flex items-center gap-2">
+                              <span className="w-3.5 h-3.5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                              Refining...
+                            </span>
+                          ) : (
+                            "Refine with AI"
+                          )}
+                        </button>
 
                       {refineOpen && (
                         <div
@@ -356,9 +402,9 @@ export default function ReportBuilder() {
                   </div>
                   )}
                 </div>
-                {activeIsLeaf ? (
+                {activeIsLeaf && hasContent(activeChapter) && (
                   <div className="mt-3 flex flex-wrap items-center gap-2">
-                    {hasContent(activeChapter) && AI_ACTIONS.filter((action) => action !== "Improve Academic Style").map((action) => (
+                    {AI_ACTIONS.filter((action) => action !== "Improve Academic Style").map((action) => (
                       <button
                         key={action}
                         onClick={() => activeChapter && runChapterAction(activeChapter.sectionId, action, activeChapter.contentHtml, selectedText)}
@@ -370,15 +416,6 @@ export default function ReportBuilder() {
                         {action}
                       </button>
                     ))}
-                    <button onClick={() => activeChapter && updateChapter(activeChapter.sectionId, { status: activeChapter.status === "completed" ? "in-progress" : "completed" })} disabled={!activeChapter || !isAiIdle} className="h-9 px-3 rounded-md border border-outline-variant bg-surface text-on-surface text-sm font-medium hover:bg-surface-container-low disabled:opacity-50">
-                      <span className="material-symbols-outlined text-[17px] align-[-3px] mr-1">done_all</span>
-                      {activeChapter?.status === "completed" ? "Reopen" : "Mark Complete"}
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2 rounded-md bg-surface-container-lowest border border-outline-variant px-3 py-2 text-body-sm text-on-surface-variant">
-                    <span className="material-symbols-outlined text-[18px] text-primary">folder</span>
-                    This is a parent section. Select one of its child sections to generate and edit report content.
                   </div>
                 )}
                 {activeIsLeaf && (
@@ -443,9 +480,7 @@ export default function ReportBuilder() {
             </div>
 
             <div className="flex-1 min-h-0 p-4 sm:p-5 overflow-y-auto bg-surface">
-              {!activeIsLeaf ? (
-                <ContainerSectionPanel item={activeFlatSection} />
-              ) : !hasContent(activeChapter) ? (
+              {!hasContent(activeChapter) ? (
                 <EmptyChapter
                   detailLevel={detailLevel}
                   disabled={!activeFlatSection || !activeIsLeaf || aiState !== "idle"}
@@ -486,24 +521,35 @@ function SectionNavItem({
   isLeaf: boolean;
   onClick: () => void;
 }) {
+  if (!isLeaf) {
+    return (
+      <div
+        className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-left border border-transparent bg-surface-container-lowest/60 text-on-surface opacity-85 select-none my-0.5"
+        style={{ paddingLeft: `${12 + (item.level - 1) * 18}px` }}
+      >
+        <span className="material-symbols-outlined text-[18px] shrink-0 text-primary">folder</span>
+        <span className="font-label-sm text-primary shrink-0 w-10">{item.number}</span>
+        <span className="text-body-sm font-semibold truncate text-on-surface">{item.section.title}</span>
+      </div>
+    );
+  }
+
   const generated = hasContent(chapter);
-  const icon = !isLeaf ? "folder" : outdated ? "warning" : chapter?.status === "completed" ? "check_circle" : generated ? "edit_document" : "radio_button_unchecked";
-  const iconClass = !isLeaf ? "text-primary" : outdated ? "text-error" : chapter?.status === "completed" ? "text-secondary" : generated ? "text-primary" : "text-outline";
+  const icon = outdated ? "warning" : chapter?.status === "completed" ? "check_circle" : generated ? "edit_document" : "radio_button_unchecked";
+  const iconClass = outdated ? "text-error" : chapter?.status === "completed" ? "text-secondary" : generated ? "text-primary" : "text-outline";
 
   return (
     <button
       onClick={onClick}
       className={cn(
-        "w-full flex items-center gap-2 rounded-lg px-3 py-2 text-left transition-colors border",
-        !isLeaf && "bg-surface-container-lowest",
+        "w-full flex items-center gap-2 rounded-lg px-3 py-2 text-left transition-colors border cursor-pointer",
         active ? "bg-primary-container/50 text-primary border-primary/20" : "text-on-surface-variant border-transparent hover:bg-surface-container-low hover:text-on-surface"
       )}
       style={{ paddingLeft: `${12 + (item.level - 1) * 18}px` }}
     >
       <span className={cn("material-symbols-outlined text-[18px] shrink-0", iconClass)}>{icon}</span>
       <span className="font-label-sm text-primary shrink-0 w-10">{item.number}</span>
-      <span className={cn("text-body-sm truncate", !isLeaf && "font-semibold text-on-surface", active && "font-semibold")}>{item.section.title}</span>
-      {!isLeaf && <span className="ml-auto material-symbols-outlined text-[16px] text-on-surface-variant">chevron_right</span>}
+      <span className={cn("text-body-sm truncate", active && "font-semibold")}>{item.section.title}</span>
     </button>
   );
 }
@@ -545,7 +591,7 @@ function EmptyChapter({
   onGenerate: () => void;
 }) {
   return (
-    <div className="min-h-[430px] flex flex-col items-center justify-center text-center border-2 border-dashed border-outline-variant rounded-xl bg-surface-container-lowest p-6">
+    <div className="w-full min-h-[430px] flex flex-col items-center justify-center text-center border-2 border-dashed border-outline-variant rounded-xl bg-surface-container-lowest p-6">
       <div className="w-16 h-16 rounded-xl bg-surface-container border border-outline-variant flex items-center justify-center mb-4">
         <span className="material-symbols-outlined text-[30px] text-primary">edit_document</span>
       </div>
@@ -561,31 +607,7 @@ function EmptyChapter({
   );
 }
 
-function ContainerSectionPanel({ item }: { item?: FlatReportSection }) {
-  const children = item?.section.children || [];
 
-  return (
-    <div className="min-h-[430px] flex flex-col justify-center border border-outline-variant rounded-xl bg-surface-container-lowest p-6">
-      <div className="max-w-2xl mx-auto text-center">
-        <div className="w-16 h-16 rounded-xl bg-surface-container border border-outline-variant flex items-center justify-center mb-4 mx-auto">
-          <span className="material-symbols-outlined text-[32px] text-primary">folder</span>
-        </div>
-        <h3 className="font-headline-sm text-headline-sm text-on-surface mb-2">This section organizes child content</h3>
-        <p className="font-body-md text-body-md text-on-surface-variant mb-6">
-          Parent sections act like folders in the report outline. Choose a leaf section below it to generate and edit academic content.
-        </p>
-        <div className="grid sm:grid-cols-2 gap-2 text-left">
-          {children.map((child) => (
-            <div key={child.id} className="rounded-md border border-outline-variant bg-surface px-3 py-2 flex items-center gap-2">
-              <span className="material-symbols-outlined text-[17px] text-primary">article</span>
-              <span className="text-body-sm text-on-surface truncate">{child.title}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function RichChapterEditor({
   content,
