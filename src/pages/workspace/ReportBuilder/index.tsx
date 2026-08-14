@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import InfoTooltip from "@/components/ui/InfoTooltip";
 import { cn } from "@/lib/utils";
 import {
@@ -28,18 +28,34 @@ const detailLabels: Record<DetailLevel, string> = {
   detailed: "Detailed",
 };
 
-const actionIcons: Record<AiAction, string> = {
-  Expand: "add_box",
-  Shorten: "compress",
-  "Improve Academic Style": "school",
-  "Make More Technical": "memory",
-  Simplify: "lightbulb",
-  "Continue Writing": "more_horiz",
-  "Improve Grammar": "spellcheck",
-  "Rewrite Selection": "edit_note",
-  "Regenerate Selection": "autorenew",
-  "Explain Better": "psychology",
-};
+export interface ToolConfig {
+  id: AiAction;
+  label: string;
+  shortLabel: string;
+  icon: string;
+  desc: string;
+}
+
+export const ALL_AI_TOOLS: ToolConfig[] = [
+  { id: "Rewrite Selection", label: "Rephrase", shortLabel: "Rephrase", icon: "sync_alt", desc: "Rephrase and polish this text with alternative wording" },
+  { id: "Expand", label: "Expand", shortLabel: "Expand", icon: "format_align_left", desc: "Add more depth and technical detail" },
+  { id: "Shorten", label: "Shorten", shortLabel: "Shorten", icon: "format_align_center", desc: "Make more concise and clear" },
+  { id: "Make More Technical", label: "More Technical", shortLabel: "Technical", icon: "terminal", desc: "Incorporate deeper technical phrasing" },
+  { id: "Simplify", label: "Simplify", shortLabel: "Simplify", icon: "auto_fix_high", desc: "Clarify complex or convoluted points" },
+  { id: "Improve Grammar", label: "Fix Grammar", shortLabel: "Grammar", icon: "spellcheck", desc: "Fix grammar, spelling, and flow" },
+  { id: "Explain Better", label: "Explain Better", shortLabel: "Explain", icon: "psychology", desc: "Elaborate with intuitive clarity" },
+  { id: "Continue Writing", label: "Continue Writing", shortLabel: "Continue", icon: "arrow_forward", desc: "Continue generating the next section" },
+  { id: "Improve Academic Style", label: "Academic Style", shortLabel: "Academic", icon: "school", desc: "Refine tone into formal academic standard" },
+];
+
+const DEFAULT_PINNED_TOOLS: AiAction[] = [
+  "Rewrite Selection",
+  "Expand",
+  "Shorten",
+  "Make More Technical",
+];
+
+const actionConfigMap = new Map(ALL_AI_TOOLS.map((tool) => [tool.id, tool]));
 
 export default function ReportBuilder() {
   const {
@@ -210,6 +226,23 @@ export default function ReportBuilder() {
             @keyframes report-builder-popover-in {
               from { opacity: 0; transform: translateY(-4px) scale(0.98); }
               to { opacity: 1; transform: translateY(0) scale(1); }
+            }
+            @keyframes report-builder-expand-down {
+              from {
+                opacity: 0;
+                transform: translateY(-8px);
+                max-height: 0;
+              }
+              to {
+                opacity: 1;
+                transform: translateY(0);
+                max-height: 220px;
+              }
+            }
+            @keyframes report-studio-indeterminate {
+              0% { transform: translateX(-100%); }
+              50% { transform: translateX(120%); }
+              100% { transform: translateX(250%); }
             }
           `}</style>
           <button onClick={() => saveReportChapters(reportChapters, true)} disabled={saveStatus === "saving" || aiState !== "idle"} className="px-4 py-2 rounded-md bg-primary text-on-primary text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50">
@@ -462,19 +495,33 @@ export default function ReportBuilder() {
                       )}
                     </div>
                     {activeIsLeaf && hasContent(activeChapter) && (
-                      <div className="mt-3 flex flex-wrap items-center gap-2">
-                        {AI_ACTIONS.filter((action) => action !== "Improve Academic Style").map((action) => (
-                          <button
-                            key={action}
-                            onClick={() => activeChapter && runChapterAction(activeChapter.sectionId, action, activeChapter.contentHtml, selectedText)}
-                            disabled={!activeChapter || !isAiIdle}
-                            className="h-9 px-3 bg-surface hover:bg-surface-container-low border border-outline-variant rounded-md font-label-sm text-on-surface flex items-center gap-1.5 transition-colors disabled:opacity-50"
-                            title={selectedText ? `Apply to selected text: ${selectedText.slice(0, 60)}` : "Apply to the whole chapter"}
-                          >
-                            <span className="material-symbols-outlined text-[16px] text-primary">{actionIcons[action]}</span>
-                            {action}
-                          </button>
-                        ))}
+                      <div className="mt-3.5 pt-3 border-t border-outline-variant/60">
+                        <div className="flex items-center justify-between gap-2 mb-2">
+                          <span className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider flex items-center gap-1.5">
+                            <span className="material-symbols-outlined text-[14px] text-primary">auto_fix_high</span>
+                            Quick AI Actions
+                          </span>
+                          <span className="text-[11px] text-on-surface-variant font-mono">
+                            {selectedText.trim() ? "Applies to highlighted selection" : "Applies to full chapter"}
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          {ALL_AI_TOOLS.filter((t) => t.id !== "Improve Academic Style").map((tool) => (
+                            <button
+                              key={tool.id}
+                              onClick={() => activeChapter && runChapterAction(activeChapter.sectionId, tool.id, activeChapter.contentHtml, selectedText)}
+                              disabled={!activeChapter || !isAiIdle}
+                              className={cn(
+                                "h-8 px-2.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed",
+                                "bg-surface-container-low/70 hover:bg-primary-container/40 text-on-surface hover:text-primary border-outline-variant/70 hover:border-primary/30"
+                              )}
+                              title={selectedText ? `Apply ${tool.label} to selected passage` : tool.desc}
+                            >
+                              <span className="material-symbols-outlined text-[16px] text-primary shrink-0">{tool.icon}</span>
+                              <span>{tool.label}</span>
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     )}
                     {activeIsLeaf && (
@@ -728,45 +775,135 @@ function RichChapterEditor({
     onChange(editorRef.current?.innerHTML || "");
   };
 
-  const updateSelection = () => {
-    const sel = window.getSelection();
-    const text = sel?.toString() || "";
-    setCurrentSelectedText(text);
-    onSelectionChange(text);
+  const isToolbarInteractingRef = useRef(false);
+  const savedRangeRef = useRef<Range | null>(null);
 
-    if (!sel || sel.isCollapsed || !text.trim() || !containerRef.current) {
-      setFloatingPos(null);
-      return;
-    }
-
+  const calculatePos = useCallback((sel: Selection) => {
+    if (!containerRef.current || sel.rangeCount === 0) return;
     try {
       const range = sel.getRangeAt(0);
+      savedRangeRef.current = range.cloneRange();
       const rect = range.getBoundingClientRect();
       const containerRect = containerRef.current.getBoundingClientRect();
 
-      if (rect.width > 0 && rect.height > 0) {
-        const top = Math.max(10, rect.top - containerRect.top - 54);
-        const left = Math.max(10, Math.min(containerRect.width - 390, rect.left - containerRect.left + (rect.width / 2) - 180));
+      if (rect.width > 0 || rect.height > 0) {
+        const toolbarEstimatedWidth = 440;
+        const spaceAbove = rect.top - containerRect.top;
+
+        // Position above selection if space permits, otherwise below
+        const top = spaceAbove > 52 ? spaceAbove - 46 : rect.bottom - containerRect.top + 8;
+
+        // Clamp horizontally within container bounds
+        const selectionCenter = rect.left - containerRect.left + (rect.width / 2);
+        const maxLeft = Math.max(8, containerRect.width - toolbarEstimatedWidth - 8);
+        const left = Math.max(8, Math.min(maxLeft, selectionCenter - (toolbarEstimatedWidth / 2)));
+
         setFloatingPos({ top, left });
       }
     } catch {
       setFloatingPos(null);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    const handleSelectionUpdate = () => {
+      // If user is actively typing in custom prompt input/textarea in the toolbar, don't clear
+      if (isToolbarInteractingRef.current) {
+        return;
+      }
+
+      const sel = window.getSelection();
+      if (!sel || sel.isCollapsed || !sel.rangeCount) {
+        setCurrentSelectedText("");
+        onSelectionChange("");
+        setFloatingPos(null);
+        return;
+      }
+
+      // Ensure selection is inside this editor
+      if (editorRef.current && (editorRef.current.contains(sel.anchorNode) || editorRef.current.contains(sel.focusNode))) {
+        const text = sel.toString();
+        if (text.trim()) {
+          setCurrentSelectedText(text);
+          onSelectionChange(text);
+          calculatePos(sel);
+        } else {
+          setCurrentSelectedText("");
+          onSelectionChange("");
+          setFloatingPos(null);
+        }
+      } else {
+        // Selection is outside editor
+        setCurrentSelectedText("");
+        onSelectionChange("");
+        setFloatingPos(null);
+      }
+    };
+
+    document.addEventListener("selectionchange", handleSelectionUpdate);
+    document.addEventListener("mouseup", handleSelectionUpdate);
+    document.addEventListener("keyup", handleSelectionUpdate);
+
+    return () => {
+      document.removeEventListener("selectionchange", handleSelectionUpdate);
+      document.removeEventListener("mouseup", handleSelectionUpdate);
+      document.removeEventListener("keyup", handleSelectionUpdate);
+    };
+  }, [calculatePos, onSelectionChange]);
 
   return (
-    <div ref={containerRef} className="relative rounded-xl border border-outline-variant overflow-visible bg-surface shadow-sm">
+    <div ref={containerRef} className="relative rounded-xl border border-outline-variant overflow-visible bg-surface shadow-sm transition-all">
+      {aiState !== "idle" && (
+        <div className="absolute top-0 inset-x-0 z-30 overflow-hidden rounded-t-xl">
+          <div className="h-1 w-full bg-primary/15 overflow-hidden">
+            <div
+              className="h-full bg-primary rounded-full"
+              style={{
+                width: "40%",
+                animation: "report-studio-indeterminate 1.4s ease-in-out infinite",
+              }}
+            />
+          </div>
+          <div className="bg-primary-container/80 backdrop-blur-sm border-b border-primary/20 px-4 py-2 flex items-center justify-between text-xs font-semibold text-primary">
+            <span className="flex items-center gap-2">
+              <span className="w-3.5 h-3.5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              {aiState === "generating"
+                ? "AI is generating chapter draft..."
+                : aiState === "refining"
+                ? "AI is refining content..."
+                : aiState === "translating"
+                ? "AI is translating chapter..."
+                : "AI is rewriting selection..."}
+            </span>
+            <span className="text-[11px] font-normal text-on-surface-variant">Please wait, your document will update automatically</span>
+          </div>
+        </div>
+      )}
+
       {floatingPos && currentSelectedText.trim() && (
         <FloatingSelectionAiBar
           position={floatingPos}
           selectedText={currentSelectedText}
           disabled={disabled || aiState !== "idle"}
           aiState={aiState}
+          onInteractStart={() => {
+            isToolbarInteractingRef.current = true;
+          }}
+          onInteractEnd={() => {
+            isToolbarInteractingRef.current = false;
+          }}
           onAction={async (action, instructions) => {
+            isToolbarInteractingRef.current = false;
             await onAiAction(action, instructions);
             setFloatingPos(null);
           }}
-          onClose={() => setFloatingPos(null)}
+          onClose={() => {
+            isToolbarInteractingRef.current = false;
+            setFloatingPos(null);
+            window.getSelection()?.removeAllRanges();
+            setCurrentSelectedText("");
+            onSelectionChange("");
+          }}
         />
       )}
 
@@ -788,8 +925,6 @@ function RichChapterEditor({
         contentEditable={!disabled}
         suppressContentEditableWarning
         onInput={(event) => onChange(event.currentTarget.innerHTML)}
-        onMouseUp={updateSelection}
-        onKeyUp={updateSelection}
         className="report-rich-editor min-h-[520px] px-6 py-7 outline-none text-on-surface leading-relaxed bg-surface focus:ring-4 focus:ring-primary/10 overflow-x-auto"
       />
     </div>
@@ -801,6 +936,8 @@ function FloatingSelectionAiBar({
   selectedText,
   disabled,
   aiState,
+  onInteractStart,
+  onInteractEnd,
   onAction,
   onClose,
 }: {
@@ -808,121 +945,256 @@ function FloatingSelectionAiBar({
   selectedText: string;
   disabled: boolean;
   aiState: AiState;
+  onInteractStart?: () => void;
+  onInteractEnd?: () => void;
   onAction: (action: AiAction, instructions?: string) => void;
   onClose: () => void;
 }) {
+  const [pinnedToolIds, setPinnedToolIds] = useState<AiAction[]>(() => {
+    try {
+      const saved = localStorage.getItem("report_studio_pinned_tools");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return DEFAULT_PINNED_TOOLS;
+  });
+
+  const [moreOpen, setMoreOpen] = useState(false);
   const [customOpen, setCustomOpen] = useState(false);
   const [customPrompt, setCustomPrompt] = useState("");
+  const barRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const wordCount = selectedText.trim().split(/\s+/).filter(Boolean).length;
 
-  const handleCustomSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const togglePin = (toolId: AiAction, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setPinnedToolIds((prev) => {
+      const next = prev.includes(toolId)
+        ? prev.filter((id) => id !== toolId)
+        : [...prev, toolId];
+      const final = next.length > 0 ? next : DEFAULT_PINNED_TOOLS;
+      try {
+        localStorage.setItem("report_studio_pinned_tools", JSON.stringify(final));
+      } catch {}
+      return final;
+    });
+  };
+
+  const handleCustomSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!customPrompt.trim()) return;
-    onAction("Rewrite Selection", customPrompt);
+    onAction("Rewrite Selection", customPrompt.trim());
     setCustomOpen(false);
     setCustomPrompt("");
   };
 
+  useEffect(() => {
+    if (customOpen && textareaRef.current) {
+      textareaRef.current.focus();
+    }
+  }, [customOpen]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (barRef.current && !barRef.current.contains(e.target as Node)) {
+        setMoreOpen(false);
+      }
+    };
+    if (moreOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [moreOpen]);
+
+  const pinnedTools = ALL_AI_TOOLS.filter((t) => pinnedToolIds.includes(t.id));
+
   return (
     <div
-      className="absolute z-50 transition-all duration-150 ease-out"
+      ref={barRef}
+      onMouseDown={(e) => {
+        // Prevent selection loss when clicking inside the toolbar or typing
+        e.stopPropagation();
+      }}
+      className={cn(
+        "absolute z-50 transition-all duration-200 ease-out pointer-events-auto",
+        customOpen ? "w-[min(480px,calc(100%-16px))]" : "max-w-[calc(100%-16px)]"
+      )}
       style={{ top: `${position.top}px`, left: `${position.left}px` }}
     >
-      <div className="flex flex-col rounded-xl border border-outline-variant bg-surface-bright/95 backdrop-blur-md p-1.5 shadow-2xl ring-1 ring-black/5">
-        <div className="flex items-center gap-1">
-          <div className="flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-primary bg-primary-container/70 rounded-lg shrink-0">
-            <span className="material-symbols-outlined text-[15px]">auto_awesome</span>
-            <span>{wordCount} {wordCount === 1 ? "word" : "words"}</span>
-          </div>
+      <div className="flex flex-col rounded-xl border border-outline-variant/80 bg-surface-bright/95 backdrop-blur-md p-1.5 shadow-2xl ring-1 ring-black/5 overflow-hidden transition-all duration-200">
+        <div className="flex items-center gap-1 flex-wrap">
+          {/* Clean word count badge */}
+          <span className="px-2 py-1 text-[11px] font-mono font-semibold text-on-surface-variant bg-surface-container rounded-md shrink-0 select-none">
+            {wordCount} {wordCount === 1 ? "word" : "words"}
+          </span>
 
           <div className="h-4 w-px bg-outline-variant mx-0.5 shrink-0" />
 
-          <button
-            type="button"
-            onClick={() => onAction("Rewrite Selection")}
-            disabled={disabled}
-            className="h-8 px-2.5 rounded-lg text-xs font-semibold text-on-surface hover:text-primary hover:bg-primary-container/30 flex items-center gap-1.5 transition-colors disabled:opacity-40 cursor-pointer"
-            title="Rewrite only this highlighted passage"
-          >
-            <span className="material-symbols-outlined text-[16px] text-primary">autorenew</span>
-            <span>Rewrite</span>
-          </button>
+          {/* Pinned Quick Action Buttons */}
+          {pinnedTools.map((tool) => (
+            <button
+              key={tool.id}
+              type="button"
+              onClick={() => onAction(tool.id)}
+              disabled={disabled}
+              className="h-8 px-2.5 rounded-lg text-xs font-semibold text-on-surface hover:text-primary hover:bg-primary-container/30 flex items-center gap-1.5 transition-colors disabled:opacity-40 cursor-pointer shrink-0"
+              title={tool.desc}
+            >
+              <span className="material-symbols-outlined text-[16px] text-primary">{tool.icon}</span>
+              <span>{tool.label}</span>
+            </button>
+          ))}
 
+          {/* More Tools (+) Button */}
           <button
             type="button"
-            onClick={() => onAction("Improve Academic Style")}
-            disabled={disabled}
-            className="h-8 px-2.5 rounded-lg text-xs font-semibold text-on-surface hover:text-primary hover:bg-primary-container/30 flex items-center gap-1.5 transition-colors disabled:opacity-40 cursor-pointer"
-            title="Refine this passage into formal academic style"
-          >
-            <span className="material-symbols-outlined text-[16px] text-primary">school</span>
-            <span>Academic</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => onAction("Expand")}
-            disabled={disabled}
-            className="h-8 px-2.5 rounded-lg text-xs font-semibold text-on-surface hover:text-primary hover:bg-primary-container/30 flex items-center gap-1.5 transition-colors disabled:opacity-40 cursor-pointer"
-            title="Expand this passage with more detail"
-          >
-            <span className="material-symbols-outlined text-[16px] text-primary">format_align_left</span>
-            <span>Expand</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => onAction("Shorten")}
-            disabled={disabled}
-            className="h-8 px-2.5 rounded-lg text-xs font-semibold text-on-surface hover:text-primary hover:bg-primary-container/30 flex items-center gap-1.5 transition-colors disabled:opacity-40 cursor-pointer"
-            title="Make this passage more concise"
-          >
-            <span className="material-symbols-outlined text-[16px] text-primary">format_align_center</span>
-            <span>Shorten</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setCustomOpen(!customOpen)}
+            onClick={() => {
+              setMoreOpen(!moreOpen);
+              if (!moreOpen) setCustomOpen(false);
+            }}
             disabled={disabled}
             className={cn(
-              "h-8 px-2.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors disabled:opacity-40 cursor-pointer",
-              customOpen ? "bg-primary text-on-primary" : "text-on-surface hover:text-primary hover:bg-primary-container/30"
+              "h-8 px-2 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors disabled:opacity-40 cursor-pointer shrink-0",
+              moreOpen ? "bg-primary-container text-primary" : "text-on-surface hover:text-primary hover:bg-primary-container/30"
             )}
-            title="Type custom instruction for this selection"
+            title="More AI tools & customize toolbar"
+          >
+            <span className="material-symbols-outlined text-[17px]">add</span>
+          </button>
+
+          {/* Custom Instruct Button */}
+          <button
+            type="button"
+            onClick={() => {
+              setCustomOpen(!customOpen);
+              if (!customOpen) setMoreOpen(false);
+            }}
+            disabled={disabled}
+            className={cn(
+              "h-8 px-2.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors disabled:opacity-40 cursor-pointer shrink-0",
+              customOpen ? "bg-primary text-on-primary shadow-sm" : "text-on-surface hover:text-primary hover:bg-primary-container/30"
+            )}
+            title="Give specific custom instructions for this selection"
           >
             <span className="material-symbols-outlined text-[16px]">edit</span>
             <span>Instruct</span>
           </button>
 
+          {/* Dismiss button */}
           <button
             type="button"
             onClick={onClose}
-            className="w-7 h-7 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container flex items-center justify-center transition-colors ml-0.5 cursor-pointer"
-            title="Dismiss toolbar"
+            className="w-7 h-7 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container flex items-center justify-center transition-colors ml-auto cursor-pointer shrink-0"
+            title="Dismiss selection"
           >
             <span className="material-symbols-outlined text-[16px]">close</span>
           </button>
         </div>
 
+        {/* More Tools & Pin Manager Popover */}
+        {moreOpen && (
+          <div className="mt-2 pt-2 border-t border-outline-variant max-h-56 overflow-y-auto divide-y divide-outline-variant/40 animate-in fade-in slide-in-from-top-1 duration-150">
+            <div className="px-2 py-1 text-[11px] font-bold text-on-surface-variant uppercase tracking-wider flex items-center justify-between">
+              <span>All AI Selection Tools</span>
+              <span className="text-[10px] lowercase font-normal opacity-80">Click tool to run • Pin to toolbar</span>
+            </div>
+            {ALL_AI_TOOLS.map((tool) => {
+              const isPinned = pinnedToolIds.includes(tool.id);
+              return (
+                <div
+                  key={tool.id}
+                  onClick={() => {
+                    onAction(tool.id);
+                    setMoreOpen(false);
+                  }}
+                  className="px-2.5 py-1.5 flex items-center justify-between gap-3 hover:bg-primary-container/20 cursor-pointer rounded-lg transition-colors group"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="material-symbols-outlined text-[16px] text-primary shrink-0">{tool.icon}</span>
+                    <div className="min-w-0">
+                      <span className="text-xs font-semibold text-on-surface block truncate group-hover:text-primary">{tool.label}</span>
+                      <span className="text-[11px] text-on-surface-variant block truncate">{tool.desc}</span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={(e) => togglePin(tool.id, e)}
+                    className={cn(
+                      "p-1 rounded-md text-xs transition-colors shrink-0 cursor-pointer",
+                      isPinned
+                        ? "text-primary bg-primary-container/60 hover:bg-primary-container"
+                        : "text-on-surface-variant opacity-40 group-hover:opacity-100 hover:text-primary hover:bg-surface-container"
+                    )}
+                    title={isPinned ? "Unpin from toolbar" : "Pin to toolbar"}
+                  >
+                    <span className="material-symbols-outlined text-[16px]">
+                      {isPinned ? "push_pin" : "bookmark_add"}
+                    </span>
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Full-width smooth expanded prompt textarea */}
         {customOpen && (
-          <form onSubmit={handleCustomSubmit} className="mt-2 pt-2 border-t border-outline-variant flex items-center gap-2 px-1">
-            <input
-              type="text"
+          <div
+            className="mt-2 pt-2 border-t border-outline-variant/70 flex flex-col gap-2 px-1 overflow-hidden"
+            style={{ animation: "report-builder-expand-down 220ms cubic-bezier(0.16, 1, 0.3, 1) forwards" }}
+          >
+            <textarea
+              ref={textareaRef}
               value={customPrompt}
+              onFocus={() => onInteractStart?.()}
+              onBlur={() => onInteractEnd?.()}
               onChange={(e) => setCustomPrompt(e.target.value)}
-              placeholder="How should AI change this highlighted text? (e.g. make it simpler)"
-              className="flex-1 h-8 px-3 text-xs rounded-lg border border-outline-variant bg-surface text-on-surface placeholder:text-on-surface-variant outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-              autoFocus
+              onKeyDown={(e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+                  e.preventDefault();
+                  onInteractEnd?.();
+                  handleCustomSubmit();
+                } else if (e.key === "Escape") {
+                  onInteractEnd?.();
+                  setCustomOpen(false);
+                }
+              }}
+              placeholder="How should AI refine this selection? (e.g. simplify explanation, add technical detail...)"
+              rows={3}
+              className="w-full resize-none rounded-lg border border-outline-variant bg-surface px-3 py-2 text-xs text-on-surface outline-none transition-colors placeholder:text-on-surface-variant/60 focus:border-primary focus:ring-1 focus:ring-primary shadow-inner"
             />
-            <button
-              type="submit"
-              disabled={!customPrompt.trim() || disabled}
-              className="h-8 px-3 rounded-lg bg-primary text-on-primary text-xs font-semibold hover:bg-primary/90 transition-colors disabled:opacity-40 cursor-pointer shrink-0"
-            >
-              Apply
-            </button>
-          </form>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[11px] text-on-surface-variant/70 font-mono">
+                Ctrl+Enter to apply
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    onInteractEnd?.();
+                    setCustomOpen(false);
+                    setCustomPrompt("");
+                  }}
+                  className="px-3 py-1.5 rounded-lg border border-outline-variant bg-surface text-xs font-medium text-on-surface hover:bg-surface-container transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onInteractEnd?.();
+                    handleCustomSubmit();
+                  }}
+                  disabled={!customPrompt.trim() || disabled}
+                  className="px-4 py-1.5 rounded-lg bg-primary text-on-primary text-xs font-semibold hover:bg-primary/90 transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  Apply
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>
