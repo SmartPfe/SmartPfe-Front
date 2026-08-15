@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
 import InfoTooltip from "@/components/ui/InfoTooltip";
 import { cn } from "@/lib/utils";
+import { useAiGeneration } from "@/context/AiGenerationContext";
 import {
   AI_ACTIONS,
   AiAction,
@@ -68,6 +70,9 @@ export default function ReportBuilder() {
     loading,
     saveStatus,
     aiState,
+    isSectionGenerating,
+    getSectionAiState,
+    isFinalizing,
     error,
     getChapter,
     updateChapter,
@@ -80,6 +85,8 @@ export default function ReportBuilder() {
     dismissError,
   } = useReportStudio();
 
+  const location = useLocation();
+  const { setActiveRouteState } = useAiGeneration();
   const [activeSectionId, setActiveSectionId] = useState("overview");
   const [detailLevel, setDetailLevel] = useState<DetailLevel>("standard");
   const [activeTab, setActiveTab] = useState<StudioTab>("rich");
@@ -91,6 +98,21 @@ export default function ReportBuilder() {
   const refinePopoverRef = useRef<HTMLDivElement>(null);
 
   const leafSections = useMemo(() => flatSections.filter((item) => isLeafSection(item)), [flatSections]);
+
+  // Synchronize global route & section tracking
+  useEffect(() => {
+    setActiveRouteState({
+      pathname: location.pathname,
+      sectionId: activeSectionId,
+    });
+  }, [location.pathname, activeSectionId, setActiveRouteState]);
+
+  // Handle deep-linking from floating dock / navigation state
+  useEffect(() => {
+    if (location.state?.activeSectionId) {
+      setActiveSectionId(location.state.activeSectionId);
+    }
+  }, [location.state?.activeSectionId, (location.state as any)?._navTimestamp]);
 
   useEffect(() => {
     if (activeSectionId === "overview") return;
@@ -121,7 +143,8 @@ export default function ReportBuilder() {
     sourceFingerprint &&
     activeChapter.sourceFingerprint !== sourceFingerprint
   );
-  const isAiIdle = aiState === "idle";
+  const currentSectionAiState = activeFlatSection ? getSectionAiState(activeFlatSection.section.id) : "idle";
+  const isAiIdle = currentSectionAiState === "idle";
   const reportStructureLanguage = normalizeLanguage((project as any)?.reportStructureLanguage);
   const activeChapterLanguage = normalizeLanguage(activeChapter?.language || reportStructureLanguage);
   const shouldShowTranslate = Boolean(
@@ -330,6 +353,7 @@ export default function ReportBuilder() {
 
               {flatSections.map((item) => {
                 const chapter = getChapter(item.section.id);
+                const generating = isSectionGenerating(item.section.id);
                 return (
                   <SectionNavItem
                     key={item.section.id}
@@ -339,9 +363,11 @@ export default function ReportBuilder() {
                     outdated={Boolean(chapter?.sourceFingerprint && sourceFingerprint && chapter.sourceFingerprint !== sourceFingerprint)}
                     isLeaf={isLeafSection(item)}
                     collapsed={sidebarCollapsed}
+                    isGenerating={generating}
                     onClick={() => {
                       setActiveSectionId(item.section.id);
                       setActiveTab("rich");
+                      window.history.replaceState({ activeSectionId: item.section.id }, "");
                     }}
                   />
                 );
@@ -432,7 +458,7 @@ export default function ReportBuilder() {
                             disabled={!activeFlatSection || !isAiIdle}
                             className={aiButtonClass}
                           >
-                            {aiState === "generating" ? (
+                            {currentSectionAiState === "generating" ? (
                               <span className="inline-flex items-center gap-2">
                                 <span className="w-3.5 h-3.5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
                                 Generating...
@@ -449,7 +475,7 @@ export default function ReportBuilder() {
                               disabled={!activeChapter || !hasContent(activeChapter) || !isAiIdle}
                               className={aiButtonClass}
                             >
-                              {aiState === "refining" ? (
+                              {currentSectionAiState === "refining" ? (
                                 <span className="inline-flex items-center gap-2">
                                   <span className="w-3.5 h-3.5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
                                   Refining...
@@ -486,10 +512,10 @@ export default function ReportBuilder() {
                                   <button
                                     type="button"
                                     onClick={handleRefineSubmit}
-                                    disabled={aiState === "refining"}
+                                    disabled={currentSectionAiState === "refining"}
                                     className="px-3 py-1.5 rounded-md bg-primary text-label-sm font-semibold text-on-primary hover:opacity-90 transition-opacity disabled:opacity-50"
                                   >
-                                    {aiState === "refining" ? "Refining..." : "Refine"}
+                                    {currentSectionAiState === "refining" ? "Refining..." : "Refine"}
                                   </button>
                                 </div>
                               </div>
@@ -501,7 +527,7 @@ export default function ReportBuilder() {
                               disabled={!activeChapter || !isAiIdle}
                               className="px-5 py-2 rounded-md border border-secondary/30 bg-secondary-container/60 text-secondary text-label-md font-semibold hover:bg-secondary-container transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed disabled:grayscale"
                             >
-                              {aiState === "translating" ? (
+                              {currentSectionAiState === "translating" ? (
                                 <span className="inline-flex items-center gap-2">
                                   <span className="w-3.5 h-3.5 border-2 border-secondary border-t-transparent rounded-full animate-spin" />
                                   Translating...
@@ -627,16 +653,16 @@ export default function ReportBuilder() {
                   {!hasContent(activeChapter) ? (
                     <EmptyChapter
                       detailLevel={detailLevel}
-                      disabled={!activeFlatSection || !activeIsLeaf || aiState !== "idle"}
-                      loading={aiState === "generating"}
+                      disabled={!activeFlatSection || !activeIsLeaf || !isAiIdle}
+                      loading={currentSectionAiState === "generating"}
                       onGenerate={() => activeFlatSection && generateChapter(activeFlatSection.section.id, detailLevel)}
                     />
                   ) : activeTab === "rich" ? (
                     <RichChapterEditor
                       key={activeChapter?.sectionId}
                       content={activeChapter?.contentHtml || ""}
-                      disabled={aiState !== "idle"}
-                      aiState={aiState}
+                      disabled={!isAiIdle}
+                      aiState={currentSectionAiState}
                       onChange={handleEditorChange}
                       onSelectionChange={setSelectedText}
                       onAiAction={async (action, instructions) => {
@@ -664,6 +690,7 @@ function SectionNavItem({
   outdated,
   isLeaf,
   collapsed = false,
+  isGenerating = false,
   onClick,
 }: {
   item: FlatReportSection;
@@ -672,6 +699,7 @@ function SectionNavItem({
   outdated: boolean;
   isLeaf: boolean;
   collapsed?: boolean;
+  isGenerating?: boolean;
   onClick: () => void;
 }) {
   if (!isLeaf) {
@@ -698,8 +726,25 @@ function SectionNavItem({
   }
 
   const generated = hasContent(chapter);
-  const icon = outdated ? "warning" : chapter?.status === "completed" ? "check_circle" : generated ? "edit_document" : "radio_button_unchecked";
-  const iconClass = outdated ? "text-error" : chapter?.status === "completed" ? "text-secondary" : generated ? "text-primary" : "text-outline";
+  const icon = isGenerating
+    ? "progress_activity"
+    : outdated
+    ? "warning"
+    : chapter?.status === "completed"
+    ? "check_circle"
+    : generated
+    ? "edit_document"
+    : "radio_button_unchecked";
+
+  const iconClass = isGenerating
+    ? "text-primary animate-spin"
+    : outdated
+    ? "text-error"
+    : chapter?.status === "completed"
+    ? "text-secondary"
+    : generated
+    ? "text-primary"
+    : "text-outline";
 
   if (collapsed) {
     return (
@@ -707,9 +752,10 @@ function SectionNavItem({
         onClick={onClick}
         className={cn(
           "w-full flex flex-col items-center justify-center p-2 rounded-lg transition-colors border cursor-pointer my-1 group",
+          isGenerating && "ring-2 ring-primary/30 bg-primary-container/20",
           active ? "bg-primary-container text-primary border-primary/30 shadow-xs" : "text-on-surface-variant border-transparent hover:bg-surface-container-low hover:text-on-surface"
         )}
-        title={`${item.number} ${item.section.title}`}
+        title={`${item.number} ${item.section.title} ${isGenerating ? "(Generating with AI...)" : ""}`}
       >
         <span className={cn("material-symbols-outlined text-[18px]", iconClass)}>{icon}</span>
         <span className="text-[10px] font-mono font-bold mt-0.5 text-primary">{item.number}</span>
@@ -721,14 +767,18 @@ function SectionNavItem({
     <button
       onClick={onClick}
       className={cn(
-        "w-full flex items-center gap-2 rounded-lg px-3 py-2 text-left transition-colors border cursor-pointer",
-        active ? "bg-primary-container/50 text-primary border-primary/20" : "text-on-surface-variant border-transparent hover:bg-surface-container-low hover:text-on-surface"
+        "w-full flex items-center gap-2 rounded-lg px-3 py-2 text-left transition-colors border cursor-pointer group",
+        isGenerating && "bg-primary-container/30 border-primary/30 text-primary",
+        active ? "bg-primary-container/60 text-primary border-primary/20 font-medium" : "text-on-surface-variant border-transparent hover:bg-surface-container-low hover:text-on-surface"
       )}
       style={{ paddingLeft: `${12 + (item.level - 1) * 18}px` }}
     >
       <span className={cn("material-symbols-outlined text-[18px] shrink-0", iconClass)}>{icon}</span>
       <span className="font-label-sm text-primary shrink-0 w-10">{item.number}</span>
-      <span className={cn("text-body-sm truncate", active && "font-semibold")}>{item.section.title}</span>
+      <span className={cn("text-body-sm truncate flex-1", active && "font-semibold")}>{item.section.title}</span>
+      {isGenerating && (
+        <span className="w-2 h-2 rounded-full bg-primary animate-ping shrink-0 mr-1" title="Generating in background" />
+      )}
     </button>
   );
 }
@@ -926,7 +976,10 @@ function RichChapterEditor({
                     ? "AI is translating chapter..."
                     : "AI is rewriting selection..."}
             </span>
-            <span className="text-[11px] font-normal text-on-surface-variant">Please wait, your document will update automatically</span>
+            <span className="text-[11px] font-normal text-on-surface-variant flex items-center gap-1">
+              <span className="material-symbols-outlined text-[14px] text-primary">info</span>
+              Runs in background • You can freely switch sections or pages
+            </span>
           </div>
         </div>
       )}

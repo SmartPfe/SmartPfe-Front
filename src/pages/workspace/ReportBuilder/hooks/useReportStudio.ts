@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { fetchApi } from "@/lib/api";
 import { normalizeReportStructure, ReportSection } from "../../ReportStructure/hooks/useReportStructure";
+import { useAiGeneration } from "@/context/AiGenerationContext";
 
 export type ChapterStatus = "not-started" | "in-progress" | "completed";
 export type DetailLevel = "summary" | "standard" | "detailed";
@@ -163,6 +164,7 @@ export const isLeafReportSection = (item?: FlatReportSection) => Boolean(item &&
 
 export function useReportStudio() {
   const location = useLocation();
+  const { startTask, isTaskActive, getTask, tasks } = useAiGeneration();
   const [project, setProject] = useState<any>(null);
   const [currentProjectLanguage, setCurrentProjectLanguage] = useState("");
   const [reportStructure, setReportStructure] = useState<ReportSection[]>([]);
@@ -171,7 +173,7 @@ export function useReportStudio() {
   const [finalReport, setFinalReport] = useState<FinalReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
-  const [aiState, setAiState] = useState<AiState>("idle");
+  const [localAiState, setLocalAiState] = useState<AiState>("idle");
   const [error, setError] = useState<string | null>(null);
   const autosaveTimerRef = useRef<number | null>(null);
   const chaptersRef = useRef<ReportChapter[]>([]);
@@ -215,7 +217,7 @@ export function useReportStudio() {
         setProject((current: any) => current ? { ...current, basics: projectData.basics || current.basics } : projectData);
         setCurrentProjectLanguage(normalizeLanguage(projectData?.basics?.language || projectData?.language));
       } catch {
-        // Keep the loaded project language if a background refresh fails.
+        // Keep loaded language if background refresh fails
       }
     };
 
@@ -230,7 +232,7 @@ export function useReportStudio() {
         setProject((current: any) => current ? { ...current, basics: projectData.basics || current.basics } : projectData);
         setCurrentProjectLanguage(normalizeLanguage(projectData?.basics?.language || projectData?.language));
       } catch {
-        // Keep the loaded project language if a route refresh fails.
+        // Keep loaded language
       }
     };
 
@@ -246,7 +248,6 @@ export function useReportStudio() {
 
   const saveReportChapters = useCallback(async (nextChapters = reportChapters, showValidation = false) => {
     if (!project?._id) {
-      setError("Project is not ready yet. Please refresh the page.");
       return;
     }
 
@@ -280,13 +281,13 @@ export function useReportStudio() {
   }, [project?._id, reportChapters, sourceFingerprint]);
 
   useEffect(() => {
-    if (saveStatus !== "unsaved" || !project?._id || aiState !== "idle") return;
+    if (saveStatus !== "unsaved" || !project?._id || localAiState !== "idle") return;
     if (autosaveTimerRef.current) window.clearTimeout(autosaveTimerRef.current);
     autosaveTimerRef.current = window.setTimeout(() => saveReportChapters(reportChapters), 1200);
     return () => {
       if (autosaveTimerRef.current) window.clearTimeout(autosaveTimerRef.current);
     };
-  }, [aiState, project?._id, reportChapters, saveReportChapters, saveStatus]);
+  }, [localAiState, project?._id, reportChapters, saveReportChapters, saveStatus]);
 
   const upsertChapter = useCallback((chapter: ReportChapter) => {
     setReportChapters((current) => {
@@ -318,6 +319,22 @@ export function useReportStudio() {
     markUnsaved();
   }, [flatSections, markUnsaved]);
 
+  const isSectionGenerating = useCallback(
+    (sectionId: string) => isTaskActive(`report-builder:${sectionId}`),
+    [isTaskActive]
+  );
+
+  const getSectionAiState = useCallback(
+    (sectionId: string): AiState => {
+      const task = getTask(`report-builder:${sectionId}`);
+      if (!task || task.status === "completed" || task.status === "error") return "idle";
+      return task.status as AiState;
+    },
+    [getTask]
+  );
+
+  const isFinalizing = isTaskActive("report-builder:final-report");
+
   const generateChapter = async (sectionId: string, detailLevel: DetailLevel) => {
     const targetSection = flatSections.find((item) => item.section.id === sectionId);
     if (!isLeafReportSection(targetSection)) {
@@ -325,66 +342,103 @@ export function useReportStudio() {
       return;
     }
 
-    setAiState("generating");
+    const taskId = `report-builder:${sectionId}`;
+    setLocalAiState("generating");
     setError(null);
+
     try {
-      const res = await fetchApi("/ai/report-studio/chapter/generate", {
-        method: "POST",
-        body: JSON.stringify({ sectionId, detailLevel, reportChapters: chaptersRef.current }),
+      await startTask({
+        id: taskId,
+        scope: "report-builder",
+        targetId: sectionId,
+        title: `${targetSection?.number} ${targetSection?.section.title || "Section"}`,
+        subTitle: `Generating ${detailLevel} draft...`,
+        pageRoute: "/workspace/report-builder",
+        navigationState: { activeSectionId: sectionId },
+        status: "generating",
+        runner: async () => {
+          const res = await fetchApi("/ai/report-studio/chapter/generate", {
+            method: "POST",
+            body: JSON.stringify({ sectionId, detailLevel, reportChapters: chaptersRef.current }),
+          });
+          const nextChapter = normalizeChapter(res.chapter);
+          const nextChapters = [
+            ...chaptersRef.current.filter((chapter) => chapter.sectionId !== sectionId),
+            nextChapter,
+          ];
+          chaptersRef.current = nextChapters;
+          setReportChapters(nextChapters);
+          setSaveStatus("unsaved");
+          await saveReportChapters(nextChapters);
+          return nextChapter;
+        },
       });
-      const nextChapter = normalizeChapter(res.chapter);
-      const nextChapters = [
-        ...chaptersRef.current.filter((chapter) => chapter.sectionId !== sectionId),
-        nextChapter,
-      ];
-      chaptersRef.current = nextChapters;
-      setReportChapters(nextChapters);
-      setSaveStatus("unsaved");
-      await saveReportChapters(nextChapters);
     } catch (err: any) {
       setError(err.message || "AI chapter generation failed. Please try again.");
     } finally {
-      setAiState("idle");
+      setLocalAiState("idle");
     }
   };
 
   const projectLanguage = currentProjectLanguage || normalizeLanguage(project?.basics?.language || project?.language);
 
-  const runChapterAction = async (sectionId: string, action: AiAction | "Translate", currentContent: string, selectedText = "", instructions = "") => {
+  const runChapterAction = async (
+    sectionId: string,
+    action: AiAction | "Translate",
+    currentContent: string,
+    selectedText = "",
+    instructions = ""
+  ) => {
     const targetSection = flatSections.find((item) => item.section.id === sectionId);
     if (!isLeafReportSection(targetSection)) {
       setError("Select a child report section before using AI tools.");
       return;
     }
 
-    setAiState(action === "Improve Academic Style" ? "refining" : action === "Translate" ? "translating" : "acting");
+    const taskId = `report-builder:${sectionId}`;
+    const nextStatus: AiState = action === "Improve Academic Style" ? "refining" : action === "Translate" ? "translating" : "acting";
+    setLocalAiState(nextStatus);
     setError(null);
+
     try {
       const trimmedInstructions = instructions.trim();
-      const res = await fetchApi("/ai/report-studio/chapter/action", {
-        method: "POST",
-        body: JSON.stringify({
-          sectionId,
-          action,
-          currentContent,
-          selectedText,
-          reportChapters: chaptersRef.current,
-          ...(trimmedInstructions ? { instructions: trimmedInstructions } : {}),
-        }),
+      await startTask({
+        id: taskId,
+        scope: "report-builder",
+        targetId: sectionId,
+        title: `${targetSection?.number} ${targetSection?.section.title || "Section"}`,
+        subTitle: `${action} in progress...`,
+        pageRoute: "/workspace/report-builder",
+        navigationState: { activeSectionId: sectionId },
+        status: nextStatus,
+        runner: async () => {
+          const res = await fetchApi("/ai/report-studio/chapter/action", {
+            method: "POST",
+            body: JSON.stringify({
+              sectionId,
+              action,
+              currentContent,
+              selectedText,
+              reportChapters: chaptersRef.current,
+              ...(trimmedInstructions ? { instructions: trimmedInstructions } : {}),
+            }),
+          });
+          const nextChapter = normalizeChapter(res.chapter);
+          const nextChapters = [
+            ...chaptersRef.current.filter((chapter) => chapter.sectionId !== sectionId),
+            nextChapter,
+          ];
+          chaptersRef.current = nextChapters;
+          setReportChapters(nextChapters);
+          setSaveStatus("unsaved");
+          await saveReportChapters(nextChapters);
+          return nextChapter;
+        },
       });
-      const nextChapter = normalizeChapter(res.chapter);
-      const nextChapters = [
-        ...chaptersRef.current.filter((chapter) => chapter.sectionId !== sectionId),
-        nextChapter,
-      ];
-      chaptersRef.current = nextChapters;
-      setReportChapters(nextChapters);
-      setSaveStatus("unsaved");
-      await saveReportChapters(nextChapters);
     } catch (err: any) {
       setError(err.message || "AI writing action failed. Please try again.");
     } finally {
-      setAiState("idle");
+      setLocalAiState("idle");
     }
   };
 
@@ -396,18 +450,30 @@ export function useReportStudio() {
     const leafSectionIds = new Set(flatSections.filter(isLeafReportSection).map((item) => item.section.id));
     const leafChapters = chaptersRef.current.filter((chapter) => leafSectionIds.has(chapter.sectionId));
 
-    setAiState("finalizing");
+    setLocalAiState("finalizing");
     setError(null);
     try {
-      const res = await fetchApi("/ai/report-studio/final/generate", {
-        method: "POST",
-        body: JSON.stringify({ reportChapters: leafChapters }),
+      await startTask({
+        id: "report-builder:final-report",
+        scope: "report-builder",
+        title: "Full Report Compilation",
+        subTitle: "Compiling LaTeX & Markdown report...",
+        pageRoute: "/workspace/report-builder",
+        navigationState: { activeSectionId: "overview" },
+        status: "finalizing",
+        runner: async () => {
+          const res = await fetchApi("/ai/report-studio/final/generate", {
+            method: "POST",
+            body: JSON.stringify({ reportChapters: leafChapters }),
+          });
+          setFinalReport(res.finalReport || null);
+          return res.finalReport;
+        },
       });
-      setFinalReport(res.finalReport || null);
     } catch (err: any) {
       setError(err.message || "Complete report generation failed. Please try again.");
     } finally {
-      setAiState("idle");
+      setLocalAiState("idle");
     }
   };
 
@@ -422,7 +488,10 @@ export function useReportStudio() {
     finalReport,
     loading,
     saveStatus,
-    aiState,
+    aiState: localAiState,
+    isSectionGenerating,
+    getSectionAiState,
+    isFinalizing,
     error,
     getChapter,
     hasChapterContent,
