@@ -216,11 +216,10 @@ export default function ReportBuilder() {
           </p>
         </div>
         <div className="flex flex-wrap items-center justify-end gap-3">
-          <span className={`text-label-sm transition-colors ${
-            saveStatus === "saving" ? "text-on-surface-variant" :
-            saveStatus === "saved" ? "text-secondary" :
-            "text-error"
-          }`}>
+          <span className={`text-label-sm transition-colors ${saveStatus === "saving" ? "text-on-surface-variant" :
+              saveStatus === "saved" ? "text-secondary" :
+                "text-error"
+            }`}>
             {saveStatus === "saving" ? "Autosaving..." : saveStatus === "saved" ? "All changes saved" : "Unsaved changes"}
           </span>
           <style>{`
@@ -922,10 +921,10 @@ function RichChapterEditor({
               {aiState === "generating"
                 ? "AI is generating chapter draft..."
                 : aiState === "refining"
-                ? "AI is refining content..."
-                : aiState === "translating"
-                ? "AI is translating chapter..."
-                : "AI is rewriting selection..."}
+                  ? "AI is refining content..."
+                  : aiState === "translating"
+                    ? "AI is translating chapter..."
+                    : "AI is rewriting selection..."}
             </span>
             <span className="text-[11px] font-normal text-on-surface-variant">Please wait, your document will update automatically</span>
           </div>
@@ -1009,7 +1008,7 @@ function FloatingSelectionAiBar({
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
-    } catch {}
+    } catch { }
     return DEFAULT_PINNED_TOOLS;
   });
 
@@ -1029,7 +1028,7 @@ function FloatingSelectionAiBar({
       const final = next.length > 0 ? next : DEFAULT_PINNED_TOOLS;
       try {
         localStorage.setItem("report_studio_pinned_tools", JSON.stringify(final));
-      } catch {}
+      } catch { }
       return final;
     });
   };
@@ -1370,9 +1369,6 @@ function ReportOverviewDashboard({
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-on-surface">
             Academic Report Progress
           </h1>
-          <p className="text-sm text-on-surface-variant mt-1 leading-relaxed max-w-3xl">
-            Track drafting completion across all chapters, inspect coherence, and assemble the final unified thesis document.
-          </p>
         </div>
 
         {/* Action Controls */}
@@ -1607,10 +1603,10 @@ function ReportOverviewDashboard({
                                   isOut
                                     ? "bg-error-container text-on-error-container"
                                     : isComp
-                                    ? "bg-secondary-container/80 text-secondary"
-                                    : isGen
-                                    ? "bg-primary-container/80 text-primary"
-                                    : "bg-surface-container text-on-surface-variant"
+                                      ? "bg-secondary-container/80 text-secondary"
+                                      : isGen
+                                        ? "bg-primary-container/80 text-primary"
+                                        : "bg-surface-container text-on-surface-variant"
                                 )}
                               >
                                 {isOut ? "Outdated" : isComp ? "Done" : isGen ? "Drafted" : "Empty"}
