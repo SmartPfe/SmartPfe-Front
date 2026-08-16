@@ -155,18 +155,19 @@ export default function PresentationPage() {
     <div className="mx-auto flex max-w-[1500px] flex-col gap-5 pb-24">
       <header className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
         <div>
-          <h1 className="font-display text-display text-on-surface mb-2 flex items-center">
+          <span className="text-xs font-bold uppercase tracking-wider text-primary">Academic Defense</span>
+          <h1 className="mt-1 text-2xl sm:text-3xl font-bold tracking-tight text-on-surface flex items-center">
             Presentation
             <InfoTooltip label="Defense" tooltip="Generate and edit a PFE defense presentation from your complete Smart PFE context." />
           </h1>
-          <p className="max-w-[48rem] font-body-lg text-body-lg text-on-surface-variant">
+          <p className="mt-2 max-w-[48rem] text-sm text-on-surface-variant leading-relaxed">
             Prepare the slides and speaker notes for your academic defense using the project artifacts and generated report.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3 xl:justify-end">
           <span className={cn(
-            "text-label-sm transition-colors",
+            "text-xs font-medium transition-colors",
             saveStatus === "saving" ? "text-on-surface-variant" : saveStatus === "saved" ? "text-secondary" : "text-error"
           )}>
             {saveStatus === "saving" ? "Autosaving..." : saveStatus === "saved" ? "All changes saved" : "Unsaved changes"}
@@ -174,7 +175,7 @@ export default function PresentationPage() {
           <button
             onClick={() => savePresentation(presentation, true)}
             disabled={saveStatus === "saving" || !isAiIdle}
-            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-on-primary shadow-sm transition-opacity hover:opacity-90 disabled:opacity-50"
+            className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-on-primary shadow-xs transition-all hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Save now
           </button>
@@ -187,10 +188,10 @@ export default function PresentationPage() {
         </div>
       </header>
 
-      <div className="rounded-xl border border-outline-variant bg-surface p-4">
+      <div className="rounded-xl border border-outline-variant/80 bg-surface-container-lowest p-4 sm:p-5 shadow-xs">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <span className="font-label-sm font-bold uppercase text-on-surface-variant">Defense duration</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Defense duration</span>
             <div className="grid grid-cols-4 gap-1 rounded-lg bg-surface-container p-1">
               {durations.map((duration) => (
                 <button
@@ -198,9 +199,9 @@ export default function PresentationPage() {
                   onClick={() => setDuration(duration)}
                   disabled={!isAiIdle}
                   className={cn(
-                    "h-9 rounded-md px-3 font-label-sm transition-colors disabled:opacity-50",
+                    "h-8 sm:h-9 rounded-md px-3 text-xs font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed",
                     presentation.durationMinutes === duration
-                      ? "bg-surface text-primary shadow-sm font-bold"
+                      ? "bg-surface text-primary shadow-xs font-bold"
                       : "text-on-surface-variant hover:text-on-surface"
                   )}
                 >
@@ -211,7 +212,7 @@ export default function PresentationPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <span className="text-body-sm text-on-surface-variant">
+            <span className="text-xs sm:text-sm text-on-surface-variant font-medium">
               {slides.length} slides · {pacingLabel}
             </span>
             {!hasSlides ? (
@@ -324,35 +325,23 @@ export default function PresentationPage() {
       )}
 
       {!hasSlides ? (
-        <section className="min-h-[520px] rounded-xl border border-outline-variant bg-surface flex flex-col items-center justify-center px-6 text-center">
-          <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-xl bg-primary-container text-on-primary-container">
+        <section className="min-h-[520px] rounded-2xl border border-outline-variant/80 bg-surface-container-lowest flex flex-col items-center justify-center px-6 text-center shadow-xs">
+          <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
             <span className="material-symbols-outlined text-[34px]">co_present</span>
           </div>
-          <h2 className="mb-3 text-headline-md text-on-surface">Generate your defense presentation</h2>
-          <p className="mb-7 max-w-xl text-body-lg text-on-surface-variant">
-            Choose a duration, then Smart PFE will build editable slides and speaker notes from your complete project context and report.
+          <h2 className="mb-3 text-2xl font-bold tracking-tight text-on-surface">Generate your defense presentation</h2>
+          <p className="max-w-xl text-sm text-on-surface-variant leading-relaxed">
+            Choose a duration from the toolbar above and click <span className="font-semibold text-primary">Generate with AI</span> to build your editable slides and speaker notes.
           </p>
-          <button
-            onClick={() => generateWithAi(presentation.durationMinutes)}
-            disabled={!isAiIdle}
-            className={aiButtonClass}
-          >
-            {aiState === "generating" ? (
-              <span className="inline-flex items-center gap-2">
-                <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                Generating...
-              </span>
-            ) : "Generate with AI"}
-          </button>
         </section>
       ) : (
-        <section className="grid min-h-[calc(100dvh-310px)] grid-cols-1 overflow-hidden rounded-xl border border-outline-variant bg-surface xl:grid-cols-[320px_minmax(0,1fr)]">
-          <aside className="flex min-h-[260px] flex-col border-b border-outline-variant bg-surface-container-lowest xl:border-b-0 xl:border-r">
-            <div className="border-b border-outline-variant p-4">
+        <section className="grid min-h-[calc(100dvh-310px)] grid-cols-1 overflow-hidden rounded-2xl border border-outline-variant/80 bg-surface shadow-xs xl:grid-cols-[320px_minmax(0,1fr)]">
+          <aside className="flex min-h-[260px] flex-col border-b border-outline-variant/80 bg-surface-container-lowest xl:border-b-0 xl:border-r">
+            <div className="border-b border-outline-variant/80 p-4">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <h2 className="text-headline-sm text-on-surface">Slides</h2>
-                  <p className="text-body-sm text-on-surface-variant">
+                  <h2 className="text-sm sm:text-base font-semibold text-on-surface">Slides</h2>
+                  <p className="text-xs text-on-surface-variant font-medium">
                     {slides.length} slides · {presentation.durationMinutes} minutes
                   </p>
                 </div>
@@ -360,9 +349,9 @@ export default function PresentationPage() {
                   onClick={addSlide}
                   disabled={!isAiIdle}
                   title="Add slide"
-                  className="flex h-9 w-9 items-center justify-center rounded-md bg-primary text-on-primary transition-opacity hover:opacity-90 disabled:opacity-50"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-on-primary shadow-xs transition-all hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  <span className="material-symbols-outlined text-[20px]">add</span>
+                  <span className="material-symbols-outlined text-[18px]">add</span>
                 </button>
               </div>
             </div>
@@ -381,23 +370,23 @@ export default function PresentationPage() {
                   }}
                   onClick={() => setSelectedSlideId(slide.id)}
                   className={cn(
-                    "mb-1 flex w-full items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors",
+                    "mb-1.5 flex w-full items-center gap-3 rounded-xl border p-2.5 text-left transition-all",
                     slide.id === selectedSlide?.id
-                      ? "border-primary/25 bg-primary-container/45 text-primary shadow-sm"
-                      : "border-transparent text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface",
+                      ? "border-primary/40 bg-primary/10 text-primary shadow-xs font-semibold"
+                      : "border-transparent text-on-surface-variant hover:bg-surface-container-low/60 hover:text-on-surface",
                     draggedSlideId === slide.id && "opacity-50"
                   )}
                 >
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-outline-variant bg-surface font-label-md text-primary">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-outline-variant/80 bg-surface text-xs font-bold text-primary">
                     {index + 1}
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-body-sm font-semibold">{slide.title || `Slide ${index + 1}`}</span>
-                    <span className="block truncate text-label-sm text-on-surface-variant">
+                    <span className="block truncate text-xs sm:text-sm font-semibold">{slide.title || `Slide ${index + 1}`}</span>
+                    <span className="block truncate text-[11px] text-on-surface-variant">
                       {index + 1 < slides.length ? `Next: ${slides[index + 1].title}` : "Final slide"}
                     </span>
                   </span>
-                  <span className="material-symbols-outlined text-[18px] text-on-surface-variant">drag_indicator</span>
+                  <span className="material-symbols-outlined text-[16px] text-on-surface-variant/70">drag_indicator</span>
                 </button>
               ))}
             </div>
@@ -405,18 +394,20 @@ export default function PresentationPage() {
 
           {selectedSlide && (
             <main className="min-w-0 p-4 sm:p-6 lg:p-8">
-              <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div className="min-w-0 flex-1">
-                  <p className="mb-2 text-label-sm font-bold uppercase text-primary">
-                    Slide {selectedIndex + 1} of {slides.length}
-                  </p>
+                  <div className="mb-1.5 flex items-center gap-2">
+                    <span className="text-xs font-bold uppercase tracking-wider text-primary">
+                      Slide {selectedIndex + 1} of {slides.length}
+                    </span>
+                  </div>
                   <input
                     value={selectedSlide.title}
                     onChange={(event) => updateSlide(selectedSlide.id, { title: event.target.value })}
-                    className="w-full border-b border-outline-variant bg-transparent pb-2 text-headline-md text-on-surface outline-none focus:border-primary"
+                    className="w-full border-b border-outline-variant/80 bg-transparent pb-2 text-xl sm:text-2xl font-bold tracking-tight text-on-surface outline-none transition-colors focus:border-primary"
                     placeholder="Slide title"
                   />
-                  <p className="mt-2 text-body-sm text-on-surface-variant">
+                  <p className="mt-2 text-xs sm:text-sm text-on-surface-variant">
                     {nextSlide ? `Next slide: ${nextSlide.title}` : "This is the closing slide."}
                   </p>
                 </div>
@@ -425,15 +416,15 @@ export default function PresentationPage() {
                   onClick={() => deleteSlide(selectedSlide.id)}
                   disabled={!isAiIdle}
                   title="Delete slide"
-                  className="flex h-9 w-9 items-center justify-center rounded-md border border-outline-variant text-on-surface-variant transition-colors hover:bg-error-container hover:text-error disabled:opacity-50"
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-outline-variant/80 text-on-surface-variant transition-colors hover:border-error/40 hover:bg-error-container hover:text-error disabled:opacity-50"
                 >
                   <span className="material-symbols-outlined text-[20px]">delete</span>
                 </button>
               </div>
 
-              <div className="grid gap-5">
-                <label className="block">
-                  <span className="mb-2 flex items-center gap-2 font-label-md text-on-surface">
+              <div className="grid gap-6">
+                <div className="rounded-xl border border-outline-variant/80 bg-surface-container-lowest p-5 shadow-xs transition-all">
+                  <span className="mb-3 flex items-center gap-2 text-sm font-semibold text-on-surface">
                     <span className="material-symbols-outlined text-[18px] text-primary">format_list_bulleted</span>
                     Bullet points
                   </span>
@@ -442,18 +433,18 @@ export default function PresentationPage() {
                     onChange={(event) => updateSlide(selectedSlide.id, {
                       bullets: event.target.value.split(/\r?\n/).map((item) => item.replace(/^\s*[-*•]\s*/, "").trim()).filter(Boolean),
                     })}
-                    rows={9}
-                    className="w-full resize-y rounded-lg border border-outline-variant bg-surface-container-lowest p-4 text-body-md text-on-surface outline-none focus:border-primary focus:ring-4 focus:ring-primary/10"
+                    rows={8}
+                    className="w-full resize-y rounded-lg border border-outline-variant/80 bg-surface p-4 text-sm leading-relaxed text-on-surface outline-none transition-all placeholder:text-on-surface-variant/60 focus:border-primary focus:ring-2 focus:ring-primary/15"
                     placeholder="One bullet per line"
                   />
-                </label>
+                </div>
 
-                <div className="rounded-lg border border-outline-variant bg-surface-container-lowest">
+                <div className="rounded-xl border border-outline-variant/80 bg-surface-container-lowest shadow-xs transition-all">
                   <button
                     onClick={() => setNotesOpen((value) => !value)}
-                    className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
+                    className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left transition-colors hover:bg-surface-container-low/40 rounded-xl"
                   >
-                    <span className="flex items-center gap-2 font-label-md text-on-surface">
+                    <span className="flex items-center gap-2 text-sm font-semibold text-on-surface">
                       <span className="material-symbols-outlined text-[18px] text-primary">record_voice_over</span>
                       Speaker Notes
                     </span>
@@ -463,12 +454,12 @@ export default function PresentationPage() {
                   </button>
 
                   {notesOpen && (
-                    <div className="border-t border-outline-variant p-4">
+                    <div className="border-t border-outline-variant/80 p-5">
                       <textarea
                         value={selectedSlide.notes}
                         onChange={(event) => updateSlide(selectedSlide.id, { notes: event.target.value })}
-                        rows={10}
-                        className="w-full resize-y rounded-md border border-outline-variant bg-surface p-4 text-body-md leading-relaxed text-on-surface outline-none focus:border-primary focus:ring-4 focus:ring-primary/10"
+                        rows={8}
+                        className="w-full resize-y rounded-lg border border-outline-variant/80 bg-surface p-4 text-sm leading-relaxed text-on-surface outline-none transition-all placeholder:text-on-surface-variant/60 focus:border-primary focus:ring-2 focus:ring-primary/15"
                         placeholder="What should the student say for this slide?"
                       />
                     </div>

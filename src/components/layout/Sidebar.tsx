@@ -59,15 +59,15 @@ export default function Sidebar({ isOpen, setIsSidebarOpen }: SidebarProps) {
         "bg-surface-container-low text-on-surface w-[min(280px,85vw)] h-full fixed left-0 top-0 bottom-0 z-40 flex flex-col border-r border-outline-variant transition-transform duration-300 ease-in-out",
         isOpen ? "translate-x-0" : "-translate-x-full"
       )}>
-      <div className="p-xl border-b border-outline-variant">
-        <div className="flex items-center gap-2 mb-xl">
-          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-on-primary font-bold">
+      <div className="px-5 py-4 border-b border-outline-variant">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-on-primary font-bold shadow-xs">
             P
           </div>
-          <span className="font-bold text-lg tracking-tight text-on-surface truncate">PFE Guidance</span>
+          <span className="font-bold text-base tracking-tight text-on-surface truncate">PFE Guidance</span>
         </div>
       </div>
-      <div className="flex-1 overflow-y-auto pt-lg pb-md px-md">
+      <div className="flex-1 overflow-y-auto py-4 px-3">
         <nav className="flex flex-col gap-1 relative z-0">
           <div className="text-[10px] uppercase font-bold text-outline tracking-wider mb-2 px-3">Methodology Phases</div>
 

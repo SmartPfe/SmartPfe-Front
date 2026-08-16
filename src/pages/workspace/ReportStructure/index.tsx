@@ -250,7 +250,7 @@ export default function ReportStructure() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-md mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <SummaryCard icon="menu_book" label="Main chapters" value={String(chapterCount)} helper="Top-level report chapters" />
         <SummaryCard icon="account_tree" label="Total sections" value={String(flatCount)} helper="Includes subsections and sub-subsections" />
         <SummaryCard icon="auto_awesome" label="AI context" value="Synced" helper="Uses previous wizard artifacts" />
@@ -301,13 +301,13 @@ export default function ReportStructure() {
 
 function SummaryCard({ icon, label, value, helper }: { icon: string; label: string; value: string; helper: string }) {
   return (
-    <div className="rounded-lg border border-outline-variant bg-surface p-md">
-      <div className="flex items-center gap-2 text-on-surface-variant mb-2">
-        <span className="material-symbols-outlined text-[20px] text-primary">{icon}</span>
-        <span className="font-label-md text-label-md">{label}</span>
+    <div className="rounded-xl border border-outline-variant/80 bg-surface-container-lowest p-5 shadow-xs transition-all hover:border-outline">
+      <div className="flex items-center gap-2 mb-2">
+        <span className="material-symbols-outlined text-[18px] text-primary">{icon}</span>
+        <span className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">{label}</span>
       </div>
-      <p className="text-headline-md text-on-surface">{value}</p>
-      <p className="text-body-md text-on-surface-variant mt-1">{helper}</p>
+      <p className="text-2xl sm:text-3xl font-bold tracking-tight font-mono text-on-surface">{value}</p>
+      <p className="text-xs text-on-surface-variant mt-1.5 leading-relaxed">{helper}</p>
     </div>
   );
 }

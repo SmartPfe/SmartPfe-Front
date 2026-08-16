@@ -280,23 +280,24 @@ export default function ProductBacklog() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-md mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <SummaryCard icon="format_list_numbered" label="User stories" value={productBacklog.length.toString()} helper={`${highPriorityCount} high priority`} />
         <SummaryCard icon="calendar_month" label="Planned duration" value={`${totalDuration} days`} helper={targetDurationDays ? `Target: ~${targetDurationDays} days` : "Set duration in onboarding"} />
-        <div className="rounded-lg border border-outline-variant bg-surface p-md">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2 text-on-surface-variant">
-              <span className="material-symbols-outlined text-[20px] text-primary">timeline</span>
-              <span className="font-label-md text-label-md">Duration fit</span>
+        <div className="rounded-xl border border-outline-variant/80 bg-surface-container-lowest p-5 shadow-xs transition-all hover:border-outline">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-[18px] text-primary">timeline</span>
+              <span className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Duration fit</span>
             </div>
-            <span className={cn("font-label-sm", Math.abs(durationGap) <= 10 || !targetDurationDays ? "text-secondary" : "text-error")}>
+            <span className={cn("text-xs font-bold font-mono px-2 py-0.5 rounded-full border", Math.abs(durationGap) <= 10 || !targetDurationDays ? "text-secondary bg-secondary/10 border-secondary/20" : "text-error bg-error/10 border-error/20")}>
               {targetDurationDays ? `${durationGap > 0 ? "+" : ""}${durationGap} days` : "N/A"}
             </span>
           </div>
-          <div className="h-2 w-full bg-surface-container-high rounded-full overflow-hidden">
+          <p className="text-2xl sm:text-3xl font-bold tracking-tight font-mono text-on-surface mb-2">{totalDuration} <span className="text-sm font-normal text-on-surface-variant font-sans">/ {targetDurationDays || totalDuration}d</span></p>
+          <div className="h-1.5 w-full bg-surface-container-high rounded-full overflow-hidden mb-2">
             <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${durationRatio}%` }} />
           </div>
-          <p className="mt-2 text-body-md text-on-surface-variant">
+          <p className="text-xs text-on-surface-variant leading-relaxed">
             {targetDurationDays ? "AI balances tasks against the onboarding project duration." : "Project duration is missing from onboarding."}
           </p>
         </div>
@@ -355,13 +356,13 @@ export default function ProductBacklog() {
 
 function SummaryCard({ icon, label, value, helper }: { icon: string; label: string; value: string; helper: string }) {
   return (
-    <div className="rounded-lg border border-outline-variant bg-surface p-md">
-      <div className="flex items-center gap-2 text-on-surface-variant mb-2">
-        <span className="material-symbols-outlined text-[20px] text-primary">{icon}</span>
-        <span className="font-label-md text-label-md">{label}</span>
+    <div className="rounded-xl border border-outline-variant/80 bg-surface-container-lowest p-5 shadow-xs transition-all hover:border-outline">
+      <div className="flex items-center gap-2 mb-2">
+        <span className="material-symbols-outlined text-[18px] text-primary">{icon}</span>
+        <span className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">{label}</span>
       </div>
-      <p className="text-headline-md text-on-surface">{value}</p>
-      <p className="text-body-md text-on-surface-variant mt-1">{helper}</p>
+      <p className="text-2xl sm:text-3xl font-bold tracking-tight font-mono text-on-surface">{value}</p>
+      <p className="text-xs text-on-surface-variant mt-1.5 leading-relaxed">{helper}</p>
     </div>
   );
 }

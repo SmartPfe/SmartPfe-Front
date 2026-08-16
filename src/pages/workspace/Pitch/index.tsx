@@ -250,16 +250,16 @@ export default function PitchPage() {
 
   return (
     <div className="mx-auto flex max-w-[1440px] flex-col gap-5 pb-24">
-      <header className="sticky top-0 z-20 -mx-2 border-b border-outline-variant/70 bg-background/95 px-2 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+      <header className="sticky top-0 z-20 -mx-2 border-b border-outline-variant/80 bg-surface/90 px-4 py-3.5 backdrop-blur-md">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
-            <div>
-              <span className="text-on-surface-variant">Presentation Duration</span>
-              <span className="ml-2 font-semibold text-on-surface">{pitch.durationMinutes} min</span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Presentation Duration</span>
+              <span className="text-sm font-bold text-on-surface font-mono">{pitch.durationMinutes} min</span>
             </div>
-            <div>
-              <span className="text-on-surface-variant">Estimated Current Duration</span>
-              <span className="ml-2 font-semibold text-on-surface">{formatDuration(totalEstimatedSeconds)}</span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Estimated Current Duration</span>
+              <span className="text-sm font-bold text-primary font-mono">{formatDuration(totalEstimatedSeconds)}</span>
             </div>
           </div>
 
@@ -300,7 +300,7 @@ export default function PitchPage() {
 
                 {deckRefineOpen && (
                   <div
-                    className="absolute right-0 top-full z-30 mt-2 w-[min(22rem,calc(100vw-2rem))] rounded-md border border-outline-variant bg-surface-bright p-3 shadow-xl"
+                    className="absolute right-0 top-full z-30 mt-2 w-[min(22rem,calc(100vw-2rem))] rounded-xl border border-outline-variant bg-surface-bright p-3.5 shadow-xl"
                     style={{ animation: "pitch-popover-in 150ms ease-out" }}
                   >
                     <textarea
@@ -308,7 +308,7 @@ export default function PitchPage() {
                       onChange={(event) => setDeckRefineInstructions(event.target.value)}
                       placeholder="Tell AI what you'd like to improve (optional)..."
                       rows={4}
-                      className="w-full resize-none rounded-md border border-outline-variant bg-surface px-3 py-2 text-body-md text-on-surface outline-none transition-colors placeholder:text-on-surface-variant focus:border-primary focus:ring-1 focus:ring-primary"
+                      className="w-full resize-none rounded-lg border border-outline-variant/80 bg-surface px-3 py-2 text-sm text-on-surface outline-none transition-colors placeholder:text-on-surface-variant/60 focus:border-primary focus:ring-2 focus:ring-primary/15"
                       autoFocus
                     />
                     <div className="mt-3 flex items-center justify-end gap-2">
@@ -318,7 +318,7 @@ export default function PitchPage() {
                           setDeckRefineInstructions("");
                           setDeckRefineOpen(false);
                         }}
-                        className="px-3 py-1.5 rounded-md border border-outline-variant bg-surface text-label-sm font-medium text-on-surface hover:bg-surface-container transition-colors"
+                        className="px-3 py-1.5 rounded-lg border border-outline-variant bg-surface text-xs font-semibold text-on-surface hover:bg-surface-container transition-colors"
                       >
                         Cancel
                       </button>
@@ -326,7 +326,7 @@ export default function PitchPage() {
                         type="button"
                         onClick={handleDeckRefineSubmit}
                         disabled={aiState === "refining"}
-                        className="px-3 py-1.5 rounded-md bg-primary text-label-sm font-semibold text-on-primary hover:opacity-90 transition-opacity disabled:opacity-50"
+                        className="px-3 py-1.5 rounded-lg bg-primary text-xs font-semibold text-on-primary hover:bg-primary/90 transition-all disabled:opacity-50"
                       >
                         {aiState === "refining" ? "Refining..." : "Refine"}
                       </button>
@@ -357,7 +357,7 @@ export default function PitchPage() {
             <button
               onClick={exportPdf}
               disabled={!hasPitch}
-              className="rounded-md border border-outline-variant bg-surface px-4 py-2 text-sm font-medium text-on-surface transition-colors hover:bg-surface-container-low disabled:opacity-50"
+              className="rounded-lg border border-outline-variant/80 bg-surface px-4 py-2 text-sm font-semibold text-on-surface transition-all hover:bg-surface-container-low disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Export PDF
             </button>
@@ -374,162 +374,167 @@ export default function PitchPage() {
 
       {!hasPresentation ? (
         <section className="mx-auto flex min-h-[560px] max-w-2xl flex-col items-center justify-center px-6 text-center">
-          <p className="mb-3 text-label-sm font-semibold uppercase text-primary">Pitch</p>
-          <h1 className="mb-4 text-display text-on-surface">Generate your presentation first</h1>
-          <p className="mb-8 text-body-lg leading-8 text-on-surface-variant">
+          <span className="mb-2 text-xs font-bold uppercase tracking-wider text-primary">Pitch</span>
+          <h1 className="mb-3 text-2xl sm:text-3xl font-bold tracking-tight text-on-surface">Generate your presentation first</h1>
+          <p className="mb-8 text-sm text-on-surface-variant leading-relaxed">
             The speech follows your slide order and selected duration, so Smart PFE needs a generated presentation before creating the pitch.
           </p>
           <button
             onClick={() => navigate("/workspace/presentation")}
-            className="rounded-md bg-primary px-5 py-2 text-sm font-medium text-on-primary shadow-sm transition-opacity hover:opacity-90"
+            className="rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-on-primary shadow-xs transition-all hover:bg-primary/90"
           >
             Go to Presentation
           </button>
         </section>
       ) : (
-        <section className="grid h-[calc(100dvh-185px)] min-h-[620px] grid-cols-1 overflow-hidden rounded-xl border border-outline-variant/70 bg-surface shadow-sm lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[340px_minmax(0,1fr)]">
-          <aside className="min-w-0 border-b border-outline-variant/70 bg-surface px-4 py-5 lg:border-b-0 lg:border-r">
-            <nav className="flex h-full max-h-[300px] flex-col gap-1 overflow-y-auto pr-1 lg:max-h-none">
+        <section className="grid h-[calc(100dvh-185px)] min-h-[620px] grid-cols-1 overflow-hidden rounded-2xl border border-outline-variant/80 bg-surface shadow-xs lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[340px_minmax(0,1fr)]">
+          <aside className="min-w-0 border-b border-outline-variant/80 bg-surface-container-lowest px-3 py-4 lg:border-b-0 lg:border-r">
+            <nav className="flex h-full max-h-[300px] flex-col gap-1.5 overflow-y-auto pr-1 lg:max-h-none">
               {slides.map((slide, index) => (
                 <button
                   key={slide.slideId}
                   onClick={() => setSelectedSlideId(slide.slideId)}
                   className={cn(
-                    "grid w-full grid-cols-[2.25rem_minmax(0,1fr)] items-center gap-2 rounded-md px-3 py-2.5 text-left transition-colors",
+                    "grid w-full grid-cols-[2rem_minmax(0,1fr)] items-center gap-2.5 rounded-xl px-3 py-2.5 text-left transition-all",
                     slide.slideId === selectedSlide?.slideId
-                      ? "bg-primary/10 text-primary"
-                      : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface"
+                      ? "border border-primary/40 bg-primary/10 text-primary shadow-xs font-semibold"
+                      : "border border-transparent text-on-surface-variant hover:bg-surface-container-low/60 hover:text-on-surface"
                   )}
                 >
-                  <span className="text-sm font-semibold tabular-nums">{index + 1}</span>
-                  <span className="truncate text-sm font-medium">{slide.title || `Slide ${index + 1}`}</span>
+                  <span className="flex h-6 w-6 items-center justify-center rounded-md border border-outline-variant/80 bg-surface text-xs font-bold text-primary font-mono">{index + 1}</span>
+                  <span className="truncate text-xs sm:text-sm font-medium">{slide.title || `Slide ${index + 1}`}</span>
                 </button>
               ))}
             </nav>
           </aside>
 
           {selectedSlide && (
-            <main className="min-w-0 overflow-y-auto bg-surface-container-lowest px-4 py-8 sm:px-8 lg:px-12">
+            <main className="min-w-0 overflow-y-auto bg-surface px-4 py-8 sm:px-8 lg:px-12">
               <div className="mx-auto flex max-w-[860px] flex-col">
-                <div className="mb-8 min-h-[150px]">
+                <div className="mb-6">
                   <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-2">
-                    <p className="text-sm font-semibold text-primary">Slide {selectedIndex + 1}</p>
-                    <p className="inline-flex items-center gap-2 whitespace-nowrap rounded-full border border-outline-variant/70 bg-surface px-3 py-1 text-sm text-on-surface-variant">
-                      <span>Estimated speaking time</span>
-                      <span className="font-semibold text-on-surface">{formatDuration(getCurrentSeconds(selectedSlide))}</span>
-                    </p>
+                    <span className="text-xs font-bold uppercase tracking-wider text-primary">Slide {selectedIndex + 1}</span>
+                    <span className="inline-flex items-center gap-2 whitespace-nowrap rounded-full border border-outline-variant/80 bg-surface-container-lowest px-3 py-1 text-xs text-on-surface-variant font-medium shadow-xs">
+                      <span>Estimated speaking time:</span>
+                      <span className="font-bold text-on-surface font-mono">{formatDuration(getCurrentSeconds(selectedSlide))}</span>
+                    </span>
                   </div>
-                  <h1 className="line-clamp-2 text-[2.25rem] font-semibold leading-tight text-on-surface">
+                  <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-on-surface leading-snug">
                     {selectedSlide.title}
                   </h1>
                 </div>
 
-                <label className="block">
-                  <textarea
-                    value={selectedSlide.speech}
-                    onChange={(event) => updateSlide(selectedSlide.slideId, { speech: event.target.value })}
-                    rows={22}
-                    className="min-h-[520px] w-full resize-y rounded-md border border-outline-variant/70 bg-surface px-8 py-8 text-[17px] leading-8 text-on-surface shadow-[0_18px_50px_rgba(15,23,42,0.045)] outline-none transition focus:border-primary/60 focus:ring-4 focus:ring-primary/10"
-                    placeholder="Generate with AI or start writing the speech for this slide."
-                  />
-                </label>
+                <div className="rounded-2xl border border-outline-variant/80 bg-surface-container-lowest p-6 sm:p-8 shadow-xs">
+                  <label className="block">
+                    <textarea
+                      value={selectedSlide.speech}
+                      onChange={(event) => updateSlide(selectedSlide.slideId, { speech: event.target.value })}
+                      rows={18}
+                      className="min-h-[440px] w-full resize-y rounded-xl border border-outline-variant/80 bg-surface p-5 sm:p-6 text-sm sm:text-base leading-relaxed text-on-surface outline-none transition-all placeholder:text-on-surface-variant/60 focus:border-primary focus:ring-2 focus:ring-primary/15"
+                      placeholder="Generate with AI or start writing the speech for this slide."
+                    />
+                  </label>
 
-                <section className="mt-5 overflow-hidden rounded-md border border-outline-variant/70 bg-surface shadow-[0_12px_32px_rgba(15,23,42,0.035)]">
-                  <button
-                    onClick={() => setTipsOpen((value) => !value)}
-                    className="flex w-full items-center justify-between px-5 py-4 text-left text-sm font-semibold text-on-surface"
-                  >
-                    Speaker Tips
-                    <span className="material-symbols-outlined text-[20px] text-on-surface-variant">
-                      {tipsOpen ? "expand_less" : "expand_more"}
-                    </span>
-                  </button>
-
-                  {tipsOpen && (
-                    <div className="border-t border-outline-variant/70 p-5">
-                      <textarea
-                        value={selectedSlide.tips.join("\n")}
-                        onChange={(event) => updateTips(selectedSlide.slideId, event.target.value)}
-                        rows={4}
-                        className="w-full resize-y rounded-md border border-outline-variant/70 bg-surface-container-lowest p-4 text-body-md leading-7 text-on-surface outline-none focus:border-primary/60 focus:ring-4 focus:ring-primary/10"
-                        placeholder="Emphasis, pauses, transitions, or mistakes to avoid."
-                      />
-                    </div>
-                  )}
-                </section>
-
-                <div className="mt-6 flex flex-wrap items-center gap-2">
-                  <div className="relative" ref={slideRefinePopoverRef}>
+                  <section className="mt-5 overflow-hidden rounded-xl border border-outline-variant/80 bg-surface shadow-xs">
                     <button
-                      onClick={() => setSlideRefineOpen(true)}
-                      disabled={!isAiIdle || !selectedSlide.speech.trim()}
-                      className={aiButtonClass}
+                      onClick={() => setTipsOpen((value) => !value)}
+                      className="flex w-full items-center justify-between px-5 py-3.5 text-left text-sm font-semibold text-on-surface hover:bg-surface-container-low/40 transition-colors"
                     >
-                      {aiState === "refining" ? "Refining..." : "Refine"}
+                      <span className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-[18px] text-primary">tips_and_updates</span>
+                        Speaker Tips
+                      </span>
+                      <span className="material-symbols-outlined text-[20px] text-on-surface-variant">
+                        {tipsOpen ? "expand_less" : "expand_more"}
+                      </span>
                     </button>
 
-                    {slideRefineOpen && (
-                      <div
-                        className="absolute left-0 bottom-full z-30 mb-2 w-[min(22rem,calc(100vw-2rem))] rounded-md border border-outline-variant bg-surface-bright p-3 shadow-xl"
-                        style={{ animation: "pitch-popover-in 150ms ease-out" }}
-                      >
+                    {tipsOpen && (
+                      <div className="border-t border-outline-variant/80 p-5">
                         <textarea
-                          value={slideRefineInstructions}
-                          onChange={(event) => setSlideRefineInstructions(event.target.value)}
-                          placeholder="Tell AI what you'd like to improve (optional)..."
+                          value={selectedSlide.tips.join("\n")}
+                          onChange={(event) => updateTips(selectedSlide.slideId, event.target.value)}
                           rows={4}
-                          className="w-full resize-none rounded-md border border-outline-variant bg-surface px-3 py-2 text-body-md text-on-surface outline-none transition-colors placeholder:text-on-surface-variant focus:border-primary focus:ring-1 focus:ring-primary"
-                          autoFocus
+                          className="w-full resize-y rounded-lg border border-outline-variant/80 bg-surface-container-lowest p-4 text-xs sm:text-sm leading-relaxed text-on-surface outline-none transition-all placeholder:text-on-surface-variant/60 focus:border-primary focus:ring-2 focus:ring-primary/15"
+                          placeholder="Emphasis, pauses, transitions, or mistakes to avoid."
                         />
-                        <div className="mt-3 flex items-center justify-end gap-2">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setSlideRefineInstructions("");
-                              setSlideRefineOpen(false);
-                            }}
-                            className="px-3 py-1.5 rounded-md border border-outline-variant bg-surface text-label-sm font-medium text-on-surface hover:bg-surface-container transition-colors"
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            type="button"
-                            onClick={handleSlideRefineSubmit}
-                            disabled={aiState === "refining"}
-                            className="px-3 py-1.5 rounded-md bg-primary text-label-sm font-semibold text-on-primary hover:opacity-90 transition-opacity disabled:opacity-50"
-                          >
-                            {aiState === "refining" ? "Refining..." : "Refine"}
-                          </button>
-                        </div>
                       </div>
                     )}
-                  </div>
-                  {shouldShowTranslate && (
-                    <button
-                      onClick={() => translateSlideWithAi(selectedSlide.slideId)}
-                      disabled={!isAiIdle}
-                      className={translateButtonClass}
-                    >
-                      {aiState === "translating" ? (
-                        <span className="inline-flex items-center gap-2">
-                          <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-secondary border-t-transparent" />
-                          Translating...
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-2">
-                          <span aria-hidden="true">🌐</span>
-                          Translate to {getLanguageLabel(projectLanguage)}
-                        </span>
+                  </section>
+
+                  <div className="mt-6 flex flex-wrap items-center gap-2">
+                    <div className="relative" ref={slideRefinePopoverRef}>
+                      <button
+                        onClick={() => setSlideRefineOpen(true)}
+                        disabled={!isAiIdle || !selectedSlide.speech.trim()}
+                        className={aiButtonClass}
+                      >
+                        {aiState === "refining" ? "Refining..." : "Refine with AI"}
+                      </button>
+
+                      {slideRefineOpen && (
+                        <div
+                          className="absolute left-0 bottom-full z-30 mb-2 w-[min(22rem,calc(100vw-2rem))] rounded-xl border border-outline-variant bg-surface-bright p-3.5 shadow-xl"
+                          style={{ animation: "pitch-popover-in 150ms ease-out" }}
+                        >
+                          <textarea
+                            value={slideRefineInstructions}
+                            onChange={(event) => setSlideRefineInstructions(event.target.value)}
+                            placeholder="Tell AI what you'd like to improve (optional)..."
+                            rows={4}
+                            className="w-full resize-none rounded-lg border border-outline-variant/80 bg-surface px-3 py-2 text-sm text-on-surface outline-none transition-colors placeholder:text-on-surface-variant/60 focus:border-primary focus:ring-2 focus:ring-primary/15"
+                            autoFocus
+                          />
+                          <div className="mt-3 flex items-center justify-end gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSlideRefineInstructions("");
+                                setSlideRefineOpen(false);
+                              }}
+                              className="px-3 py-1.5 rounded-lg border border-outline-variant bg-surface text-xs font-semibold text-on-surface hover:bg-surface-container transition-colors"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleSlideRefineSubmit}
+                              disabled={aiState === "refining"}
+                              className="px-3 py-1.5 rounded-lg bg-primary text-xs font-semibold text-on-primary hover:bg-primary/90 transition-all disabled:opacity-50"
+                            >
+                              {aiState === "refining" ? "Refining..." : "Refine"}
+                            </button>
+                          </div>
+                        </div>
                       )}
+                    </div>
+                    {shouldShowTranslate && (
+                      <button
+                        onClick={() => translateSlideWithAi(selectedSlide.slideId)}
+                        disabled={!isAiIdle}
+                        className={translateButtonClass}
+                      >
+                        {aiState === "translating" ? (
+                          <span className="inline-flex items-center gap-2">
+                            <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-secondary border-t-transparent" />
+                            Translating...
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-2">
+                            <span aria-hidden="true">🌐</span>
+                            Translate to {getLanguageLabel(projectLanguage)}
+                          </span>
+                        )}
+                      </button>
+                    )}
+                    <button
+                      onClick={() => generateSlideWithAi(selectedSlide.slideId)}
+                      disabled={!isAiIdle}
+                      className={aiButtonClass}
+                    >
+                      {aiState === "generating" ? "Generating..." : "Regenerate"}
                     </button>
-                  )}
-                  <button
-                    onClick={() => generateSlideWithAi(selectedSlide.slideId)}
-                    disabled={!isAiIdle}
-                    className={aiButtonClass}
-                  >
-                    {aiState === "generating" ? "Generating..." : "Regenerate"}
-                  </button>
+                  </div>
                 </div>
               </div>
             </main>
@@ -538,5 +543,4 @@ export default function PitchPage() {
       )}
     </div>
   );
-
-}
+};

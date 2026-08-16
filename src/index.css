@@ -66,16 +66,6 @@
   --color-surface-variant: var(--theme-surface-variant);
   --color-on-primary-fixed-variant: var(--theme-on-primary-fixed-variant);
 
-  --spacing-base: 4px;
-  --spacing-xs: 8px;
-  --spacing-sm: 12px;
-  --spacing-md: 16px;
-  --spacing-lg: 24px;
-  --spacing-xl: 32px;
-  --spacing-2xl: 48px;
-  --spacing-gutter: 16px;
-  --spacing-margin: 24px;
-
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 }
@@ -274,6 +264,57 @@
   letter-spacing: 0.02em;
   font-weight: 600;
 }
+
+/* Custom legacy semantic spacing utilities (4px, 8px, 12px, 16px, 24px, 32px, 48px) */
+@utility p-base { padding: 4px; }
+@utility p-xs { padding: 8px; }
+@utility p-sm { padding: 12px; }
+@utility p-md { padding: 16px; }
+@utility p-lg { padding: 24px; }
+@utility p-xl { padding: 32px; }
+@utility p-2xl { padding: 48px; }
+
+@utility px-xs { padding-left: 8px; padding-right: 8px; }
+@utility px-sm { padding-left: 12px; padding-right: 12px; }
+@utility px-md { padding-left: 16px; padding-right: 16px; }
+@utility px-lg { padding-left: 24px; padding-right: 24px; }
+@utility px-xl { padding-left: 32px; padding-right: 32px; }
+
+@utility py-xs { padding-top: 8px; padding-bottom: 8px; }
+@utility py-sm { padding-top: 12px; padding-bottom: 12px; }
+@utility py-md { padding-top: 16px; padding-bottom: 16px; }
+@utility py-lg { padding-top: 24px; padding-bottom: 24px; }
+@utility py-xl { padding-top: 32px; padding-bottom: 32px; }
+
+@utility pt-xs { padding-top: 8px; }
+@utility pt-sm { padding-top: 12px; }
+@utility pt-md { padding-top: 16px; }
+@utility pt-lg { padding-top: 24px; }
+@utility pt-xl { padding-top: 32px; }
+
+@utility pb-xs { padding-bottom: 8px; }
+@utility pb-sm { padding-bottom: 12px; }
+@utility pb-md { padding-bottom: 16px; }
+@utility pb-lg { padding-bottom: 24px; }
+@utility pb-xl { padding-bottom: 32px; }
+
+@utility gap-xs { gap: 8px; }
+@utility gap-sm { gap: 12px; }
+@utility gap-md { gap: 16px; }
+@utility gap-lg { gap: 24px; }
+@utility gap-xl { gap: 32px; }
+
+@utility mb-xs { margin-bottom: 8px; }
+@utility mb-sm { margin-bottom: 12px; }
+@utility mb-md { margin-bottom: 16px; }
+@utility mb-lg { margin-bottom: 24px; }
+@utility mb-xl { margin-bottom: 32px; }
+
+@utility mt-xs { margin-top: 8px; }
+@utility mt-sm { margin-top: 12px; }
+@utility mt-md { margin-top: 16px; }
+@utility mt-lg { margin-top: 24px; }
+@utility mt-xl { margin-top: 32px; }
 
 @utility no-scrollbar {
   -ms-overflow-style: none; /* IE and Edge */
