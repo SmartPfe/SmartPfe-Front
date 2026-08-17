@@ -855,20 +855,33 @@ function SimpleList({ title, items, onChange, placeholder }: { title: string; it
 }
 
 function MarkupPanel({ title, markup }: { title: string; markup: string }) {
-  const copy = () => navigator.clipboard?.writeText(markup);
+  const [copied, setCopied] = useState(false);
+  const copy = () => {
+    navigator.clipboard?.writeText(markup);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
   return (
     <div className="h-full flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-sm">
-          <span className="font-bold text-on-surface">{title}</span>
-          <span className="text-on-surface-variant">Generated from your entities</span>
-        </div>
-        <button onClick={copy} className="text-primary text-sm font-medium hover:underline">Copy Code</button>
+      <div className="flex items-center gap-2 text-sm">
+        <span className="font-bold text-on-surface">{title}</span>
+        <span className="text-on-surface-variant">Generated from your entities</span>
       </div>
       <div className="flex-1 bg-[#1e1e1e] rounded-xl border border-outline-variant p-4 overflow-hidden relative group font-mono text-sm">
         <pre className="text-[#d4d4d4] h-full overflow-y-auto">{markup}</pre>
-        <button onClick={copy} className="absolute top-4 right-4 w-8 h-8 rounded bg-white/10 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white/20">
-          <span className="material-symbols-outlined text-[18px]">content_copy</span>
+        <button
+          onClick={copy}
+          className={cn(
+            "absolute top-3 right-3 px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all duration-200",
+            copied
+              ? "bg-green-500/20 text-green-400"
+              : "bg-white/10 text-white/70 hover:bg-white/20 hover:text-white"
+          )}
+        >
+          <span className="material-symbols-outlined text-[16px]">
+            {copied ? 'check' : 'content_copy'}
+          </span>
+          {copied ? 'Copied!' : 'Copy'}
         </button>
       </div>
     </div>
