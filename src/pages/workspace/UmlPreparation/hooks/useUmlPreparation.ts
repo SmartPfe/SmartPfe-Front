@@ -23,21 +23,65 @@ export type UmlRelationship = {
   targetMultiplicity: string;
 };
 
+export type UmlUseCaseRelation = {
+  source: string;
+  target: string;
+  type: "include" | "extend";
+};
+
+export type UmlUseCase = {
+  systemName: string;
+  primaryActors: string[];
+  secondaryActors: string[];
+  actors: string[];
+  useCases: string[];
+  links: { actor: string; useCase: string }[];
+  useCaseRelations: UmlUseCaseRelation[];
+};
+
+export type UmlSequenceParticipant = {
+  name: string;
+  type: string;
+};
+
+export type UmlSequenceMessage = {
+  source: string;
+  target: string;
+  message: string;
+  response: boolean;
+  type?: string;
+};
+
+export type UmlSequence = {
+  scenario: string;
+  participants: (string | UmlSequenceParticipant)[];
+  messages: UmlSequenceMessage[];
+  altFlow?: {
+    condition: string;
+    messages: { source: string; target: string; message: string; response?: boolean }[];
+  };
+};
+
+export type UmlActivityStep = {
+  type: "action" | "decision";
+  label?: string;
+  condition?: string;
+  thenBranch?: string;
+  elseBranch?: string;
+};
+
+export type UmlActivity = {
+  workflowTitle: string;
+  steps: UmlActivityStep[];
+  transitions: { from: string; to: string; label: string }[];
+};
+
 export type UmlPreparation = {
   classes: UmlClass[];
   relationships: UmlRelationship[];
-  useCase: {
-    actors: string[];
-    useCases: string[];
-    links: { actor: string; useCase: string }[];
-  };
-  sequence: {
-    participants: string[];
-    messages: { source: string; target: string; message: string; response: boolean }[];
-  };
-  activity: {
-    transitions: { from: string; to: string; label: string }[];
-  };
+  useCase: UmlUseCase;
+  sequence: UmlSequence;
+  activity: UmlActivity;
 };
 
 export type AiState = "idle" | "generating" | "refining" | "translating" | "suggestion_ready";
@@ -72,47 +116,103 @@ export function getLanguageLabel(language?: string | null) {
 export const emptyUmlPreparation: UmlPreparation = {
   classes: [],
   relationships: [],
-  useCase: { actors: [], useCases: [], links: [] },
-  sequence: { participants: [], messages: [] },
-  activity: { transitions: [] },
+  useCase: {
+    systemName: "System Platform",
+    primaryActors: [],
+    secondaryActors: [],
+    actors: [],
+    useCases: [],
+    links: [],
+    useCaseRelations: [],
+  },
+  sequence: {
+    scenario: "",
+    participants: [],
+    messages: [],
+    altFlow: { condition: "", messages: [] },
+  },
+  activity: {
+    workflowTitle: "",
+    steps: [],
+    transitions: [],
+  },
 };
 
 const normalizeList = (items: string[] = []) => items.map((item) => item || "").filter((item) => item.trim().length > 0);
 
-export const normalizeUmlPreparation = (value: Partial<UmlPreparation> = {}): UmlPreparation => ({
-  classes: (value.classes || []).map((umlClass) => ({
-    ...umlClass,
-    name: umlClass.name || "Class",
-    type: umlClass.type || "Class",
-    description: umlClass.description || "",
-    attributes: normalizeList(umlClass.attributes || []),
-    methods: normalizeList(umlClass.methods || []),
-  })),
-  relationships: (value.relationships || []).map((relationship) => ({
-    ...relationship,
-    source: relationship.source || "",
-    target: relationship.target || "",
-    type: relationship.type || "association",
-    label: relationship.label || "",
-    sourceMultiplicity: relationship.sourceMultiplicity || "",
-    targetMultiplicity: relationship.targetMultiplicity || "",
-  })),
-  useCase: {
-    actors: normalizeList(value.useCase?.actors || []),
-    useCases: normalizeList(value.useCase?.useCases || []),
-    links: value.useCase?.links || [],
-  },
-  sequence: {
-    participants: normalizeList(value.sequence?.participants || []),
-    messages: value.sequence?.messages || [],
-  },
-  activity: {
-    transitions: value.activity?.transitions || [],
-  },
-});
+export const normalizeUmlPreparation = (value: Partial<UmlPreparation> = {}): UmlPreparation => {
+  const primaryActors = normalizeList(value.useCase?.primaryActors?.length ? value.useCase.primaryActors : value.useCase?.actors || []);
+  const secondaryActors = normalizeList(value.useCase?.secondaryActors || []);
+  const allActors = Array.from(new Set([...primaryActors, ...secondaryActors, ...normalizeList(value.useCase?.actors || [])]));
+  const useCases = normalizeList(value.useCase?.useCases || []);
+
+  const rawLinks = Array.isArray(value.useCase?.links) ? value.useCase.links : [];
+  const links = rawLinks.filter((link) => link.actor && link.useCase);
+
+  const useCaseRelations = Array.isArray(value.useCase?.useCaseRelations)
+    ? value.useCase.useCaseRelations.filter((rel) => rel.source && rel.target)
+    : [];
+
+  const rawParticipants = Array.isArray(value.sequence?.participants) ? value.sequence.participants : [];
+  const participants = rawParticipants.map((p) => {
+    if (typeof p === "string") return { name: p.trim(), type: "participant" };
+    return { name: String(p?.name || "").trim(), type: String(p?.type || "participant").trim() };
+  }).filter((p) => p.name);
+
+  const messages = (value.sequence?.messages || []).filter((m) => m.source && m.target && m.message);
+
+  const steps = Array.isArray(value.activity?.steps)
+    ? value.activity.steps.filter((s) => (s.type === "action" && s.label) || (s.type === "decision" && s.condition))
+    : [];
+
+  return {
+    classes: (value.classes || []).map((umlClass) => ({
+      ...umlClass,
+      name: umlClass.name || "Class",
+      type: umlClass.type || "Class",
+      description: umlClass.description || "",
+      attributes: normalizeList(umlClass.attributes || []),
+      methods: normalizeList(umlClass.methods || []),
+    })),
+    relationships: (value.relationships || []).map((relationship) => ({
+      ...relationship,
+      source: relationship.source || "",
+      target: relationship.target || "",
+      type: relationship.type || "association",
+      label: relationship.label || "",
+      sourceMultiplicity: relationship.sourceMultiplicity || "",
+      targetMultiplicity: relationship.targetMultiplicity || "",
+    })),
+    useCase: {
+      systemName: value.useCase?.systemName || "System Platform",
+      primaryActors: primaryActors.length ? primaryActors : (allActors.length ? allActors : []),
+      secondaryActors,
+      actors: allActors,
+      useCases,
+      links,
+      useCaseRelations,
+    },
+    sequence: {
+      scenario: value.sequence?.scenario || "",
+      participants,
+      messages,
+      altFlow: value.sequence?.altFlow || { condition: "", messages: [] },
+    },
+    activity: {
+      workflowTitle: value.activity?.workflowTitle || "",
+      steps,
+      transitions: value.activity?.transitions || [],
+    },
+  };
+};
 
 export const buildClassPlantUml = (umlClass: UmlClass, relationships: UmlRelationship[] = []) => {
-  const stereotype = umlClass.type.toLowerCase().includes("abstract") ? " <<Abstract>>" : "";
+  let stereotype = "";
+  const typeLower = umlClass.type.toLowerCase();
+  if (typeLower.includes("abstract")) stereotype = " <<Abstract>>";
+  else if (typeLower.includes("interface")) stereotype = " <<Interface>>";
+  else if (typeLower.includes("enum")) stereotype = " <<Enum>>";
+
   const lines = [`class ${umlClass.name}${stereotype} {`];
   umlClass.attributes.forEach((attribute) => lines.push(`  +${attribute}`));
   if (umlClass.attributes.length && umlClass.methods.length) lines.push("  --");
@@ -127,14 +227,25 @@ export const buildClassPlantUml = (umlClass: UmlClass, relationships: UmlRelatio
 };
 
 export const buildClassDiagramPlantUml = (umlPreparation: UmlPreparation) => {
-  const lines = ["@startuml"];
+  const lines = [
+    "@startuml",
+    "skinparam classAttributeIconSize 0",
+    "skinparam shadowing false",
+    "",
+  ];
   umlPreparation.classes.forEach((umlClass) => {
-    const stereotype = umlClass.type.toLowerCase().includes("abstract") ? " <<Abstract>>" : "";
+    let stereotype = "";
+    const typeLower = umlClass.type.toLowerCase();
+    if (typeLower.includes("abstract")) stereotype = " <<Abstract>>";
+    else if (typeLower.includes("interface")) stereotype = " <<Interface>>";
+    else if (typeLower.includes("enum")) stereotype = " <<Enum>>";
+
     lines.push(`class ${umlClass.name}${stereotype} {`);
     umlClass.attributes.forEach((attribute) => lines.push(`  +${attribute}`));
     if (umlClass.attributes.length && umlClass.methods.length) lines.push("  --");
     umlClass.methods.forEach((method) => lines.push(`  +${method}`));
     lines.push("}");
+    lines.push("");
   });
   umlPreparation.relationships.forEach((relationship) => lines.push(formatRelationship(relationship)));
   lines.push("@enduml");
@@ -142,30 +253,197 @@ export const buildClassDiagramPlantUml = (umlPreparation: UmlPreparation) => {
 };
 
 export const buildUseCaseMarkup = (umlPreparation: UmlPreparation) => {
-  const lines = ["flowchart LR"];
-  umlPreparation.useCase.links.forEach((link) => lines.push(`    ${safeNode(link.actor)} --> (${link.useCase})`));
-  return lines.length > 1 ? lines.join("\n") : "flowchart LR\n    Actor --> (Use Case)";
+  const useCase = umlPreparation.useCase;
+  const primaryActors = useCase.primaryActors?.length ? useCase.primaryActors : useCase.actors;
+  const secondaryActors = useCase.secondaryActors || [];
+  const systemName = useCase.systemName || "System Platform";
+  const useCases = useCase.useCases || [];
+  const links = useCase.links || [];
+  const useCaseRelations = useCase.useCaseRelations || [];
+
+  const lines = [
+    "@startuml",
+    "left to right direction",
+    "skinparam packageStyle rectangle",
+    "skinparam shadowing false",
+    "",
+  ];
+
+  // Primary actors (rendered on the left)
+  if (primaryActors.length > 0) {
+    primaryActors.forEach((actor) => {
+      lines.push(`actor "${actor}" as ${safeNode(actor)}`);
+    });
+    lines.push("");
+  }
+
+  // System Boundary
+  lines.push(`rectangle "${systemName}" {`);
+  useCases.forEach((uc) => {
+    lines.push(`  usecase "${uc}" as ${safeNode(uc)}`);
+  });
+
+  if (useCaseRelations.length > 0) {
+    lines.push("");
+    useCaseRelations.forEach((rel) => {
+      const stereotype = rel.type === "extend" ? "<<extend>>" : "<<include>>";
+      lines.push(`  ${safeNode(rel.source)} .> ${safeNode(rel.target)} : ${stereotype}`);
+    });
+  }
+  lines.push("}");
+  lines.push("");
+
+  // Secondary actors (rendered on the right AFTER the rectangle)
+  if (secondaryActors.length > 0) {
+    secondaryActors.forEach((actor) => {
+      lines.push(`actor "${actor}" as ${safeNode(actor)} <<Secondary>>`);
+    });
+    lines.push("");
+  }
+
+  // Links: Primary actors point TO use case, and use cases point TO secondary actors!
+  links.forEach((link) => {
+    const isActorSecondary = secondaryActors.includes(link.actor);
+    const isUseCaseSecondary = secondaryActors.includes(link.useCase);
+    if (isActorSecondary) {
+      lines.push(`${safeNode(link.useCase)} --> ${safeNode(link.actor)}`);
+    } else if (isUseCaseSecondary) {
+      lines.push(`${safeNode(link.actor)} --> ${safeNode(link.useCase)}`);
+    } else {
+      lines.push(`${safeNode(link.actor)} --> ${safeNode(link.useCase)}`);
+    }
+  });
+
+  lines.push("@enduml");
+  return lines.length > 3 ? lines.join("\n") : "@startuml\nactor Actor\nusecase \"Use Case\" as UC1\nActor --> UC1\n@enduml";
 };
 
 export const buildSequenceMarkup = (umlPreparation: UmlPreparation) => {
-  const lines = ["sequenceDiagram"];
-  umlPreparation.sequence.participants.forEach((participant) => lines.push(`    participant ${safeNode(participant)}`));
-  umlPreparation.sequence.messages.forEach((message) => {
-    lines.push(`    ${safeNode(message.source)}${message.response ? "-->>" : "->>"}${safeNode(message.target)}: ${message.message}`);
+  const seq = umlPreparation.sequence;
+  const rawParticipants = seq.participants || [];
+  const messages = seq.messages || [];
+
+  const lines = [
+    "@startuml",
+    "autonumber",
+    "skinparam responseMessageBelowArrow true",
+    "skinparam shadowing false",
+  ];
+
+  if (seq.scenario) {
+    lines.push(`title ${seq.scenario}`);
+  }
+  lines.push("");
+
+  const validTypes = new Set(["actor", "boundary", "control", "entity", "database", "collections", "queue"]);
+
+  rawParticipants.forEach((p) => {
+    const name = typeof p === "string" ? p : p.name;
+    const type = typeof p === "string" ? "participant" : p.type || "participant";
+    const keyword = validTypes.has(type.toLowerCase()) ? type.toLowerCase() : "participant";
+    lines.push(`${keyword} "${name}" as ${safeNode(name)}`);
   });
-  return lines.length > 1 ? lines.join("\n") : "sequenceDiagram\n    participant User\n    participant System";
+  lines.push("");
+
+  messages.forEach((msg) => {
+    const isReturn = msg.response || msg.type === "return";
+    const arrow = isReturn ? "-->" : "->";
+    lines.push(`${safeNode(msg.source)} ${arrow} ${safeNode(msg.target)}: ${escapePlantUml(msg.message)}`);
+  });
+
+  if (seq.altFlow && seq.altFlow.condition && seq.altFlow.messages?.length) {
+    lines.push("");
+    lines.push(`alt ${escapePlantUml(seq.altFlow.condition)}`);
+    seq.altFlow.messages.forEach((msg) => {
+      const isReturn = msg.response !== false;
+      const arrow = isReturn ? "-->" : "->";
+      lines.push(`  ${safeNode(msg.source)} ${arrow} ${safeNode(msg.target)}: ${escapePlantUml(msg.message)}`);
+    });
+    lines.push("end");
+  }
+
+  lines.push("@enduml");
+  return lines.length > 3 ? lines.join("\n") : "@startuml\nparticipant User\nparticipant System\nUser -> System: Action\n@enduml";
 };
 
 export const buildActivityMarkup = (umlPreparation: UmlPreparation) => {
-  const lines = ["stateDiagram-v2"];
-  umlPreparation.activity.transitions.forEach((transition) => {
-    const label = transition.label ? ` : ${transition.label}` : "";
-    lines.push(`    ${transition.from} --> ${transition.to}${label}`);
-  });
-  return lines.length > 1 ? lines.join("\n") : "stateDiagram-v2\n    [*] --> Start";
+  const activity = umlPreparation.activity;
+  const steps = activity.steps || [];
+
+  if (steps.length > 0) {
+    const lines = ["@startuml", "skinparam shadowing false"];
+    if (activity.workflowTitle) {
+      lines.push(`title ${activity.workflowTitle}`);
+    }
+    lines.push("start");
+
+    steps.forEach((step) => {
+      if (step.type === "decision" && step.condition) {
+        lines.push(`if (${escapePlantUml(step.condition)}) then (yes)`);
+        if (step.thenBranch) {
+          lines.push(`  :${escapePlantUml(step.thenBranch)};`);
+        }
+        if (step.elseBranch) {
+          lines.push(`else (no)`);
+          lines.push(`  :${escapePlantUml(step.elseBranch)};`);
+        }
+        lines.push(`endif`);
+      } else if (step.label) {
+        lines.push(`:${escapePlantUml(step.label)};`);
+      }
+    });
+
+    lines.push("stop");
+    lines.push("@enduml");
+    return lines.join("\n");
+  }
+
+  // Fallback to transitions
+  const transitions = activity.transitions || [];
+  if (transitions.length > 0) {
+    const lines = ["@startuml", "skinparam shadowing false"];
+    if (activity.workflowTitle) {
+      lines.push(`title ${activity.workflowTitle}`);
+    }
+    lines.push("start");
+    transitions.forEach((transition) => {
+      const label = transition.label ? ` : ${transition.label}` : "";
+      let from = transition.from.includes("[*]") ? "(*)" : `:${escapePlantUml(transition.from)};`;
+      let to = transition.to.includes("[*]") ? "(*)" : `:${escapePlantUml(transition.to)};`;
+      lines.push(`${from} --> ${to}${label}`);
+    });
+    lines.push("stop");
+    lines.push("@enduml");
+    return lines.join("\n");
+  }
+
+  return "@startuml\nstart\n:Initialize Process;\nstop\n@enduml";
 };
 
-const safeNode = (value: string) => String(value || "Node").replace(/[^a-zA-Z0-9_]/g, "");
+const safeNode = (value: string) => {
+  const str = String(value || "").trim();
+  if (!str) return "Node_1";
+  
+  const asciiCleaned = str.replace(/[^a-zA-Z0-9_]/g, "");
+  if (asciiCleaned && asciiCleaned.length >= 2 && /^[a-zA-Z]/.test(asciiCleaned)) {
+    return asciiCleaned;
+  }
+  
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash << 5) - hash + str.charCodeAt(i);
+    hash |= 0;
+  }
+  const positiveHash = Math.abs(hash).toString(36);
+  const prefix = asciiCleaned ? `N_${asciiCleaned.slice(0, 8)}_` : "N_";
+  return `${prefix}${positiveHash}`;
+};
+
+const escapePlantUml = (text: string) =>
+  String(text || "")
+    .replace(/;/g, ",")
+    .replace(/\n/g, " ")
+    .replace(/"/g, "'");
 
 const formatRelationship = (relationship: UmlRelationship) => {
   const operators = {
@@ -290,11 +568,14 @@ export function useUmlPreparation() {
     };
   }, [aiState, project?._id, saveStatus, saveUmlPreparation, umlPreparation]);
 
-  const generateWithAi = async () => {
+  const generateWithAi = async (diagramType = "all") => {
     setAiState("generating");
     setError(null);
     try {
-      const res = await fetchApi("/ai/uml-preparation/generate", { method: "POST" });
+      const res = await fetchApi("/ai/uml-preparation/generate", {
+        method: "POST",
+        body: JSON.stringify({ diagramType, currentUmlPreparation: umlPreparation }),
+      });
       setSuggestion(normalizeUmlPreparation(res.umlPreparation || {}));
       setAiState("suggestion_ready");
     } catch (err: any) {
@@ -306,18 +587,16 @@ export function useUmlPreparation() {
   const projectLanguage = currentProjectLanguage || normalizeLanguage(project?.basics?.language || project?.language);
   const umlPreparationLanguage = normalizeLanguage(project?.umlPreparationLanguage);
 
-  const refineWithAi = async (instructions = "") => {
-    if (umlPreparation.classes.length === 0) {
-      setError("Add or generate UML classes before asking AI to refine them.");
-      return;
-    }
+  const refineWithAi = async (instructions = "", diagramType = "all") => {
     setAiState("refining");
     setError(null);
     try {
       const trimmedInstructions = instructions.trim();
-      const payload = trimmedInstructions
-        ? { umlPreparation, instructions: trimmedInstructions }
-        : { umlPreparation };
+      const payload = {
+        umlPreparation,
+        instructions: trimmedInstructions,
+        diagramType,
+      };
       const res = await fetchApi("/ai/uml-preparation/refine", {
         method: "POST",
         body: JSON.stringify(payload),
