@@ -9,6 +9,8 @@ import {
   PitchSlide,
   usePitch,
 } from "./hooks/usePitch";
+import AiBackgroundBanner from "@/components/ai/AiBackgroundBanner";
+import HugeiconsIcon from "@/components/ui/HugeiconsIcon";
 
 const aiButtonClass =
   "px-5 py-2 rounded-md border border-primary/20 bg-gradient-to-r from-primary/5 to-secondary/5 text-primary text-label-md font-semibold hover:from-primary/10 hover:to-secondary/10 transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed disabled:grayscale";
@@ -38,6 +40,7 @@ export default function PitchPage() {
     projectLanguage,
     loading,
     aiState,
+    isAiBusy,
     error,
     updatePitch,
     generateWithAi,
@@ -45,6 +48,7 @@ export default function PitchPage() {
     generateSlideWithAi,
     refineSlideWithAi,
     translateSlideWithAi,
+    cancelAi,
     dismissError,
   } = usePitch();
 
@@ -62,7 +66,7 @@ export default function PitchPage() {
   const selectedIndex = selectedSlide ? slides.findIndex((slide) => slide.slideId === selectedSlide.slideId) : -1;
   const hasPresentation = slides.length > 0;
   const hasPitch = slides.some((slide) => slide.speech.trim());
-  const isAiIdle = aiState === "idle";
+  const isAiIdle = !isAiBusy && aiState === "idle";
   const selectedSlideLanguage = normalizeLanguage(selectedSlide?.language);
   const selectedSlideHasSpeech = Boolean(selectedSlide?.speech.trim());
   const shouldShowTranslate = Boolean(
@@ -78,6 +82,7 @@ export default function PitchPage() {
     () => slides.reduce((total, slide) => total + getCurrentSeconds(slide), 0),
     [slides]
   );
+
   useEffect(() => {
     if (!selectedSlideId && slides.length) {
       setSelectedSlideId(slides[0].slideId);
@@ -121,7 +126,7 @@ export default function PitchPage() {
 
   const updateTips = (slideId: string, value: string) => {
     updateSlide(slideId, {
-      tips: value.split(/\r?\n/).map((tip) => tip.replace(/^\s*[-*\u2022]\s*/, "").trim()).filter(Boolean),
+      tips: value.split(/\r?\n/).map((tip) => tip.replace(/^\s*[-*•]\s*/, "").trim()).filter(Boolean),
     });
   };
 
@@ -348,7 +353,7 @@ export default function PitchPage() {
                   </span>
                 ) : (
                   <span className="inline-flex items-center gap-2">
-                    <span aria-hidden="true">🌐</span>
+                    <HugeiconsIcon icon="globe-02" size={16} strokeWidth={1.75} />
                     Translate to {getLanguageLabel(projectLanguage)}
                   </span>
                 )}
@@ -364,6 +369,14 @@ export default function PitchPage() {
           </div>
         </div>
       </header>
+
+      {/* Background AI Progress Banner */}
+      <AiBackgroundBanner
+        isVisible={isAiBusy}
+        moduleName="Pitch & Defense Speech"
+        action={aiState}
+        onCancel={cancelAi}
+      />
 
       {error && (
         <div className="flex items-center justify-between gap-3 rounded-lg border border-error/20 bg-error-container p-3 text-on-error-container">
@@ -521,7 +534,7 @@ export default function PitchPage() {
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-2">
-                            <span aria-hidden="true">🌐</span>
+                            <HugeiconsIcon icon="globe-02" size={16} strokeWidth={1.75} />
                             Translate to {getLanguageLabel(projectLanguage)}
                           </span>
                         )}
@@ -543,4 +556,4 @@ export default function PitchPage() {
       )}
     </div>
   );
-};
+}

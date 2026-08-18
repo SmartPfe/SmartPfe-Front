@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchApi } from "@/lib/api";
+import { useAiGeneration } from "@/context/AiGenerationContext";
 
 export type BacklogPriority = "High" | "Medium" | "Low";
 
@@ -119,92 +120,154 @@ export const renumberProductBacklog = (items: ProductBacklogItem[]) => {
   });
 };
 
+const TASK_ID = "product-backlog:main";
+const SCOPE = "product-backlog";
+const PAGE_ROUTE = "/workspace/backlog";
+
 export function useProductBacklog() {
+  const { startTask, isTaskActive, getTask, tasks, dismissTask, cancelTask } = useAiGeneration();
   const [project, setProject] = useState<any>(null);
   const [productBacklog, setProductBacklog] = useState<ProductBacklogItem[]>([]);
   const [suggestion, setSuggestion] = useState<ProductBacklogItem[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
-  const [aiState, setAiState] = useState<AiState>("idle");
+  const [localAiState, setLocalAiState] = useState<AiState>("idle");
   const [error, setError] = useState<string | null>(null);
   const autosaveTimerRef = useRef<number | null>(null);
   const backlogRef = useRef<ProductBacklogItem[]>([]);
+  const handledTaskIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     backlogRef.current = productBacklog;
   }, [productBacklog]);
 
-  useEffect(() => {
-    const fetchProductBacklog = async () => {
-      try {
-        const projectData = await fetchApi("/projects/my-project");
-        setProject(projectData);
-        const data = await fetchApi(`/projects/${projectData._id}/product-backlog`);
-        setProductBacklog(normalizeProductBacklog(data.productBacklog || [], getPrimaryActorNames(projectData)));
-      } catch (err: any) {
-        setError(err.message || "Failed to load product backlog. Please refresh the page.");
-      } finally {
-        setLoading(false);
-      }
-    };
+  const primaryActorOptions = getPrimaryActorNames(project);
+  const targetDurationDays = Number(project?.basics?.targetDurationDays || project?.targetDurationDays) || 0;
 
-    fetchProductBacklog();
+  const fetchBacklogData = useCallback(async () => {
+    try {
+      const projectData = await fetchApi("/projects/my-project");
+      setProject(projectData);
+
+      const data = await fetchApi(`/projects/${projectData._id}/product-backlog`);
+      const options = getPrimaryActorNames(projectData);
+      const normalized = normalizeProductBacklog(data.productBacklog || [], options);
+      setProductBacklog(normalized);
+      backlogRef.current = normalized;
+      return { projectData, backlog: normalized };
+    } catch (err: any) {
+      setError(err.message || "Failed to load product backlog. Please refresh the page.");
+      return null;
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  const primaryActorOptions = useMemo(() => getPrimaryActorNames(project), [project]);
+  useEffect(() => {
+    fetchBacklogData();
+  }, [fetchBacklogData]);
 
-  const targetDurationDays = useMemo(() => {
-    const months = Number(project?.technicalContext?.duration) || 0;
-    return months > 0 ? months * 22 : 0;
-  }, [project?.technicalContext?.duration]);
-
-  const markUnsaved = useCallback(() => setSaveStatus("unsaved"), []);
-
-  const saveProductBacklog = useCallback(async (nextBacklog = productBacklog, showValidation = false, language?: string) => {
-    if (!project?._id) {
-      setError("Project is not ready yet. Please refresh the page.");
+  // Sync background task state & hydrate completed refinement results
+  useEffect(() => {
+    const task = tasks[TASK_ID];
+    if (!task) {
+      if (localAiState === "generating" || localAiState === "refining" || localAiState === "translating") {
+        setLocalAiState("idle");
+      }
       return;
     }
 
-    const hasIncompleteItem = nextBacklog.some(
-      (item) => !item.epic.trim() || item.actors.length === 0 || !item.task.trim() || !item.sprint.trim() || normalizeDuration(item.durationDays) < 1
-    );
-    if (hasIncompleteItem) {
-      if (showValidation) setError("Please fill each epic, primary actor, user story, sprint, and duration before saving.");
-      setSaveStatus("unsaved");
-      return;
+    if (task.status === "completed" && task.result) {
+      const taskNonce = `${task.id}-${task.completedAt}`;
+      if (handledTaskIdRef.current !== taskNonce) {
+        handledTaskIdRef.current = taskNonce;
+        if (task.result.type === "suggestion" && Array.isArray(task.result.productBacklog)) {
+          setSuggestion(task.result.productBacklog);
+          setLocalAiState("suggestion_ready");
+        } else if (task.result.type === "saved" && Array.isArray(task.result.productBacklog)) {
+          setProductBacklog(task.result.productBacklog);
+          backlogRef.current = task.result.productBacklog;
+          setLocalAiState("idle");
+          fetchBacklogData();
+        }
+      }
+    } else if (task.status === "error") {
+      setLocalAiState("idle");
+      if (task.error && !task.error.includes("Limit reached")) {
+        setError(task.error);
+      }
     }
+  }, [fetchBacklogData, localAiState, tasks]);
 
-    const normalized = renumberProductBacklog(normalizeProductBacklog(nextBacklog, primaryActorOptions));
-    setSaveStatus("saving");
-    setError(null);
+  const markUnsaved = useCallback(() => {
+    setSaveStatus("unsaved");
+  }, []);
 
-    try {
-      const payload = language
-        ? { productBacklog: normalized, language }
-        : { productBacklog: normalized };
-      const res = await fetchApi(`/projects/${project._id}/product-backlog`, {
-        method: "PUT",
-        body: JSON.stringify(payload),
-      });
-      if (JSON.stringify(renumberProductBacklog(backlogRef.current)) === JSON.stringify(normalized)) {
-        setProductBacklog(normalizeProductBacklog(res.productBacklog || [], primaryActorOptions));
-        setProject((current: any) => current ? {
-          ...current,
-          productBacklogLanguage: res.language ?? current.productBacklogLanguage ?? "",
-        } : current);
-        setSaveStatus("saved");
-      } else {
+  const saveProductBacklog = useCallback(
+    async (nextBacklog = productBacklog, showValidation = false, language?: string) => {
+      if (!project?._id) {
+        setError("Project is not ready yet. Please refresh the page.");
+        return;
+      }
+
+      const hasIncompleteItem = nextBacklog.some(
+        (item) => !item.epic.trim() || item.actors.length === 0 || !item.task.trim() || !item.sprint.trim() || normalizeDuration(item.durationDays) < 1
+      );
+      if (hasIncompleteItem) {
+        if (showValidation) {
+          setError("Please fill each task epic, actors, description, duration (>=1), and sprint before saving.");
+        }
+        setSaveStatus("unsaved");
+        return;
+      }
+
+      const normalized = renumberProductBacklog(normalizeProductBacklog(nextBacklog, primaryActorOptions));
+      setSaveStatus("saving");
+      setError(null);
+
+      try {
+        const payload = language
+          ? { productBacklog: normalized, language }
+          : { productBacklog: normalized };
+        const res = await fetchApi(`/projects/${project._id}/product-backlog`, {
+          method: "PUT",
+          body: JSON.stringify(payload),
+        });
+        if (JSON.stringify(renumberProductBacklog(backlogRef.current)) === JSON.stringify(normalized)) {
+          const resNormalized = normalizeProductBacklog(res.productBacklog || [], primaryActorOptions);
+          setProductBacklog(resNormalized);
+          backlogRef.current = resNormalized;
+          setProject((current: any) =>
+            current
+              ? {
+                  ...current,
+                  productBacklogLanguage: res.language ?? current.productBacklogLanguage ?? "",
+                }
+              : current
+          );
+          setSaveStatus("saved");
+        } else {
+          setSaveStatus("unsaved");
+        }
+      } catch (err: any) {
+        setError(err.message || "Failed to save product backlog. Please try again.");
         setSaveStatus("unsaved");
       }
-    } catch (err: any) {
-      setError(err.message || "Failed to save product backlog. Please try again.");
-      setSaveStatus("unsaved");
-    }
-  }, [primaryActorOptions, productBacklog, project?._id]);
+    },
+    [primaryActorOptions, productBacklog, project?._id]
+  );
+
+  const isRunning = isTaskActive(TASK_ID);
+  const currentTask = getTask(TASK_ID);
+
+  const aiState: AiState = isRunning
+    ? (currentTask?.status as AiState) || "generating"
+    : localAiState;
+
+  const isAiBusy = isRunning || aiState === "generating" || aiState === "refining" || aiState === "translating";
 
   useEffect(() => {
-    if (saveStatus !== "unsaved" || !project?._id || aiState !== "idle") return;
+    if (saveStatus !== "unsaved" || !project?._id || isAiBusy) return;
 
     const hasIncompleteItem = productBacklog.some(
       (item) => !item.epic.trim() || item.actors.length === 0 || !item.task.trim() || !item.sprint.trim() || normalizeDuration(item.durationDays) < 1
@@ -217,23 +280,46 @@ export function useProductBacklog() {
     return () => {
       if (autosaveTimerRef.current) window.clearTimeout(autosaveTimerRef.current);
     };
-  }, [aiState, productBacklog, project?._id, saveProductBacklog, saveStatus]);
-
-  const generateWithAi = async () => {
-    setAiState("generating");
-    setError(null);
-    try {
-      const res = await fetchApi("/ai/product-backlog/generate", { method: "POST" });
-      setSuggestion(normalizeProductBacklog(res.productBacklog || [], primaryActorOptions));
-      setAiState("suggestion_ready");
-    } catch (err: any) {
-      setError(err.message || "AI generation failed. Please try again.");
-      setAiState("idle");
-    }
-  };
+  }, [isAiBusy, productBacklog, project?._id, saveProductBacklog, saveStatus]);
 
   const projectLanguage = normalizeLanguage(project?.basics?.language || project?.language);
   const productBacklogLanguage = normalizeLanguage(project?.productBacklogLanguage);
+
+  const generateWithAi = async () => {
+    setLocalAiState("generating");
+    setError(null);
+
+    try {
+      const result = await startTask<{ type: string; productBacklog: ProductBacklogItem[] }>({
+        id: TASK_ID,
+        scope: SCOPE,
+        title: "Product Backlog",
+        subTitle: "Generating product backlog tasks with AI...",
+        pageRoute: PAGE_ROUTE,
+        status: "generating",
+        runner: async (signal) => {
+          const res = await fetchApi("/ai/product-backlog/generate", {
+            method: "POST",
+            signal,
+          });
+          const normalized = normalizeProductBacklog(res.productBacklog || [], primaryActorOptions);
+          return { type: "suggestion", productBacklog: normalized };
+        },
+      });
+
+      if (result?.productBacklog) {
+        setSuggestion(result.productBacklog);
+        setLocalAiState("suggestion_ready");
+      } else {
+        setLocalAiState("idle");
+      }
+    } catch (err: any) {
+      if (err?.name !== "AbortError") {
+        setError(err.message || "AI generation failed. Please try again.");
+      }
+      setLocalAiState("idle");
+    }
+  };
 
   const refineWithAi = async (instructions = "") => {
     if (productBacklog.length === 0) {
@@ -241,22 +327,44 @@ export function useProductBacklog() {
       return;
     }
 
-    setAiState("refining");
+    setLocalAiState("refining");
     setError(null);
+
     try {
       const trimmedInstructions = instructions.trim();
       const payload = trimmedInstructions
-        ? { productBacklog, instructions: trimmedInstructions }
-        : { productBacklog };
-      const res = await fetchApi("/ai/product-backlog/refine", {
-        method: "POST",
-        body: JSON.stringify(payload),
+        ? { productBacklog: backlogRef.current, instructions: trimmedInstructions }
+        : { productBacklog: backlogRef.current };
+
+      const result = await startTask<{ type: string; productBacklog: ProductBacklogItem[] }>({
+        id: TASK_ID,
+        scope: SCOPE,
+        title: "Product Backlog",
+        subTitle: "Refining product backlog with AI...",
+        pageRoute: PAGE_ROUTE,
+        status: "refining",
+        runner: async (signal) => {
+          const res = await fetchApi("/ai/product-backlog/refine", {
+            method: "POST",
+            body: JSON.stringify(payload),
+            signal,
+          });
+          const normalized = normalizeProductBacklog(res.productBacklog || [], primaryActorOptions);
+          return { type: "suggestion", productBacklog: normalized };
+        },
       });
-      setSuggestion(normalizeProductBacklog(res.productBacklog || [], primaryActorOptions));
-      setAiState("suggestion_ready");
+
+      if (result?.productBacklog) {
+        setSuggestion(result.productBacklog);
+        setLocalAiState("suggestion_ready");
+      } else {
+        setLocalAiState("idle");
+      }
     } catch (err: any) {
-      setError(err.message || "AI refinement failed. Please try again.");
-      setAiState("idle");
+      if (err?.name !== "AbortError") {
+        setError(err.message || "AI refinement failed. Please try again.");
+      }
+      setLocalAiState("idle");
     }
   };
 
@@ -266,23 +374,62 @@ export function useProductBacklog() {
       return;
     }
 
-    setAiState("translating");
+    setLocalAiState("translating");
     setError(null);
+
     try {
-      const res = await fetchApi("/ai/product-backlog/translate", {
-        method: "POST",
-        body: JSON.stringify({ productBacklog }),
+      const result = await startTask<{ type: string; productBacklog: ProductBacklogItem[] }>({
+        id: TASK_ID,
+        scope: SCOPE,
+        title: "Product Backlog",
+        subTitle: `Translating product backlog to ${getLanguageLabel(projectLanguage)}...`,
+        pageRoute: PAGE_ROUTE,
+        status: "translating",
+        runner: async (signal) => {
+          const res = await fetchApi("/ai/product-backlog/translate", {
+            method: "POST",
+            body: JSON.stringify({ productBacklog: backlogRef.current }),
+            signal,
+          });
+          const translatedBacklog = renumberProductBacklog(
+            normalizeProductBacklog(res.productBacklog || [], primaryActorOptions)
+          );
+
+          if (project?._id) {
+            const savePayload = projectLanguage
+              ? { productBacklog: translatedBacklog, language: projectLanguage }
+              : { productBacklog: translatedBacklog };
+            await fetchApi(`/projects/${project._id}/product-backlog`, {
+              method: "PUT",
+              body: JSON.stringify(savePayload),
+              signal,
+            });
+          }
+
+          return { type: "saved", productBacklog: translatedBacklog };
+        },
       });
-      const translatedBacklog = renumberProductBacklog(normalizeProductBacklog(res.productBacklog || [], primaryActorOptions));
-      backlogRef.current = translatedBacklog;
-      setProductBacklog(translatedBacklog);
-      await saveProductBacklog(translatedBacklog, false, projectLanguage || undefined);
-      setAiState("idle");
+
+      if (result?.productBacklog) {
+        backlogRef.current = result.productBacklog;
+        setProductBacklog(result.productBacklog);
+        setLocalAiState("idle");
+        setSaveStatus("saved");
+      } else {
+        setLocalAiState("idle");
+      }
     } catch (err: any) {
-      setError(err.message || "AI product backlog translation failed. Please try again.");
-      setAiState("idle");
+      if (err?.name !== "AbortError") {
+        setError(err.message || "AI product backlog translation failed. Please try again.");
+      }
+      setLocalAiState("idle");
     }
   };
+
+  const cancelAi = useCallback(() => {
+    cancelTask(TASK_ID);
+    setLocalAiState("idle");
+  }, [cancelTask]);
 
   const acceptSuggestion = useCallback(async () => {
     if (suggestion) {
@@ -290,18 +437,21 @@ export function useProductBacklog() {
       backlogRef.current = nextBacklog;
       setProductBacklog(nextBacklog);
       setSuggestion(null);
-      setAiState("idle");
+      setLocalAiState("idle");
+      dismissTask(TASK_ID);
       await saveProductBacklog(nextBacklog, false, projectLanguage || undefined);
       return;
     }
     setSuggestion(null);
-    setAiState("idle");
-  }, [projectLanguage, saveProductBacklog, suggestion]);
+    setLocalAiState("idle");
+    dismissTask(TASK_ID);
+  }, [dismissTask, projectLanguage, saveProductBacklog, suggestion]);
 
   const discardSuggestion = useCallback(() => {
     setSuggestion(null);
-    setAiState("idle");
-  }, []);
+    setLocalAiState("idle");
+    dismissTask(TASK_ID);
+  }, [dismissTask]);
 
   const dismissError = useCallback(() => setError(null), []);
 
@@ -311,6 +461,7 @@ export function useProductBacklog() {
     loading,
     saveStatus,
     aiState,
+    isAiBusy,
     suggestion,
     error,
     primaryActorOptions,
@@ -320,6 +471,7 @@ export function useProductBacklog() {
     generateWithAi,
     refineWithAi,
     translateWithAi,
+    cancelAi,
     projectLanguage,
     productBacklogLanguage,
     acceptSuggestion,

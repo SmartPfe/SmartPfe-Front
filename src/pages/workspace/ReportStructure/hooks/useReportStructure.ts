@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchApi } from "@/lib/api";
+import { useAiGeneration } from "@/context/AiGenerationContext";
 
 export type ReportSection = {
   id: string;
@@ -58,37 +59,79 @@ export function createEmptySection(title = "New section"): ReportSection {
   };
 }
 
+const TASK_ID = "report-structure:main";
+const SCOPE = "report-structure";
+const PAGE_ROUTE = "/workspace/report-structure";
+
 export function useReportStructure() {
+  const { startTask, isTaskActive, getTask, tasks, dismissTask, cancelTask } = useAiGeneration();
   const [project, setProject] = useState<any>(null);
   const [reportStructure, setReportStructure] = useState<ReportSection[]>([]);
   const [suggestion, setSuggestion] = useState<ReportSection[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
-  const [aiState, setAiState] = useState<AiState>("idle");
+  const [localAiState, setLocalAiState] = useState<AiState>("idle");
   const [error, setError] = useState<string | null>(null);
   const autosaveTimerRef = useRef<number | null>(null);
   const structureRef = useRef<ReportSection[]>([]);
+  const handledTaskIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     structureRef.current = reportStructure;
   }, [reportStructure]);
 
-  useEffect(() => {
-    const fetchReportStructure = async () => {
-      try {
-        const projectData = await fetchApi("/projects/my-project");
-        setProject(projectData);
-        const data = await fetchApi(`/projects/${projectData._id}/report-structure`);
-        setReportStructure(normalizeReportStructure(data.reportStructure || []));
-      } catch (err: any) {
-        setError(err.message || "Failed to load report structure. Please refresh the page.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchReportStructure();
+  const fetchReportStructure = useCallback(async () => {
+    try {
+      const projectData = await fetchApi("/projects/my-project");
+      setProject(projectData);
+      const data = await fetchApi(`/projects/${projectData._id}/report-structure`);
+      const normalized = normalizeReportStructure(data.reportStructure || []);
+      setReportStructure(normalized);
+      structureRef.current = normalized;
+      return { projectData, reportStructure: normalized };
+    } catch (err: any) {
+      setError(err.message || "Failed to load report structure. Please refresh the page.");
+      return null;
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchReportStructure();
+  }, [fetchReportStructure]);
+
+  // Sync background task state & hydrate completed refinement results
+  useEffect(() => {
+    const task = tasks[TASK_ID];
+    if (!task) {
+      if (localAiState === "generating" || localAiState === "refining" || localAiState === "translating") {
+        setLocalAiState("idle");
+      }
+      return;
+    }
+
+    if (task.status === "completed" && task.result) {
+      const taskNonce = `${task.id}-${task.completedAt}`;
+      if (handledTaskIdRef.current !== taskNonce) {
+        handledTaskIdRef.current = taskNonce;
+        if (task.result.type === "suggestion" && Array.isArray(task.result.reportStructure)) {
+          setSuggestion(task.result.reportStructure);
+          setLocalAiState("suggestion_ready");
+        } else if (task.result.type === "saved" && Array.isArray(task.result.reportStructure)) {
+          setReportStructure(task.result.reportStructure);
+          structureRef.current = task.result.reportStructure;
+          setLocalAiState("idle");
+          fetchReportStructure();
+        }
+      }
+    } else if (task.status === "error") {
+      setLocalAiState("idle");
+      if (task.error && !task.error.includes("Limit reached")) {
+        setError(task.error);
+      }
+    }
+  }, [fetchReportStructure, localAiState, tasks]);
 
   const markUnsaved = useCallback(() => setSaveStatus("unsaved"), []);
 
@@ -117,7 +160,9 @@ export function useReportStructure() {
         body: JSON.stringify(payload),
       });
       if (JSON.stringify(structureRef.current) === JSON.stringify(normalized)) {
-        setReportStructure(normalizeReportStructure(res.reportStructure || []));
+        const resNormalized = normalizeReportStructure(res.reportStructure || []);
+        setReportStructure(resNormalized);
+        structureRef.current = resNormalized;
         setProject((current: any) => current ? {
           ...current,
           reportStructureLanguage: res.language ?? current.reportStructureLanguage ?? "",
@@ -132,8 +177,17 @@ export function useReportStructure() {
     }
   }, [project?._id, reportStructure]);
 
+  const isRunning = isTaskActive(TASK_ID);
+  const currentTask = getTask(TASK_ID);
+
+  const aiState: AiState = isRunning
+    ? (currentTask?.status as AiState) || "generating"
+    : localAiState;
+
+  const isAiBusy = isRunning || aiState === "generating" || aiState === "refining" || aiState === "translating";
+
   useEffect(() => {
-    if (saveStatus !== "unsaved" || !project?._id || aiState !== "idle") return;
+    if (saveStatus !== "unsaved" || !project?._id || isAiBusy) return;
     if (reportStructure.length === 0) return;
 
     if (autosaveTimerRef.current) window.clearTimeout(autosaveTimerRef.current);
@@ -142,23 +196,46 @@ export function useReportStructure() {
     return () => {
       if (autosaveTimerRef.current) window.clearTimeout(autosaveTimerRef.current);
     };
-  }, [aiState, project?._id, reportStructure, saveReportStructure, saveStatus]);
-
-  const generateWithAi = async () => {
-    setAiState("generating");
-    setError(null);
-    try {
-      const res = await fetchApi("/ai/report-structure/generate", { method: "POST" });
-      setSuggestion(normalizeReportStructure(res.reportStructure || []));
-      setAiState("suggestion_ready");
-    } catch (err: any) {
-      setError(err.message || "AI generation failed. Please try again.");
-      setAiState("idle");
-    }
-  };
+  }, [isAiBusy, project?._id, reportStructure, saveReportStructure, saveStatus]);
 
   const projectLanguage = normalizeLanguage(project?.basics?.language || project?.language);
   const reportStructureLanguage = normalizeLanguage(project?.reportStructureLanguage);
+
+  const generateWithAi = async () => {
+    setLocalAiState("generating");
+    setError(null);
+
+    try {
+      const result = await startTask<{ type: string; reportStructure: ReportSection[] }>({
+        id: TASK_ID,
+        scope: SCOPE,
+        title: "Report Structure",
+        subTitle: "Generating report structure with AI...",
+        pageRoute: PAGE_ROUTE,
+        status: "generating",
+        runner: async (signal) => {
+          const res = await fetchApi("/ai/report-structure/generate", {
+            method: "POST",
+            signal,
+          });
+          const normalized = normalizeReportStructure(res.reportStructure || []);
+          return { type: "suggestion", reportStructure: normalized };
+        },
+      });
+
+      if (result?.reportStructure) {
+        setSuggestion(result.reportStructure);
+        setLocalAiState("suggestion_ready");
+      } else {
+        setLocalAiState("idle");
+      }
+    } catch (err: any) {
+      if (err?.name !== "AbortError") {
+        setError(err.message || "AI generation failed. Please try again.");
+      }
+      setLocalAiState("idle");
+    }
+  };
 
   const refineWithAi = async (instructions = "") => {
     if (reportStructure.length === 0) {
@@ -166,22 +243,44 @@ export function useReportStructure() {
       return;
     }
 
-    setAiState("refining");
+    setLocalAiState("refining");
     setError(null);
+
     try {
       const trimmedInstructions = instructions.trim();
       const payload = trimmedInstructions
-        ? { reportStructure, instructions: trimmedInstructions }
-        : { reportStructure };
-      const res = await fetchApi("/ai/report-structure/refine", {
-        method: "POST",
-        body: JSON.stringify(payload),
+        ? { reportStructure: structureRef.current, instructions: trimmedInstructions }
+        : { reportStructure: structureRef.current };
+
+      const result = await startTask<{ type: string; reportStructure: ReportSection[] }>({
+        id: TASK_ID,
+        scope: SCOPE,
+        title: "Report Structure",
+        subTitle: "Refining report structure with AI...",
+        pageRoute: PAGE_ROUTE,
+        status: "refining",
+        runner: async (signal) => {
+          const res = await fetchApi("/ai/report-structure/refine", {
+            method: "POST",
+            body: JSON.stringify(payload),
+            signal,
+          });
+          const normalized = normalizeReportStructure(res.reportStructure || []);
+          return { type: "suggestion", reportStructure: normalized };
+        },
       });
-      setSuggestion(normalizeReportStructure(res.reportStructure || []));
-      setAiState("suggestion_ready");
+
+      if (result?.reportStructure) {
+        setSuggestion(result.reportStructure);
+        setLocalAiState("suggestion_ready");
+      } else {
+        setLocalAiState("idle");
+      }
     } catch (err: any) {
-      setError(err.message || "AI refinement failed. Please try again.");
-      setAiState("idle");
+      if (err?.name !== "AbortError") {
+        setError(err.message || "AI refinement failed. Please try again.");
+      }
+      setLocalAiState("idle");
     }
   };
 
@@ -191,41 +290,81 @@ export function useReportStructure() {
       return;
     }
 
-    setAiState("translating");
+    setLocalAiState("translating");
     setError(null);
+
     try {
-      const res = await fetchApi("/ai/report-structure/translate", {
-        method: "POST",
-        body: JSON.stringify({ reportStructure }),
+      const result = await startTask<{ type: string; reportStructure: ReportSection[] }>({
+        id: TASK_ID,
+        scope: SCOPE,
+        title: "Report Structure",
+        subTitle: `Translating report structure to ${getLanguageLabel(projectLanguage)}...`,
+        pageRoute: PAGE_ROUTE,
+        status: "translating",
+        runner: async (signal) => {
+          const res = await fetchApi("/ai/report-structure/translate", {
+            method: "POST",
+            body: JSON.stringify({ reportStructure: structureRef.current }),
+            signal,
+          });
+          const translatedStructure = normalizeReportStructure(res.reportStructure || []);
+
+          if (project?._id) {
+            const savePayload = projectLanguage
+              ? { reportStructure: translatedStructure, language: projectLanguage }
+              : { reportStructure: translatedStructure };
+            await fetchApi(`/projects/${project._id}/report-structure`, {
+              method: "PUT",
+              body: JSON.stringify(savePayload),
+              signal,
+            });
+          }
+
+          return { type: "saved", reportStructure: translatedStructure };
+        },
       });
-      const translatedStructure = normalizeReportStructure(res.reportStructure || []);
-      structureRef.current = translatedStructure;
-      setReportStructure(translatedStructure);
-      await saveReportStructure(translatedStructure, false, projectLanguage || undefined);
-      setAiState("idle");
+
+      if (result?.reportStructure) {
+        structureRef.current = result.reportStructure;
+        setReportStructure(result.reportStructure);
+        setLocalAiState("idle");
+        setSaveStatus("saved");
+      } else {
+        setLocalAiState("idle");
+      }
     } catch (err: any) {
-      setError(err.message || "AI report structure translation failed. Please try again.");
-      setAiState("idle");
+      if (err?.name !== "AbortError") {
+        setError(err.message || "AI report structure translation failed. Please try again.");
+      }
+      setLocalAiState("idle");
     }
   };
+
+  const cancelAi = useCallback(() => {
+    cancelTask(TASK_ID);
+    setLocalAiState("idle");
+  }, [cancelTask]);
 
   const acceptSuggestion = useCallback(async () => {
     if (suggestion) {
       structureRef.current = suggestion;
       setReportStructure(suggestion);
       setSuggestion(null);
-      setAiState("idle");
+      setLocalAiState("idle");
+      dismissTask(TASK_ID);
       await saveReportStructure(suggestion, false, projectLanguage || undefined);
       return;
     }
     setSuggestion(null);
-    setAiState("idle");
-  }, [projectLanguage, saveReportStructure, suggestion]);
+    setLocalAiState("idle");
+    dismissTask(TASK_ID);
+  }, [dismissTask, projectLanguage, saveReportStructure, suggestion]);
 
   const discardSuggestion = useCallback(() => {
     setSuggestion(null);
-    setAiState("idle");
-  }, []);
+    setLocalAiState("idle");
+    dismissTask(TASK_ID);
+  }, [dismissTask]);
 
   const dismissError = useCallback(() => setError(null), []);
 
@@ -236,6 +375,7 @@ export function useReportStructure() {
     loading,
     saveStatus,
     aiState,
+    isAiBusy,
     suggestion,
     error,
     markUnsaved,
@@ -243,6 +383,7 @@ export function useReportStructure() {
     generateWithAi,
     refineWithAi,
     translateWithAi,
+    cancelAi,
     projectLanguage,
     reportStructureLanguage,
     acceptSuggestion,

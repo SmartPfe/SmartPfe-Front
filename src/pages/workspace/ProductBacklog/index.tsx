@@ -8,6 +8,8 @@ import {
   renumberProductBacklog,
   useProductBacklog,
 } from "./hooks/useProductBacklog";
+import AiBackgroundBanner from "@/components/ai/AiBackgroundBanner";
+import HugeiconsIcon from "@/components/ui/HugeiconsIcon";
 
 const priorityStyles: Record<BacklogPriority, string> = {
   High: "bg-error-container text-on-error-container border-error/20",
@@ -39,6 +41,7 @@ export default function ProductBacklog() {
     loading,
     saveStatus,
     aiState,
+    isAiBusy,
     suggestion,
     error,
     primaryActorOptions,
@@ -48,6 +51,7 @@ export default function ProductBacklog() {
     generateWithAi,
     refineWithAi,
     translateWithAi,
+    cancelAi,
     projectLanguage,
     productBacklogLanguage,
     acceptSuggestion,
@@ -62,7 +66,6 @@ export default function ProductBacklog() {
   const [refineOpen, setRefineOpen] = useState(false);
   const [refineInstructions, setRefineInstructions] = useState("");
   const refinePopoverRef = useRef<HTMLDivElement>(null);
-  const isAiBusy = aiState === "generating" || aiState === "refining" || aiState === "translating";
   const shouldShowTranslate = Boolean(
     projectLanguage &&
     productBacklog.length > 0 &&
@@ -248,7 +251,7 @@ export default function ProductBacklog() {
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[18px]" aria-hidden="true">translate</span>
+                  <HugeiconsIcon icon="globe-02" size={16} strokeWidth={1.75} />
                   Translate to {getLanguageLabel(projectLanguage)}
                 </span>
               )}
@@ -256,6 +259,14 @@ export default function ProductBacklog() {
           )}
         </div>
       </div>
+
+      {/* Background AI Progress Banner */}
+      <AiBackgroundBanner
+        isVisible={isAiBusy}
+        moduleName="Product Backlog"
+        action={aiState}
+        onCancel={cancelAi}
+      />
 
       {error && (
         <div className="mb-6 p-3 rounded-lg bg-error-container text-on-error-container border border-error/20 flex items-center justify-between gap-3">

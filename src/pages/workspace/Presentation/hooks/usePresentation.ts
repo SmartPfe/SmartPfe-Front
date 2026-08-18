@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useOnboarding } from "@/context/OnboardingContext";
 import { fetchApi } from "@/lib/api";
+import { useAiGeneration } from "@/context/AiGenerationContext";
 
 export type PresentationDuration = 5 | 10 | 15 | 20;
 export type AiState = "idle" | "generating" | "refining" | "translating";
@@ -92,7 +93,12 @@ export const createEmptySlide = (index: number): PresentationSlide => ({
   notes: "",
 });
 
+const TASK_ID = "presentation:main";
+const SCOPE = "presentation";
+const PAGE_ROUTE = "/workspace/presentation";
+
 export function usePresentation() {
+  const { startTask, isTaskActive, getTask, tasks, dismissTask, cancelTask } = useAiGeneration();
   const location = useLocation();
   const { data: onboardingData } = useOnboarding();
   const [project, setProject] = useState<any>(null);
@@ -100,10 +106,11 @@ export function usePresentation() {
   const [presentation, setPresentation] = useState<PresentationDeck>(normalizePresentation());
   const [loading, setLoading] = useState(true);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
-  const [aiState, setAiState] = useState<AiState>("idle");
+  const [localAiState, setLocalAiState] = useState<AiState>("idle");
   const [error, setError] = useState<string | null>(null);
   const autosaveTimerRef = useRef<number | null>(null);
   const presentationRef = useRef<PresentationDeck>(presentation);
+  const handledTaskIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     presentationRef.current = presentation;
@@ -113,24 +120,57 @@ export function usePresentation() {
   const onboardingLanguage = hasOnboardingProjectData ? normalizeLanguage(onboardingData.basics.language) : "";
   const projectLanguage = onboardingLanguage || currentProjectLanguage || normalizeLanguage(project?.basics?.language || project?.language);
 
-  useEffect(() => {
-    const fetchPresentation = async () => {
-      try {
-        const projectData = await fetchApi("/projects/my-project");
-        setProject(projectData);
-        setCurrentProjectLanguage(normalizeLanguage(projectData?.basics?.language || projectData?.language));
+  const fetchPresentation = useCallback(async () => {
+    try {
+      const projectData = await fetchApi("/projects/my-project");
+      setProject(projectData);
+      setCurrentProjectLanguage(normalizeLanguage(projectData?.basics?.language || projectData?.language));
 
-        const data = await fetchApi(`/projects/${projectData._id}/presentation`);
-        setPresentation(normalizePresentation(data.presentation || {}));
-      } catch (err: any) {
-        setError(err.message || "Failed to load presentation. Please refresh the page.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchPresentation();
+      const data = await fetchApi(`/projects/${projectData._id}/presentation`);
+      const normalized = normalizePresentation(data.presentation || {});
+      setPresentation(normalized);
+      presentationRef.current = normalized;
+      return { projectData, presentation: normalized };
+    } catch (err: any) {
+      setError(err.message || "Failed to load presentation. Please refresh the page.");
+      return null;
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchPresentation();
+  }, [fetchPresentation]);
+
+  // Sync background task state & hydrate completed refinement results
+  useEffect(() => {
+    const task = tasks[TASK_ID];
+    if (!task) {
+      if (localAiState === "generating" || localAiState === "refining" || localAiState === "translating") {
+        setLocalAiState("idle");
+      }
+      return;
+    }
+
+    if (task.status === "completed" && task.result) {
+      const taskNonce = `${task.id}-${task.completedAt}`;
+      if (handledTaskIdRef.current !== taskNonce) {
+        handledTaskIdRef.current = taskNonce;
+        if (task.result.type === "saved" && task.result.presentation) {
+          setPresentation(task.result.presentation);
+          presentationRef.current = task.result.presentation;
+          setLocalAiState("idle");
+          fetchPresentation();
+        }
+      }
+    } else if (task.status === "error") {
+      setLocalAiState("idle");
+      if (task.error && !task.error.includes("Limit reached")) {
+        setError(task.error);
+      }
+    }
+  }, [fetchPresentation, localAiState, tasks]);
 
   useEffect(() => {
     const refreshProjectLanguage = async () => {
@@ -197,15 +237,24 @@ export function usePresentation() {
     }
   }, [presentation, project?._id]);
 
+  const isRunning = isTaskActive(TASK_ID);
+  const currentTask = getTask(TASK_ID);
+
+  const aiState: AiState = isRunning
+    ? (currentTask?.status as AiState) || "generating"
+    : localAiState;
+
+  const isAiBusy = isRunning || aiState === "generating" || aiState === "refining" || aiState === "translating";
+
   useEffect(() => {
-    if (saveStatus !== "unsaved" || !project?._id || aiState !== "idle") return;
+    if (saveStatus !== "unsaved" || !project?._id || isAiBusy) return;
     if (autosaveTimerRef.current) window.clearTimeout(autosaveTimerRef.current);
     autosaveTimerRef.current = window.setTimeout(() => savePresentation(presentation), 1200);
 
     return () => {
       if (autosaveTimerRef.current) window.clearTimeout(autosaveTimerRef.current);
     };
-  }, [aiState, presentation, project?._id, savePresentation, saveStatus]);
+  }, [isAiBusy, presentation, project?._id, savePresentation, saveStatus]);
 
   const updatePresentation = useCallback((updater: (current: PresentationDeck) => PresentationDeck) => {
     setPresentation((current) => normalizePresentation(updater(current)));
@@ -213,22 +262,50 @@ export function usePresentation() {
   }, [markUnsaved]);
 
   const generateWithAi = async (durationMinutes: PresentationDuration) => {
-    setAiState("generating");
+    setLocalAiState("generating");
     setError(null);
+
     try {
-      const res = await fetchApi("/ai/presentation/generate", {
-        method: "POST",
-        body: JSON.stringify({ durationMinutes }),
+      const result = await startTask<{ type: string; presentation: PresentationDeck }>({
+        id: TASK_ID,
+        scope: SCOPE,
+        title: "Presentation & Defense",
+        subTitle: `Generating ${durationMinutes}-minute presentation slides with AI...`,
+        pageRoute: PAGE_ROUTE,
+        status: "generating",
+        runner: async (signal) => {
+          const res = await fetchApi("/ai/presentation/generate", {
+            method: "POST",
+            body: JSON.stringify({ durationMinutes }),
+            signal,
+          });
+          const nextPresentation = normalizePresentation(res.presentation || {});
+
+          if (project?._id) {
+            await fetchApi(`/projects/${project._id}/presentation`, {
+              method: "PUT",
+              body: JSON.stringify({ presentation: nextPresentation }),
+              signal,
+            });
+          }
+
+          return { type: "saved", presentation: nextPresentation };
+        },
       });
-      const nextPresentation = normalizePresentation(res.presentation || {});
-      presentationRef.current = nextPresentation;
-      setPresentation(nextPresentation);
-      setSaveStatus("unsaved");
-      await savePresentation(nextPresentation);
+
+      if (result?.presentation) {
+        presentationRef.current = result.presentation;
+        setPresentation(result.presentation);
+        setLocalAiState("idle");
+        setSaveStatus("saved");
+      } else {
+        setLocalAiState("idle");
+      }
     } catch (err: any) {
-      setError(err.message || "AI presentation generation failed. Please try again.");
-    } finally {
-      setAiState("idle");
+      if (err?.name !== "AbortError") {
+        setError(err.message || "AI presentation generation failed. Please try again.");
+      }
+      setLocalAiState("idle");
     }
   };
 
@@ -238,65 +315,128 @@ export function usePresentation() {
       return;
     }
 
-    setAiState("refining");
+    setLocalAiState("refining");
     setError(null);
+
     try {
       const trimmedInstructions = instructions.trim();
-      const res = await fetchApi("/ai/presentation/refine", {
-        method: "POST",
-        body: JSON.stringify({
-          presentation,
-          ...(slideId ? { slideId } : {}),
-          ...(trimmedInstructions ? { instructions: trimmedInstructions } : {}),
-        }),
+      const payload = {
+        presentation: presentationRef.current,
+        ...(slideId ? { slideId } : {}),
+        ...(trimmedInstructions ? { instructions: trimmedInstructions } : {}),
+      };
+
+      const result = await startTask<{ type: string; presentation: PresentationDeck }>({
+        id: TASK_ID,
+        scope: SCOPE,
+        title: "Presentation & Defense",
+        subTitle: slideId ? "Refining selected slide with AI..." : "Refining presentation slides with AI...",
+        pageRoute: PAGE_ROUTE,
+        status: "refining",
+        runner: async (signal) => {
+          const res = await fetchApi("/ai/presentation/refine", {
+            method: "POST",
+            body: JSON.stringify(payload),
+            signal,
+          });
+          const targetLanguage = projectLanguage;
+          const nextPresentation = normalizePresentation(res.presentation || {});
+          const refinedPresentation = slideId && targetLanguage
+            ? normalizePresentation({
+              ...nextPresentation,
+              slides: nextPresentation.slides.map((slide) => slide.id === slideId ? { ...slide, language: targetLanguage } : slide),
+            })
+            : nextPresentation;
+
+          if (project?._id) {
+            await fetchApi(`/projects/${project._id}/presentation`, {
+              method: "PUT",
+              body: JSON.stringify({ presentation: refinedPresentation }),
+              signal,
+            });
+          }
+
+          return { type: "saved", presentation: refinedPresentation };
+        },
       });
-      const targetLanguage = projectLanguage;
-      const nextPresentation = normalizePresentation(res.presentation || {});
-      const refinedPresentation = slideId && targetLanguage
-        ? normalizePresentation({
-          ...nextPresentation,
-          slides: nextPresentation.slides.map((slide) => slide.id === slideId ? { ...slide, language: targetLanguage } : slide),
-        })
-        : nextPresentation;
-      presentationRef.current = refinedPresentation;
-      setPresentation(refinedPresentation);
-      setSaveStatus("unsaved");
-      await savePresentation(refinedPresentation);
+
+      if (result?.presentation) {
+        presentationRef.current = result.presentation;
+        setPresentation(result.presentation);
+        setLocalAiState("idle");
+        setSaveStatus("saved");
+      } else {
+        setLocalAiState("idle");
+      }
     } catch (err: any) {
-      setError(err.message || "AI presentation refinement failed. Please try again.");
-    } finally {
-      setAiState("idle");
+      if (err?.name !== "AbortError") {
+        setError(err.message || "AI presentation refinement failed. Please try again.");
+      }
+      setLocalAiState("idle");
     }
   };
 
   const translateWithAi = async (slideId: string) => {
     if (!slideId) return;
 
-    setAiState("translating");
+    setLocalAiState("translating");
     setError(null);
+
     try {
-      const res = await fetchApi("/ai/presentation/translate", {
-        method: "POST",
-        body: JSON.stringify({ presentation, slideId }),
+      const result = await startTask<{ type: string; presentation: PresentationDeck }>({
+        id: TASK_ID,
+        scope: SCOPE,
+        title: "Presentation & Defense",
+        subTitle: `Translating slide to ${getLanguageLabel(projectLanguage)}...`,
+        pageRoute: PAGE_ROUTE,
+        status: "translating",
+        runner: async (signal) => {
+          const res = await fetchApi("/ai/presentation/translate", {
+            method: "POST",
+            body: JSON.stringify({ presentation: presentationRef.current, slideId }),
+            signal,
+          });
+          const targetLanguage = projectLanguage;
+          const nextPresentation = normalizePresentation(res.presentation || {});
+          const translatedPresentation = targetLanguage
+            ? normalizePresentation({
+              ...nextPresentation,
+              slides: nextPresentation.slides.map((slide) => slide.id === slideId ? { ...slide, language: targetLanguage } : slide),
+            })
+            : nextPresentation;
+
+          if (project?._id) {
+            await fetchApi(`/projects/${project._id}/presentation`, {
+              method: "PUT",
+              body: JSON.stringify({ presentation: translatedPresentation }),
+              signal,
+            });
+          }
+
+          return { type: "saved", presentation: translatedPresentation };
+        },
       });
-      const targetLanguage = projectLanguage;
-      const nextPresentation = normalizePresentation(res.presentation || {});
-      const translatedPresentation = targetLanguage
-        ? normalizePresentation({
-          ...nextPresentation,
-          slides: nextPresentation.slides.map((slide) => slide.id === slideId ? { ...slide, language: targetLanguage } : slide),
-        })
-        : nextPresentation;
-      presentationRef.current = translatedPresentation;
-      setPresentation(translatedPresentation);
-      setSaveStatus("unsaved");
-      await savePresentation(translatedPresentation);
+
+      if (result?.presentation) {
+        presentationRef.current = result.presentation;
+        setPresentation(result.presentation);
+        setLocalAiState("idle");
+        setSaveStatus("saved");
+      } else {
+        setLocalAiState("idle");
+      }
     } catch (err: any) {
-      setError(err.message || "AI presentation translation failed. Please try again.");
-    } finally {
-      setAiState("idle");
+      if (err?.name !== "AbortError") {
+        setError(err.message || "AI presentation translation failed. Please try again.");
+      }
+      setLocalAiState("idle");
     }
   };
+
+  const cancelAi = useCallback(() => {
+    cancelTask(TASK_ID);
+    setLocalAiState("idle");
+  }, [cancelTask]);
 
   const dismissError = useCallback(() => setError(null), []);
 
@@ -308,6 +448,7 @@ export function usePresentation() {
     loading,
     saveStatus,
     aiState,
+    isAiBusy,
     error,
     markUnsaved,
     updatePresentation,
@@ -315,6 +456,7 @@ export function usePresentation() {
     generateWithAi,
     refineWithAi,
     translateWithAi,
+    cancelAi,
     dismissError,
   };
 }

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import HugeiconsIcon from "@/components/ui/HugeiconsIcon";
 
 interface AiActionBarProps {
   onGenerate: () => void;
@@ -152,7 +153,7 @@ export default function AiActionBar({
             </span>
           ) : (
             <span className="inline-flex items-center gap-2">
-              <span aria-hidden="true">🌐</span>
+              <HugeiconsIcon icon="globe-02" size={16} strokeWidth={1.75} />
               {translateLabel}
             </span>
           )}

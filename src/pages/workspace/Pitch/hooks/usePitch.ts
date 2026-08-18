@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { fetchApi } from "@/lib/api";
+import { useAiGeneration } from "@/context/AiGenerationContext";
 import { PresentationDuration } from "../../Presentation/hooks/usePresentation";
 
 export type SaveStatus = "unsaved" | "saving" | "saved";
@@ -78,7 +79,7 @@ const normalizeTips = (tips: unknown): string[] => {
 
   return String(tips || "")
     .split(/\r?\n/)
-    .map((tip) => tip.replace(/^\s*[-*\u2022]\s*/, "").trim())
+    .map((tip) => tip.replace(/^\s*[-*•]\s*/, "").trim())
     .filter(Boolean);
 };
 
@@ -106,40 +107,79 @@ export const normalizePitch = (pitch: Partial<PitchDeck> = {}): PitchDeck => ({
 const hasPitchSpeech = (pitch: Partial<PitchDeck> = {}) =>
   Array.isArray(pitch.slides) && pitch.slides.some((slide) => String(slide?.speech || "").trim());
 
+const TASK_ID = "pitch:main";
+const SCOPE = "pitch";
+const PAGE_ROUTE = "/workspace/pitch";
+
 export function usePitch() {
+  const { startTask, isTaskActive, getTask, tasks, dismissTask, cancelTask } = useAiGeneration();
   const location = useLocation();
   const [project, setProject] = useState<any>(null);
   const [currentProjectLanguage, setCurrentProjectLanguage] = useState("");
   const [pitch, setPitch] = useState<PitchDeck>(normalizePitch());
   const [loading, setLoading] = useState(true);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
-  const [aiState, setAiState] = useState<AiState>("idle");
+  const [localAiState, setLocalAiState] = useState<AiState>("idle");
   const [error, setError] = useState<string | null>(null);
   const autosaveTimerRef = useRef<number | null>(null);
   const pitchRef = useRef<PitchDeck>(pitch);
+  const handledTaskIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     pitchRef.current = pitch;
   }, [pitch]);
 
-  useEffect(() => {
-    const fetchPitch = async () => {
-      try {
-        const projectData = await fetchApi("/projects/my-project");
-        setProject(projectData);
-        setCurrentProjectLanguage(normalizeLanguage(projectData?.basics?.language || projectData?.language));
+  const fetchPitch = useCallback(async () => {
+    try {
+      const projectData = await fetchApi("/projects/my-project");
+      setProject(projectData);
+      setCurrentProjectLanguage(normalizeLanguage(projectData?.basics?.language || projectData?.language));
 
-        const data = await fetchApi(`/projects/${projectData._id}/pitch`);
-        setPitch(normalizePitch(data.pitch || {}));
-      } catch (err: any) {
-        setError(err.message || "Failed to load pitch. Please refresh the page.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchPitch();
+      const data = await fetchApi(`/projects/${projectData._id}/pitch`);
+      const normalized = normalizePitch(data.pitch || {});
+      setPitch(normalized);
+      pitchRef.current = normalized;
+      return { projectData, pitch: normalized };
+    } catch (err: any) {
+      setError(err.message || "Failed to load pitch. Please refresh the page.");
+      return null;
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchPitch();
+  }, [fetchPitch]);
+
+  // Sync background task state & hydrate completed refinement results
+  useEffect(() => {
+    const task = tasks[TASK_ID];
+    if (!task) {
+      if (localAiState === "generating" || localAiState === "refining" || localAiState === "translating") {
+        setLocalAiState("idle");
+      }
+      return;
+    }
+
+    if (task.status === "completed" && task.result) {
+      const taskNonce = `${task.id}-${task.completedAt}`;
+      if (handledTaskIdRef.current !== taskNonce) {
+        handledTaskIdRef.current = taskNonce;
+        if (task.result.type === "saved" && task.result.pitch) {
+          setPitch(task.result.pitch);
+          pitchRef.current = task.result.pitch;
+          setLocalAiState("idle");
+          fetchPitch();
+        }
+      }
+    } else if (task.status === "error") {
+      setLocalAiState("idle");
+      if (task.error && !task.error.includes("Limit reached")) {
+        setError(task.error);
+      }
+    }
+  }, [fetchPitch, localAiState, tasks]);
 
   useEffect(() => {
     const refreshProjectLanguage = async () => {
@@ -211,15 +251,24 @@ export function usePitch() {
     }
   }, [pitch, project?._id]);
 
+  const isRunning = isTaskActive(TASK_ID);
+  const currentTask = getTask(TASK_ID);
+
+  const aiState: AiState = isRunning
+    ? (currentTask?.status as AiState) || "generating"
+    : localAiState;
+
+  const isAiBusy = isRunning || aiState === "generating" || aiState === "refining" || aiState === "translating";
+
   useEffect(() => {
-    if (saveStatus !== "unsaved" || !project?._id || aiState !== "idle") return;
+    if (saveStatus !== "unsaved" || !project?._id || isAiBusy) return;
     if (autosaveTimerRef.current) window.clearTimeout(autosaveTimerRef.current);
     autosaveTimerRef.current = window.setTimeout(() => savePitch(pitch), 1200);
 
     return () => {
       if (autosaveTimerRef.current) window.clearTimeout(autosaveTimerRef.current);
     };
-  }, [aiState, pitch, project?._id, savePitch, saveStatus]);
+  }, [aiState, isAiBusy, pitch, project?._id, savePitch, saveStatus]);
 
   const updatePitch = useCallback((updater: (current: PitchDeck) => PitchDeck) => {
     setPitch((current) => normalizePitch(updater(current)));
@@ -229,30 +278,64 @@ export function usePitch() {
   const replaceWithAiPitch = useCallback(async (
     endpoint: string,
     body?: Record<string, unknown>,
-    nextAiState: AiState = "generating",
+    nextAiState: Exclude<AiState, "idle"> = "generating",
+    taskSubTitle = "Generating defense pitch with AI...",
     errorMessage = "AI pitch generation failed. Please try again."
   ) => {
-    setAiState(nextAiState);
+    setLocalAiState(nextAiState);
     setError(null);
+
     try {
-      const res = await fetchApi(endpoint, {
-        method: "POST",
-        body: body ? JSON.stringify(body) : undefined,
+      const result = await startTask<{ type: string; pitch: PitchDeck }>({
+        id: TASK_ID,
+        scope: SCOPE,
+        title: "Pitch & Defense Speech",
+        subTitle: taskSubTitle,
+        pageRoute: PAGE_ROUTE,
+        status: nextAiState,
+        runner: async (signal) => {
+          const res = await fetchApi(endpoint, {
+            method: "POST",
+            body: body ? JSON.stringify(body) : undefined,
+            signal,
+          });
+          const nextPitch = normalizePitch(res.pitch || {});
+
+          if (project?._id) {
+            await fetchApi(`/projects/${project._id}/pitch`, {
+              method: "PUT",
+              body: JSON.stringify({ pitch: nextPitch }),
+              signal,
+            });
+          }
+
+          return { type: "saved", pitch: nextPitch };
+        },
       });
-      const nextPitch = normalizePitch(res.pitch || {});
-      pitchRef.current = nextPitch;
-      setPitch(nextPitch);
-      setSaveStatus("unsaved");
-      await savePitch(nextPitch);
+
+      if (result?.pitch) {
+        pitchRef.current = result.pitch;
+        setPitch(result.pitch);
+        setLocalAiState("idle");
+        setSaveStatus("saved");
+      } else {
+        setLocalAiState("idle");
+      }
     } catch (err: any) {
-      setError(err.message || errorMessage);
-    } finally {
-      setAiState("idle");
+      if (err?.name !== "AbortError") {
+        setError(err.message || errorMessage);
+      }
+      setLocalAiState("idle");
     }
-  }, [savePitch]);
+  }, [project?._id, startTask]);
 
   const generateWithAi = async () => {
-    await replaceWithAiPitch("/ai/pitch/generate");
+    await replaceWithAiPitch(
+      "/ai/pitch/generate",
+      undefined,
+      "generating",
+      "Generating complete defense speech with AI..."
+    );
   };
 
   const refineWithAi = async (instructions = "") => {
@@ -264,14 +347,20 @@ export function usePitch() {
     const trimmedInstructions = instructions.trim();
     await replaceWithAiPitch(
       "/ai/pitch/refine",
-      { pitch, ...(trimmedInstructions ? { instructions: trimmedInstructions } : {}) },
+      { pitch: pitchRef.current, ...(trimmedInstructions ? { instructions: trimmedInstructions } : {}) },
       "refining",
+      "Refining complete defense pitch with AI...",
       "AI pitch refinement failed. Please try again."
     );
   };
 
   const generateSlideWithAi = async (slideId: string) => {
-    await replaceWithAiPitch("/ai/pitch/slide/generate", { pitch, slideId });
+    await replaceWithAiPitch(
+      "/ai/pitch/slide/generate",
+      { pitch: pitchRef.current, slideId },
+      "generating",
+      "Generating speech for selected slide..."
+    );
   };
 
   const refineSlideWithAi = async (slideId: string, instructions = "") => {
@@ -284,8 +373,9 @@ export function usePitch() {
     const trimmedInstructions = instructions.trim();
     await replaceWithAiPitch(
       "/ai/pitch/slide/refine",
-      { pitch, slideId, ...(trimmedInstructions ? { instructions: trimmedInstructions } : {}) },
+      { pitch: pitchRef.current, slideId, ...(trimmedInstructions ? { instructions: trimmedInstructions } : {}) },
       "refining",
+      "Refining selected slide speech with AI...",
       "AI slide speech refinement failed. Please try again."
     );
   };
@@ -293,11 +383,17 @@ export function usePitch() {
   const translateSlideWithAi = async (slideId: string) => {
     await replaceWithAiPitch(
       "/ai/pitch/slide/translate",
-      { pitch, slideId },
+      { pitch: pitchRef.current, slideId },
       "translating",
+      `Translating slide speech to ${getLanguageLabel(projectLanguage)}...`,
       "AI slide speech translation failed. Please try again."
     );
   };
+
+  const cancelAi = useCallback(() => {
+    cancelTask(TASK_ID);
+    setLocalAiState("idle");
+  }, [cancelTask]);
 
   const dismissError = useCallback(() => setError(null), []);
   const projectLanguage = currentProjectLanguage || normalizeLanguage(project?.basics?.language || project?.language);
@@ -310,6 +406,7 @@ export function usePitch() {
     loading,
     saveStatus,
     aiState,
+    isAiBusy,
     error,
     markUnsaved,
     updatePitch,
@@ -319,6 +416,7 @@ export function usePitch() {
     generateSlideWithAi,
     refineSlideWithAi,
     translateSlideWithAi,
+    cancelAi,
     dismissError,
   };
 }

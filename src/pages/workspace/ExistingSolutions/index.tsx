@@ -6,6 +6,8 @@ import {
   getLanguageLabel,
   useExistingSolutions,
 } from "./hooks/useExistingSolutions";
+import AiBackgroundBanner from "@/components/ai/AiBackgroundBanner";
+import HugeiconsIcon from "@/components/ui/HugeiconsIcon";
 
 const aiButtonClass =
   "px-5 py-2 rounded-md border border-primary/20 bg-gradient-to-r from-primary/5 to-secondary/5 text-primary text-label-md font-semibold hover:from-primary/10 hover:to-secondary/10 transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed disabled:grayscale";
@@ -31,6 +33,7 @@ export default function ExistingSolutions() {
     loading,
     saveStatus,
     aiState,
+    isAiBusy,
     suggestion,
     error,
     markUnsaved,
@@ -38,6 +41,7 @@ export default function ExistingSolutions() {
     generateWithAi,
     refineWithAi,
     translateWithAi,
+    cancelAi,
     projectLanguage,
     existingSolutionsLanguage,
     acceptSuggestion,
@@ -50,7 +54,6 @@ export default function ExistingSolutions() {
   const [refineOpen, setRefineOpen] = useState(false);
   const [refineInstructions, setRefineInstructions] = useState("");
   const refinePopoverRef = useRef<HTMLDivElement>(null);
-  const isAiBusy = aiState === "generating" || aiState === "refining" || aiState === "translating";
   const shouldShowTranslate = Boolean(
     projectLanguage &&
     solutions.length > 0 &&
@@ -140,6 +143,14 @@ export default function ExistingSolutions() {
         </div>
       </div>
 
+      {/* Background AI Progress Banner */}
+      <AiBackgroundBanner
+        isVisible={isAiBusy}
+        moduleName="Existing Solutions"
+        action={aiState}
+        onCancel={cancelAi}
+      />
+
       <div className="mb-6 flex flex-col lg:flex-row lg:items-center justify-between gap-3 shrink-0">
         <div className="flex flex-wrap items-center gap-3">
           <style>{`
@@ -210,7 +221,7 @@ export default function ExistingSolutions() {
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-2">
-                  <span aria-hidden="true">🌐</span>
+                  <HugeiconsIcon icon="globe-02" size={16} strokeWidth={1.75} />
                   Translate to {getLanguageLabel(projectLanguage)}
                 </span>
               )}

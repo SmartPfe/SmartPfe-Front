@@ -14,6 +14,8 @@ import {
   useUmlPreparation,
 } from "./hooks/useUmlPreparation";
 import PlantUmlRenderer from "@/components/ui/PlantUmlRenderer";
+import AiBackgroundBanner from "@/components/ai/AiBackgroundBanner";
+import HugeiconsIcon from "@/components/ui/HugeiconsIcon";
 
 const diagrams = [
   { id: "usecase", name: "Use Case Diagram", icon: "person_play" },
@@ -41,6 +43,7 @@ export default function UmlPreparation() {
     loading,
     saveStatus,
     aiState,
+    isAiBusy,
     suggestion,
     error,
     markUnsaved,
@@ -48,6 +51,7 @@ export default function UmlPreparation() {
     generateWithAi,
     refineWithAi,
     translateWithAi,
+    cancelAi,
     projectLanguage,
     umlPreparationLanguage,
     acceptSuggestion,
@@ -61,7 +65,6 @@ export default function UmlPreparation() {
   const [refineOpen, setRefineOpen] = useState(false);
   const [refineInstructions, setRefineInstructions] = useState("");
   const refinePopoverRef = useRef<HTMLDivElement>(null);
-  const isAiBusy = aiState === "generating" || aiState === "refining" || aiState === "translating";
   const shouldShowTranslate = Boolean(
     projectLanguage &&
     umlPreparation.classes.length > 0 &&
@@ -147,6 +150,14 @@ export default function UmlPreparation() {
           </button>
         </div>
       </div>
+
+      {/* Background AI Progress Banner */}
+      <AiBackgroundBanner
+        isVisible={isAiBusy}
+        moduleName="UML Preparation"
+        action={aiState}
+        onCancel={cancelAi}
+      />
 
       {/* Error Banner */}
       {error && (
@@ -246,7 +257,10 @@ export default function UmlPreparation() {
                 Translating...
               </span>
             ) : (
-              `Translate to ${getLanguageLabel(projectLanguage)}`
+              <span className="inline-flex items-center gap-2">
+                <HugeiconsIcon icon="globe-02" size={16} strokeWidth={1.75} />
+                Translate to {getLanguageLabel(projectLanguage)}
+              </span>
             )}
           </button>
         )}

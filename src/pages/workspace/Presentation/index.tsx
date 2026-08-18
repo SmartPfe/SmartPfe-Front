@@ -9,6 +9,8 @@ import {
   PresentationSlide,
   usePresentation,
 } from "./hooks/usePresentation";
+import AiBackgroundBanner from "@/components/ai/AiBackgroundBanner";
+import HugeiconsIcon from "@/components/ui/HugeiconsIcon";
 
 const durations: PresentationDuration[] = [5, 10, 15, 20];
 
@@ -24,12 +26,14 @@ export default function PresentationPage() {
     loading,
     saveStatus,
     aiState,
+    isAiBusy,
     error,
     updatePresentation,
     savePresentation,
     generateWithAi,
     refineWithAi,
     translateWithAi,
+    cancelAi,
     dismissError,
   } = usePresentation();
 
@@ -45,7 +49,7 @@ export default function PresentationPage() {
   const selectedIndex = selectedSlide ? slides.findIndex((slide) => slide.id === selectedSlide.id) : -1;
   const nextSlide = selectedIndex >= 0 ? slides[selectedIndex + 1] : undefined;
   const hasSlides = slides.length > 0;
-  const isAiIdle = aiState === "idle";
+  const isAiIdle = !isAiBusy && aiState === "idle";
   const selectedSlideHasContent = Boolean(
     selectedSlide &&
     (selectedSlide.title.trim() || selectedSlide.bullets.length || selectedSlide.notes.trim())
@@ -188,6 +192,14 @@ export default function PresentationPage() {
         </div>
       </header>
 
+      {/* Background AI Progress Banner */}
+      <AiBackgroundBanner
+        isVisible={isAiBusy}
+        moduleName="Presentation & Defense"
+        action={aiState}
+        onCancel={cancelAi}
+      />
+
       <div className="rounded-xl border border-outline-variant/80 bg-surface-container-lowest p-4 sm:p-5 shadow-xs">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -305,7 +317,7 @@ export default function PresentationPage() {
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-2">
-                        <span aria-hidden="true">🌐</span>
+                        <HugeiconsIcon icon="globe-02" size={16} strokeWidth={1.75} />
                         Translate to {getLanguageLabel(projectLanguage)}
                       </span>
                     )}

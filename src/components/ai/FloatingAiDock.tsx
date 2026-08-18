@@ -2,6 +2,7 @@ import React, { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { useAiGeneration } from "@/context/AiGenerationContext";
 import { cn } from "@/lib/utils";
+import HugeiconsIcon from "@/components/ui/HugeiconsIcon";
 
 export default function FloatingAiDock() {
   const { tasks, completedTasksList, activeRouteState, dismissTask, cancelTask, jumpToTask } = useAiGeneration();
@@ -35,7 +36,7 @@ export default function FloatingAiDock() {
   return (
     <div
       aria-label="Active Generations"
-      className="fixed bottom-6 right-6 z-[9999] flex flex-col gap-3 w-80 max-w-[calc(100vw-32px)] pointer-events-auto"
+      className="fixed bottom-6 right-6 z-[9999] flex flex-col gap-3 w-84 max-w-[calc(100vw-32px)] pointer-events-auto"
     >
       <style>{`
         @keyframes ai-dock-shimmer-linear {
@@ -60,34 +61,37 @@ export default function FloatingAiDock() {
           <div
             key={task.id}
             className={cn(
-              "w-full rounded-xl border bg-surface-container-lowest/95 backdrop-blur-md p-3.5 shadow-xl transition-all duration-200 flex flex-col gap-2.5",
+              "w-full rounded-2xl border bg-surface-container-lowest/95 backdrop-blur-md p-4 shadow-xl transition-all duration-300 ease-out flex flex-col gap-3 animate-in fade-in-50 slide-in-from-bottom-3",
               isCompleted
-                ? "border-secondary/40"
+                ? "border-secondary/40 shadow-secondary/5"
                 : isError
-                ? "border-error/40"
-                : "border-outline-variant/90 ring-1 ring-primary/20"
+                ? "border-error/40 shadow-error/5"
+                : "border-primary/30 ring-1 ring-primary/20 shadow-primary/5"
             )}
           >
             {/* Header: Status Icon, Title, and Action Controls */}
             <div className="flex items-start justify-between gap-3 w-full">
-              <div className="flex items-center gap-2.5 min-w-0 flex-1">
+              <div className="flex items-center gap-3 min-w-0 flex-1">
                 {/* Status Indicator */}
-                {isRunning ? (
-                  <span className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin shrink-0" />
-                ) : isCompleted ? (
-                  <span className="material-symbols-outlined text-[20px] text-secondary shrink-0">
-                    check_circle
-                  </span>
-                ) : (
-                  <span className="material-symbols-outlined text-[20px] text-error shrink-0">
-                    error
-                  </span>
-                )}
+                <div className="w-8 h-8 rounded-xl bg-surface-container flex items-center justify-center shrink-0">
+                  {isRunning ? (
+                    <span className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin shrink-0" />
+                  ) : isCompleted ? (
+                    <HugeiconsIcon icon="checkmark-circle-02" size={20} strokeWidth={2} className="text-secondary" />
+                  ) : (
+                    <HugeiconsIcon icon="cancel-circle" size={20} strokeWidth={2} className="text-error" />
+                  )}
+                </div>
 
                 <div className="min-w-0 flex-1">
-                  <h4 className="text-xs font-bold text-on-surface truncate">
-                    {task.title || "AI Generation"}
-                  </h4>
+                  <div className="flex items-center gap-1.5">
+                    <h4 className="text-xs font-bold text-on-surface truncate">
+                      {task.title || "AI Generation"}
+                    </h4>
+                    {isRunning && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse shrink-0" />
+                    )}
+                  </div>
                   <p className="text-[11px] text-on-surface-variant line-clamp-2 mt-0.5 font-medium leading-tight">
                     {isCompleted
                       ? "Ready to view"
@@ -106,7 +110,7 @@ export default function FloatingAiDock() {
                     title="Jump to this section"
                   >
                     <span>View</span>
-                    <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+                    <HugeiconsIcon icon="arrow-right-01" size={14} strokeWidth={2} />
                   </button>
                 )}
 
@@ -114,10 +118,10 @@ export default function FloatingAiDock() {
                   <button
                     type="button"
                     onClick={() => cancelTask(task.id)}
-                    className="h-7 px-2 rounded-lg text-on-surface-variant hover:text-error hover:bg-error-container/30 transition-colors flex items-center gap-1 text-[11px] font-medium cursor-pointer shrink-0"
+                    className="h-7 px-2.5 rounded-lg text-on-surface-variant hover:text-error hover:bg-error-container/30 transition-colors flex items-center gap-1 text-[11px] font-semibold cursor-pointer shrink-0 border border-outline-variant/60"
                     title="Stop and cancel this generation"
                   >
-                    <span className="material-symbols-outlined text-[15px]">cancel</span>
+                    <HugeiconsIcon icon="cancel-circle" size={14} strokeWidth={1.75} />
                     <span>Stop</span>
                   </button>
                 ) : (
@@ -127,7 +131,7 @@ export default function FloatingAiDock() {
                     className="w-7 h-7 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container flex items-center justify-center transition-colors cursor-pointer shrink-0"
                     title="Close notification"
                   >
-                    <span className="material-symbols-outlined text-[16px]">close</span>
+                    <HugeiconsIcon icon="close" size={16} strokeWidth={1.75} />
                   </button>
                 )}
               </div>
@@ -137,10 +141,10 @@ export default function FloatingAiDock() {
             {isRunning && (
               <div className="h-1 w-full bg-surface-container-high rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-primary rounded-full"
+                  className="h-full bg-gradient-to-r from-primary/60 via-primary to-secondary rounded-full"
                   style={{
                     width: "45%",
-                    animation: "ai-dock-shimmer-linear 1.4s ease-in-out infinite",
+                    animation: "ai-dock-shimmer-linear 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite",
                   }}
                 />
               </div>

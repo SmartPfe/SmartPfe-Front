@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { fetchApi } from "@/lib/api";
+import { useAiGeneration } from "@/context/AiGenerationContext";
 
 export type UmlClass = {
   _id?: string;
@@ -459,7 +460,12 @@ const formatRelationship = (relationship: UmlRelationship) => {
   return `${relationship.source} ${left}${operators[relationship.type] || "--"}${right} ${relationship.target}${label}`;
 };
 
+const TASK_ID = "uml-preparation:main";
+const SCOPE = "uml-preparation";
+const PAGE_ROUTE = "/workspace/uml-preparation";
+
 export function useUmlPreparation() {
+  const { startTask, isTaskActive, getTask, tasks, dismissTask, cancelTask } = useAiGeneration();
   const location = useLocation();
   const [project, setProject] = useState<any>(null);
   const [currentProjectLanguage, setCurrentProjectLanguage] = useState("");
@@ -467,32 +473,69 @@ export function useUmlPreparation() {
   const [suggestion, setSuggestion] = useState<UmlPreparation | null>(null);
   const [loading, setLoading] = useState(true);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
-  const [aiState, setAiState] = useState<AiState>("idle");
+  const [localAiState, setLocalAiState] = useState<AiState>("idle");
   const [error, setError] = useState<string | null>(null);
   const autosaveTimerRef = useRef<number | null>(null);
   const umlRef = useRef<UmlPreparation>(emptyUmlPreparation);
+  const handledTaskIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     umlRef.current = umlPreparation;
   }, [umlPreparation]);
 
-  useEffect(() => {
-    const fetchUmlPreparation = async () => {
-      try {
-        const projectData = await fetchApi("/projects/my-project");
-        setProject(projectData);
-        setCurrentProjectLanguage(normalizeLanguage(projectData?.basics?.language || projectData?.language));
-        const data = await fetchApi(`/projects/${projectData._id}/uml-preparation`);
-        setUmlPreparation(normalizeUmlPreparation(data.umlPreparation || {}));
-      } catch (err: any) {
-        setError(err.message || "Failed to load UML preparation. Please refresh the page.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchUmlPreparation();
+  const fetchUmlPreparation = useCallback(async () => {
+    try {
+      const projectData = await fetchApi("/projects/my-project");
+      setProject(projectData);
+      setCurrentProjectLanguage(normalizeLanguage(projectData?.basics?.language || projectData?.language));
+      const data = await fetchApi(`/projects/${projectData._id}/uml-preparation`);
+      const normalized = normalizeUmlPreparation(data.umlPreparation || {});
+      setUmlPreparation(normalized);
+      umlRef.current = normalized;
+      return { projectData, umlPreparation: normalized };
+    } catch (err: any) {
+      setError(err.message || "Failed to load UML preparation. Please refresh the page.");
+      return null;
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchUmlPreparation();
+  }, [fetchUmlPreparation]);
+
+  // Sync background task state & hydrate completed refinement results
+  useEffect(() => {
+    const task = tasks[TASK_ID];
+    if (!task) {
+      if (localAiState === "generating" || localAiState === "refining" || localAiState === "translating") {
+        setLocalAiState("idle");
+      }
+      return;
+    }
+
+    if (task.status === "completed" && task.result) {
+      const taskNonce = `${task.id}-${task.completedAt}`;
+      if (handledTaskIdRef.current !== taskNonce) {
+        handledTaskIdRef.current = taskNonce;
+        if (task.result.type === "suggestion" && task.result.umlPreparation) {
+          setSuggestion(task.result.umlPreparation);
+          setLocalAiState("suggestion_ready");
+        } else if (task.result.type === "saved" && task.result.umlPreparation) {
+          setUmlPreparation(task.result.umlPreparation);
+          umlRef.current = task.result.umlPreparation;
+          setLocalAiState("idle");
+          fetchUmlPreparation();
+        }
+      }
+    } else if (task.status === "error") {
+      setLocalAiState("idle");
+      if (task.error && !task.error.includes("Limit reached")) {
+        setError(task.error);
+      }
+    }
+  }, [fetchUmlPreparation, localAiState, tasks]);
 
   useEffect(() => {
     const refreshProjectLanguage = async () => {
@@ -559,28 +602,58 @@ export function useUmlPreparation() {
     }
   }, [project?._id, umlPreparation]);
 
+  const isRunning = isTaskActive(TASK_ID);
+  const currentTask = getTask(TASK_ID);
+
+  const aiState: AiState = isRunning
+    ? (currentTask?.status as AiState) || "generating"
+    : localAiState;
+
+  const isAiBusy = isRunning || aiState === "generating" || aiState === "refining" || aiState === "translating";
+
   useEffect(() => {
-    if (saveStatus !== "unsaved" || !project?._id || aiState !== "idle") return;
+    if (saveStatus !== "unsaved" || !project?._id || isAiBusy) return;
     if (autosaveTimerRef.current) window.clearTimeout(autosaveTimerRef.current);
     autosaveTimerRef.current = window.setTimeout(() => saveUmlPreparation(umlPreparation), 1200);
     return () => {
       if (autosaveTimerRef.current) window.clearTimeout(autosaveTimerRef.current);
     };
-  }, [aiState, project?._id, saveStatus, saveUmlPreparation, umlPreparation]);
+  }, [isAiBusy, project?._id, saveStatus, saveUmlPreparation, umlPreparation]);
 
   const generateWithAi = async (diagramType = "all") => {
-    setAiState("generating");
+    setLocalAiState("generating");
     setError(null);
+
     try {
-      const res = await fetchApi("/ai/uml-preparation/generate", {
-        method: "POST",
-        body: JSON.stringify({ diagramType, currentUmlPreparation: umlPreparation }),
+      const result = await startTask<{ type: string; umlPreparation: UmlPreparation }>({
+        id: TASK_ID,
+        scope: SCOPE,
+        title: "UML Preparation",
+        subTitle: diagramType === "all" ? "Generating full UML model with AI..." : `Generating ${diagramType} diagram with AI...`,
+        pageRoute: PAGE_ROUTE,
+        status: "generating",
+        runner: async (signal) => {
+          const res = await fetchApi("/ai/uml-preparation/generate", {
+            method: "POST",
+            body: JSON.stringify({ diagramType, currentUmlPreparation: umlRef.current }),
+            signal,
+          });
+          const normalized = normalizeUmlPreparation(res.umlPreparation || {});
+          return { type: "suggestion", umlPreparation: normalized };
+        },
       });
-      setSuggestion(normalizeUmlPreparation(res.umlPreparation || {}));
-      setAiState("suggestion_ready");
+
+      if (result?.umlPreparation) {
+        setSuggestion(result.umlPreparation);
+        setLocalAiState("suggestion_ready");
+      } else {
+        setLocalAiState("idle");
+      }
     } catch (err: any) {
-      setError(err.message || "AI generation failed. Please try again.");
-      setAiState("idle");
+      if (err?.name !== "AbortError") {
+        setError(err.message || "AI generation failed. Please try again.");
+      }
+      setLocalAiState("idle");
     }
   };
 
@@ -588,24 +661,46 @@ export function useUmlPreparation() {
   const umlPreparationLanguage = normalizeLanguage(project?.umlPreparationLanguage);
 
   const refineWithAi = async (instructions = "", diagramType = "all") => {
-    setAiState("refining");
+    setLocalAiState("refining");
     setError(null);
+
     try {
       const trimmedInstructions = instructions.trim();
       const payload = {
-        umlPreparation,
+        umlPreparation: umlRef.current,
         instructions: trimmedInstructions,
         diagramType,
       };
-      const res = await fetchApi("/ai/uml-preparation/refine", {
-        method: "POST",
-        body: JSON.stringify(payload),
+
+      const result = await startTask<{ type: string; umlPreparation: UmlPreparation }>({
+        id: TASK_ID,
+        scope: SCOPE,
+        title: "UML Preparation",
+        subTitle: "Refining UML model with AI...",
+        pageRoute: PAGE_ROUTE,
+        status: "refining",
+        runner: async (signal) => {
+          const res = await fetchApi("/ai/uml-preparation/refine", {
+            method: "POST",
+            body: JSON.stringify(payload),
+            signal,
+          });
+          const normalized = normalizeUmlPreparation(res.umlPreparation || {});
+          return { type: "suggestion", umlPreparation: normalized };
+        },
       });
-      setSuggestion(normalizeUmlPreparation(res.umlPreparation || {}));
-      setAiState("suggestion_ready");
+
+      if (result?.umlPreparation) {
+        setSuggestion(result.umlPreparation);
+        setLocalAiState("suggestion_ready");
+      } else {
+        setLocalAiState("idle");
+      }
     } catch (err: any) {
-      setError(err.message || "AI refinement failed. Please try again.");
-      setAiState("idle");
+      if (err?.name !== "AbortError") {
+        setError(err.message || "AI refinement failed. Please try again.");
+      }
+      setLocalAiState("idle");
     }
   };
 
@@ -615,41 +710,81 @@ export function useUmlPreparation() {
       return;
     }
 
-    setAiState("translating");
+    setLocalAiState("translating");
     setError(null);
+
     try {
-      const res = await fetchApi("/ai/uml-preparation/translate", {
-        method: "POST",
-        body: JSON.stringify({ umlPreparation }),
+      const result = await startTask<{ type: string; umlPreparation: UmlPreparation }>({
+        id: TASK_ID,
+        scope: SCOPE,
+        title: "UML Preparation",
+        subTitle: `Translating UML preparation to ${getLanguageLabel(projectLanguage)}...`,
+        pageRoute: PAGE_ROUTE,
+        status: "translating",
+        runner: async (signal) => {
+          const res = await fetchApi("/ai/uml-preparation/translate", {
+            method: "POST",
+            body: JSON.stringify({ umlPreparation: umlRef.current }),
+            signal,
+          });
+          const translatedPreparation = normalizeUmlPreparation(res.umlPreparation || {});
+
+          if (project?._id) {
+            const savePayload = projectLanguage
+              ? { umlPreparation: translatedPreparation, language: projectLanguage }
+              : { umlPreparation: translatedPreparation };
+            await fetchApi(`/projects/${project._id}/uml-preparation`, {
+              method: "PUT",
+              body: JSON.stringify(savePayload),
+              signal,
+            });
+          }
+
+          return { type: "saved", umlPreparation: translatedPreparation };
+        },
       });
-      const translatedPreparation = normalizeUmlPreparation(res.umlPreparation || {});
-      umlRef.current = translatedPreparation;
-      setUmlPreparation(translatedPreparation);
-      await saveUmlPreparation(translatedPreparation, projectLanguage || undefined);
-      setAiState("idle");
+
+      if (result?.umlPreparation) {
+        umlRef.current = result.umlPreparation;
+        setUmlPreparation(result.umlPreparation);
+        setLocalAiState("idle");
+        setSaveStatus("saved");
+      } else {
+        setLocalAiState("idle");
+      }
     } catch (err: any) {
-      setError(err.message || "AI UML preparation translation failed. Please try again.");
-      setAiState("idle");
+      if (err?.name !== "AbortError") {
+        setError(err.message || "AI UML preparation translation failed. Please try again.");
+      }
+      setLocalAiState("idle");
     }
   };
+
+  const cancelAi = useCallback(() => {
+    cancelTask(TASK_ID);
+    setLocalAiState("idle");
+  }, [cancelTask]);
 
   const acceptSuggestion = useCallback(async () => {
     if (suggestion) {
       umlRef.current = suggestion;
       setUmlPreparation(suggestion);
       setSuggestion(null);
-      setAiState("idle");
+      setLocalAiState("idle");
+      dismissTask(TASK_ID);
       await saveUmlPreparation(suggestion, projectLanguage || undefined);
       return;
     }
     setSuggestion(null);
-    setAiState("idle");
-  }, [projectLanguage, saveUmlPreparation, suggestion]);
+    setLocalAiState("idle");
+    dismissTask(TASK_ID);
+  }, [dismissTask, projectLanguage, saveUmlPreparation, suggestion]);
 
   const discardSuggestion = useCallback(() => {
     setSuggestion(null);
-    setAiState("idle");
-  }, []);
+    setLocalAiState("idle");
+    dismissTask(TASK_ID);
+  }, [dismissTask]);
 
   const dismissError = useCallback(() => setError(null), []);
 
@@ -659,6 +794,7 @@ export function useUmlPreparation() {
     loading,
     saveStatus,
     aiState,
+    isAiBusy,
     suggestion,
     error,
     markUnsaved,
@@ -666,6 +802,7 @@ export function useUmlPreparation() {
     generateWithAi,
     refineWithAi,
     translateWithAi,
+    cancelAi,
     projectLanguage,
     umlPreparationLanguage,
     acceptSuggestion,

@@ -7,6 +7,8 @@ import {
   getLanguageLabel,
   useReportStructure,
 } from "./hooks/useReportStructure";
+import AiBackgroundBanner from "@/components/ai/AiBackgroundBanner";
+import HugeiconsIcon from "@/components/ui/HugeiconsIcon";
 
 const MAX_DEPTH = 3;
 
@@ -23,6 +25,7 @@ export default function ReportStructure() {
     loading,
     saveStatus,
     aiState,
+    isAiBusy,
     suggestion,
     error,
     markUnsaved,
@@ -30,6 +33,7 @@ export default function ReportStructure() {
     generateWithAi,
     refineWithAi,
     translateWithAi,
+    cancelAi,
     projectLanguage,
     reportStructureLanguage,
     acceptSuggestion,
@@ -46,7 +50,6 @@ export default function ReportStructure() {
 
   const flatCount = useMemo(() => countSections(reportStructure), [reportStructure]);
   const chapterCount = reportStructure.length;
-  const isAiBusy = aiState === "generating" || aiState === "refining" || aiState === "translating";
   const shouldShowTranslate = Boolean(
     projectLanguage &&
     reportStructure.length > 0 &&
@@ -216,7 +219,7 @@ export default function ReportStructure() {
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-2">
-                  <span aria-hidden="true">🌐</span>
+                  <HugeiconsIcon icon="globe-02" size={16} strokeWidth={1.75} />
                   Translate to {getLanguageLabel(projectLanguage)}
                 </span>
               )}
@@ -224,6 +227,14 @@ export default function ReportStructure() {
           )}
         </div>
       </div>
+
+      {/* Background AI Progress Banner */}
+      <AiBackgroundBanner
+        isVisible={isAiBusy}
+        moduleName="Report Structure"
+        action={aiState}
+        onCancel={cancelAi}
+      />
 
       {error && (
         <div className="mb-6 p-3 rounded-lg bg-error-container text-on-error-container border border-error/20 flex items-center justify-between gap-3">

@@ -5,7 +5,7 @@ import { getLanguageLabel } from "./hooks/useProblemStatement";
 import RichTextEditor from "./components/RichTextEditor";
 import AiActionBar from "./components/AiActionBar";
 import AiSuggestionPanel from "./components/AiSuggestionPanel";
-import type { Editor } from "@tiptap/react";
+import AiBackgroundBanner from "@/components/ai/AiBackgroundBanner";
 
 export default function ProblemStatement() {
   const {
@@ -13,13 +13,16 @@ export default function ProblemStatement() {
     loading,
     saveStatus,
     aiState,
+    isAiBusy,
     suggestion,
+    snapshotHtml: hookSnapshotHtml,
     error,
     saveContent,
     markUnsaved,
     generateWithAi,
     refineWithAi,
     translateWithAi,
+    cancelAi,
     projectLanguage,
     problemStatementLanguage,
     acceptSuggestion,
@@ -48,6 +51,13 @@ export default function ProblemStatement() {
       setIsEditorEmpty((tmp.textContent || tmp.innerText || "").trim().length === 0);
     }
   }, [project]);
+
+  // Sync snapshot html from hook if restored from background
+  useEffect(() => {
+    if (hookSnapshotHtml) {
+      setSnapshotHtml(hookSnapshotHtml);
+    }
+  }, [hookSnapshotHtml]);
 
   // Ctrl+S / Cmd+S keyboard shortcut
   useEffect(() => {
@@ -88,7 +98,6 @@ export default function ProblemStatement() {
     if (generatedText) {
       // Directly inject generated text into the editor (bypassing suggestion panel)
       setExternalUpdate({ content: generatedText, timestamp: Date.now() });
-      saveContent(generatedText, projectLanguage || undefined);
     }
   };
 
@@ -106,7 +115,6 @@ export default function ProblemStatement() {
     const translatedText = await translateWithAi(editorHtmlRef.current);
     if (translatedText) {
       setExternalUpdate({ content: translatedText, timestamp: Date.now() });
-      saveContent(translatedText, projectLanguage);
     }
   };
 
@@ -118,7 +126,6 @@ export default function ProblemStatement() {
     acceptSuggestion();
   };
 
-  const isAiBusy = aiState === "generating" || aiState === "refining" || aiState === "translating";
   const shouldShowTranslate = Boolean(
     projectLanguage &&
     !isEditorEmpty &&
@@ -169,13 +176,21 @@ export default function ProblemStatement() {
               }
               saveContent(editorHtmlRef.current);
             }}
-            disabled={saveStatus === "saving"}
+            disabled={saveStatus === "saving" || isAiBusy}
             className="px-5 py-2 rounded-md bg-primary text-on-primary text-label-md font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
           >
             Save now
           </button>
         </div>
       </div>
+
+      {/* Background AI Progress Banner */}
+      <AiBackgroundBanner
+        isVisible={isAiBusy}
+        moduleName="Problem Statement"
+        action={aiState}
+        onCancel={cancelAi}
+      />
 
       {/* Error Banner */}
       {error && (
@@ -192,9 +207,9 @@ export default function ProblemStatement() {
         onGenerate={handleGenerate}
         onRefine={handleRefine}
         onTranslate={handleTranslate}
-        activeAction={isAiBusy ? aiState : null}
+        activeAction={aiState === "generating" || aiState === "refining" || aiState === "translating" ? aiState : null}
         editorIsEmpty={isEditorEmpty}
-        disabled={aiState === "suggestion_ready"}
+        disabled={aiState === "suggestion_ready" || isAiBusy}
         showTranslate={shouldShowTranslate}
         translateLabel={`Translate to ${getLanguageLabel(projectLanguage)}`}
       />

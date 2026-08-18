@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchApi } from "@/lib/api";
+import { useAiGeneration } from "@/context/AiGenerationContext";
 
 export type ExistingSolution = {
   _id?: string;
@@ -46,7 +47,7 @@ export function getLanguageLabel(language?: string | null) {
 const normalizeList = (items: string[] = []) =>
   items.map((item) => item || "").filter((item) => item.trim().length > 0);
 
-const normalizeSolutions = (solutions: ExistingSolution[] = []): ExistingSolution[] =>
+export const normalizeSolutions = (solutions: ExistingSolution[] = []): ExistingSolution[] =>
   solutions.map((solution) => ({
     ...solution,
     name: solution.name || "",
@@ -59,93 +60,153 @@ const normalizeSolutions = (solutions: ExistingSolution[] = []): ExistingSolutio
     differentiation: solution.differentiation || "",
   }));
 
+const TASK_ID = "existing-solutions:main";
+const SCOPE = "existing-solutions";
+const PAGE_ROUTE = "/workspace/solutions";
+
 export function useExistingSolutions() {
+  const { startTask, isTaskActive, getTask, tasks, dismissTask, cancelTask } = useAiGeneration();
   const [project, setProject] = useState<any>(null);
   const [solutions, setSolutions] = useState<ExistingSolution[]>([]);
   const [suggestion, setSuggestion] = useState<ExistingSolution[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
-  const [aiState, setAiState] = useState<AiState>("idle");
+  const [localAiState, setLocalAiState] = useState<AiState>("idle");
   const [error, setError] = useState<string | null>(null);
   const autosaveTimerRef = useRef<number | null>(null);
   const solutionsRef = useRef<ExistingSolution[]>([]);
+  const handledTaskIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     solutionsRef.current = solutions;
   }, [solutions]);
 
-  useEffect(() => {
-    const fetchSolutions = async () => {
-      try {
-        const projectData = await fetchApi("/projects/my-project");
-        setProject(projectData);
+  const fetchSolutionsData = useCallback(async () => {
+    try {
+      const projectData = await fetchApi("/projects/my-project");
+      setProject(projectData);
 
-        const data = await fetchApi(`/projects/${projectData._id}/existing-solutions`);
-        setSolutions(normalizeSolutions(data.existingSolutions || []));
-      } catch (err: any) {
-        setError(err.message || "Failed to load existing solutions. Please refresh the page.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchSolutions();
+      const data = await fetchApi(`/projects/${projectData._id}/existing-solutions`);
+      const normalized = normalizeSolutions(data.existingSolutions || []);
+      setSolutions(normalized);
+      solutionsRef.current = normalized;
+      return { projectData, solutions: normalized };
+    } catch (err: any) {
+      setError(err.message || "Failed to load existing solutions. Please refresh the page.");
+      return null;
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchSolutionsData();
+  }, [fetchSolutionsData]);
+
+  // Sync background task state & hydrate completed refinement results
+  useEffect(() => {
+    const task = tasks[TASK_ID];
+    if (!task) {
+      if (localAiState === "generating" || localAiState === "refining" || localAiState === "translating") {
+        setLocalAiState("idle");
+      }
+      return;
+    }
+
+    if (task.status === "completed" && task.result) {
+      const taskNonce = `${task.id}-${task.completedAt}`;
+      if (handledTaskIdRef.current !== taskNonce) {
+        handledTaskIdRef.current = taskNonce;
+        if (task.result.type === "suggestion" && Array.isArray(task.result.solutions)) {
+          setSuggestion(task.result.solutions);
+          setLocalAiState("suggestion_ready");
+        } else if (task.result.type === "saved" && Array.isArray(task.result.solutions)) {
+          setSolutions(task.result.solutions);
+          solutionsRef.current = task.result.solutions;
+          setLocalAiState("idle");
+          fetchSolutionsData();
+        }
+      }
+    } else if (task.status === "error") {
+      setLocalAiState("idle");
+      if (task.error && !task.error.includes("Limit reached")) {
+        setError(task.error);
+      }
+    }
+  }, [fetchSolutionsData, localAiState, tasks]);
 
   const markUnsaved = useCallback(() => {
     setSaveStatus("unsaved");
   }, []);
 
-  const saveSolutions = useCallback(async (nextSolutions = solutions, showValidation = false, language?: string) => {
-    if (!project?._id) {
-      setError("Project is not ready yet. Please refresh the page.");
-      return;
-    }
-
-    const hasIncompleteSolution = nextSolutions.some(
-      (solution) =>
-        !solution.name.trim() ||
-        !solution.description.trim() ||
-        !solution.solvedProblem.trim() ||
-        !solution.differentiation.trim()
-    );
-    if (hasIncompleteSolution) {
-      if (showValidation) {
-        setError("Please fill the name, description, solved problem, and differentiation before saving.");
+  const saveSolutions = useCallback(
+    async (nextSolutions = solutions, showValidation = false, language?: string) => {
+      if (!project?._id) {
+        setError("Project is not ready yet. Please refresh the page.");
+        return;
       }
-      setSaveStatus("unsaved");
-      return;
-    }
 
-    setSaveStatus("saving");
-    setError(null);
+      const hasIncompleteSolution = nextSolutions.some(
+        (solution) =>
+          !solution.name.trim() ||
+          !solution.description.trim() ||
+          !solution.solvedProblem.trim() ||
+          !solution.differentiation.trim()
+      );
+      if (hasIncompleteSolution) {
+        if (showValidation) {
+          setError("Please fill the name, description, solved problem, and differentiation before saving.");
+        }
+        setSaveStatus("unsaved");
+        return;
+      }
 
-    try {
-      const payload = language
-        ? { existingSolutions: nextSolutions, language }
-        : { existingSolutions: nextSolutions };
-      const res = await fetchApi(`/projects/${project._id}/existing-solutions`, {
-        method: "PUT",
-        body: JSON.stringify(payload),
-      });
-      if (JSON.stringify(solutionsRef.current) === JSON.stringify(nextSolutions)) {
-        setSolutions(normalizeSolutions(res.existingSolutions || []));
-        setProject((current: any) => current ? {
-          ...current,
-          existingSolutionsLanguage: res.language ?? current.existingSolutionsLanguage ?? "",
-        } : current);
-        setSaveStatus("saved");
-      } else {
+      setSaveStatus("saving");
+      setError(null);
+
+      try {
+        const payload = language
+          ? { existingSolutions: nextSolutions, language }
+          : { existingSolutions: nextSolutions };
+        const res = await fetchApi(`/projects/${project._id}/existing-solutions`, {
+          method: "PUT",
+          body: JSON.stringify(payload),
+        });
+        if (JSON.stringify(solutionsRef.current) === JSON.stringify(nextSolutions)) {
+          const normalized = normalizeSolutions(res.existingSolutions || []);
+          setSolutions(normalized);
+          solutionsRef.current = normalized;
+          setProject((current: any) =>
+            current
+              ? {
+                  ...current,
+                  existingSolutionsLanguage: res.language ?? current.existingSolutionsLanguage ?? "",
+                }
+              : current
+          );
+          setSaveStatus("saved");
+        } else {
+          setSaveStatus("unsaved");
+        }
+      } catch (err: any) {
+        setError(err.message || "Failed to save existing solutions. Please try again.");
         setSaveStatus("unsaved");
       }
-    } catch (err: any) {
-      setError(err.message || "Failed to save existing solutions. Please try again.");
-      setSaveStatus("unsaved");
-    }
-  }, [project?._id, solutions]);
+    },
+    [project?._id, solutions]
+  );
+
+  const isRunning = isTaskActive(TASK_ID);
+  const currentTask = getTask(TASK_ID);
+
+  const aiState: AiState = isRunning
+    ? (currentTask?.status as AiState) || "generating"
+    : localAiState;
+
+  const isAiBusy = isRunning || aiState === "generating" || aiState === "refining" || aiState === "translating";
 
   useEffect(() => {
-    if (saveStatus !== "unsaved" || !project?._id || aiState !== "idle") {
+    if (saveStatus !== "unsaved" || !project?._id || isAiBusy) {
       return;
     }
 
@@ -173,23 +234,46 @@ export function useExistingSolutions() {
         window.clearTimeout(autosaveTimerRef.current);
       }
     };
-  }, [aiState, project?._id, saveSolutions, saveStatus, solutions]);
-
-  const generateWithAi = async () => {
-    setAiState("generating");
-    setError(null);
-    try {
-      const res = await fetchApi("/ai/existing-solutions/generate", { method: "POST" });
-      setSuggestion(normalizeSolutions(res.existingSolutions || []));
-      setAiState("suggestion_ready");
-    } catch (err: any) {
-      setError(err.message || "AI generation failed. Please try again.");
-      setAiState("idle");
-    }
-  };
+  }, [isAiBusy, project?._id, saveSolutions, saveStatus, solutions]);
 
   const projectLanguage = normalizeLanguage(project?.basics?.language || project?.language);
   const existingSolutionsLanguage = normalizeLanguage(project?.existingSolutionsLanguage);
+
+  const generateWithAi = async () => {
+    setLocalAiState("generating");
+    setError(null);
+
+    try {
+      const result = await startTask<{ type: string; solutions: ExistingSolution[] }>({
+        id: TASK_ID,
+        scope: SCOPE,
+        title: "Existing Solutions",
+        subTitle: "Generating existing solutions with AI...",
+        pageRoute: PAGE_ROUTE,
+        status: "generating",
+        runner: async (signal) => {
+          const res = await fetchApi("/ai/existing-solutions/generate", {
+            method: "POST",
+            signal,
+          });
+          const normalized = normalizeSolutions(res.existingSolutions || []);
+          return { type: "suggestion", solutions: normalized };
+        },
+      });
+
+      if (result?.solutions) {
+        setSuggestion(result.solutions);
+        setLocalAiState("suggestion_ready");
+      } else {
+        setLocalAiState("idle");
+      }
+    } catch (err: any) {
+      if (err?.name !== "AbortError") {
+        setError(err.message || "AI generation failed. Please try again.");
+      }
+      setLocalAiState("idle");
+    }
+  };
 
   const refineWithAi = async (instructions = "") => {
     if (solutions.length === 0) {
@@ -197,22 +281,44 @@ export function useExistingSolutions() {
       return;
     }
 
-    setAiState("refining");
+    setLocalAiState("refining");
     setError(null);
+
     try {
       const trimmedInstructions = instructions.trim();
       const payload = trimmedInstructions
-        ? { existingSolutions: solutions, instructions: trimmedInstructions }
-        : { existingSolutions: solutions };
-      const res = await fetchApi("/ai/existing-solutions/refine", {
-        method: "POST",
-        body: JSON.stringify(payload),
+        ? { existingSolutions: solutionsRef.current, instructions: trimmedInstructions }
+        : { existingSolutions: solutionsRef.current };
+
+      const result = await startTask<{ type: string; solutions: ExistingSolution[] }>({
+        id: TASK_ID,
+        scope: SCOPE,
+        title: "Existing Solutions",
+        subTitle: "Refining existing solutions with AI...",
+        pageRoute: PAGE_ROUTE,
+        status: "refining",
+        runner: async (signal) => {
+          const res = await fetchApi("/ai/existing-solutions/refine", {
+            method: "POST",
+            body: JSON.stringify(payload),
+            signal,
+          });
+          const normalized = normalizeSolutions(res.existingSolutions || []);
+          return { type: "suggestion", solutions: normalized };
+        },
       });
-      setSuggestion(normalizeSolutions(res.existingSolutions || []));
-      setAiState("suggestion_ready");
+
+      if (result?.solutions) {
+        setSuggestion(result.solutions);
+        setLocalAiState("suggestion_ready");
+      } else {
+        setLocalAiState("idle");
+      }
     } catch (err: any) {
-      setError(err.message || "AI refinement failed. Please try again.");
-      setAiState("idle");
+      if (err?.name !== "AbortError") {
+        setError(err.message || "AI refinement failed. Please try again.");
+      }
+      setLocalAiState("idle");
     }
   };
 
@@ -222,41 +328,81 @@ export function useExistingSolutions() {
       return;
     }
 
-    setAiState("translating");
+    setLocalAiState("translating");
     setError(null);
+
     try {
-      const res = await fetchApi("/ai/existing-solutions/translate", {
-        method: "POST",
-        body: JSON.stringify({ existingSolutions: solutions }),
+      const result = await startTask<{ type: string; solutions: ExistingSolution[] }>({
+        id: TASK_ID,
+        scope: SCOPE,
+        title: "Existing Solutions",
+        subTitle: `Translating existing solutions to ${getLanguageLabel(projectLanguage)}...`,
+        pageRoute: PAGE_ROUTE,
+        status: "translating",
+        runner: async (signal) => {
+          const res = await fetchApi("/ai/existing-solutions/translate", {
+            method: "POST",
+            body: JSON.stringify({ existingSolutions: solutionsRef.current }),
+            signal,
+          });
+          const translatedSolutions = normalizeSolutions(res.existingSolutions || []);
+
+          if (project?._id) {
+            const savePayload = projectLanguage
+              ? { existingSolutions: translatedSolutions, language: projectLanguage }
+              : { existingSolutions: translatedSolutions };
+            await fetchApi(`/projects/${project._id}/existing-solutions`, {
+              method: "PUT",
+              body: JSON.stringify(savePayload),
+              signal,
+            });
+          }
+
+          return { type: "saved", solutions: translatedSolutions };
+        },
       });
-      const translatedSolutions = normalizeSolutions(res.existingSolutions || []);
-      solutionsRef.current = translatedSolutions;
-      setSolutions(translatedSolutions);
-      await saveSolutions(translatedSolutions, false, projectLanguage || undefined);
-      setAiState("idle");
+
+      if (result?.solutions) {
+        solutionsRef.current = result.solutions;
+        setSolutions(result.solutions);
+        setLocalAiState("idle");
+        setSaveStatus("saved");
+      } else {
+        setLocalAiState("idle");
+      }
     } catch (err: any) {
-      setError(err.message || "AI existing solution translation failed. Please try again.");
-      setAiState("idle");
+      if (err?.name !== "AbortError") {
+        setError(err.message || "AI existing solution translation failed. Please try again.");
+      }
+      setLocalAiState("idle");
     }
   };
+
+  const cancelAi = useCallback(() => {
+    cancelTask(TASK_ID);
+    setLocalAiState("idle");
+  }, [cancelTask]);
 
   const acceptSuggestion = useCallback(async () => {
     if (suggestion) {
       solutionsRef.current = suggestion;
       setSolutions(suggestion);
       setSuggestion(null);
-      setAiState("idle");
+      setLocalAiState("idle");
+      dismissTask(TASK_ID);
       await saveSolutions(suggestion, false, projectLanguage || undefined);
       return;
     }
     setSuggestion(null);
-    setAiState("idle");
-  }, [projectLanguage, saveSolutions, suggestion]);
+    setLocalAiState("idle");
+    dismissTask(TASK_ID);
+  }, [dismissTask, projectLanguage, saveSolutions, suggestion]);
 
   const discardSuggestion = useCallback(() => {
     setSuggestion(null);
-    setAiState("idle");
-  }, []);
+    setLocalAiState("idle");
+    dismissTask(TASK_ID);
+  }, [dismissTask]);
 
   const dismissError = useCallback(() => setError(null), []);
 
@@ -267,6 +413,7 @@ export function useExistingSolutions() {
     loading,
     saveStatus,
     aiState,
+    isAiBusy,
     suggestion,
     error,
     markUnsaved,
@@ -274,6 +421,7 @@ export function useExistingSolutions() {
     generateWithAi,
     refineWithAi,
     translateWithAi,
+    cancelAi,
     projectLanguage,
     existingSolutionsLanguage,
     acceptSuggestion,

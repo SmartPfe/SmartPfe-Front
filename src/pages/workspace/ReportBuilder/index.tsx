@@ -17,7 +17,8 @@ import {
   markdownToLatex,
   useReportStudio,
 } from "./hooks/useReportStudio";
-import { ReportSection } from "../../ReportStructure/hooks/useReportStructure";
+import { ReportSection } from "../ReportStructure/hooks/useReportStructure";
+import HugeiconsIcon from "@/components/ui/HugeiconsIcon";
 
 type StudioTab = "rich" | "markdown" | "latex";
 
@@ -534,7 +535,7 @@ export default function ReportBuilder() {
                                 </span>
                               ) : (
                                 <span className="inline-flex items-center gap-2">
-                                  <span aria-hidden="true">🌐</span>
+                                  <HugeiconsIcon icon="globe-02" size={16} strokeWidth={1.75} />
                                   Translate to {getLanguageLabel(projectLanguage)}
                                 </span>
                               )}

@@ -9,6 +9,8 @@ import {
   renumberRequirements,
   useFunctionalRequirements,
 } from "./hooks/useFunctionalRequirements";
+import AiBackgroundBanner from "@/components/ai/AiBackgroundBanner";
+import HugeiconsIcon from "@/components/ui/HugeiconsIcon";
 
 const priorities: Record<RequirementPriority, string> = {
   "Must Have": "bg-error-container text-on-error-container border-error/20",
@@ -46,6 +48,7 @@ export default function FunctionalRequirements() {
     loading,
     saveStatus,
     aiState,
+    isAiBusy,
     suggestion,
     error,
     markUnsaved,
@@ -53,6 +56,7 @@ export default function FunctionalRequirements() {
     generateWithAi,
     refineWithAi,
     translateWithAi,
+    cancelAi,
     projectLanguage,
     functionalRequirementsLanguage,
     acceptSuggestion,
@@ -66,7 +70,6 @@ export default function FunctionalRequirements() {
   const [refineOpen, setRefineOpen] = useState(false);
   const [refineInstructions, setRefineInstructions] = useState("");
   const refinePopoverRef = useRef<HTMLDivElement>(null);
-  const isAiBusy = aiState === "generating" || aiState === "refining" || aiState === "translating";
   const shouldShowTranslate = Boolean(
     projectLanguage &&
     requirements.length > 0 &&
@@ -246,7 +249,7 @@ export default function FunctionalRequirements() {
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-2">
-                  <span aria-hidden="true">🌐</span>
+                  <HugeiconsIcon icon="globe-02" size={16} strokeWidth={1.75} />
                   Translate to {getLanguageLabel(projectLanguage)}
                 </span>
               )}
@@ -258,6 +261,14 @@ export default function FunctionalRequirements() {
           </button>
         </div>
       </div>
+
+      {/* Background AI Progress Banner */}
+      <AiBackgroundBanner
+        isVisible={isAiBusy}
+        moduleName="Functional Requirements"
+        action={aiState}
+        onCancel={cancelAi}
+      />
 
       {error && (
         <div className="mb-6 p-3 rounded-lg bg-error-container text-on-error-container border border-error/20 flex items-center justify-between gap-3">

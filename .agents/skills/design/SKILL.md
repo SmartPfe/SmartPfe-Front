@@ -50,6 +50,12 @@ description: Executive UI/UX Design System standards for modern, responsive, hig
   - List tables and structured rows over cluttered multi-nested mini-boxes.
   - Single-column or clean two-column responsive matrices rather than crammed 4-column sub-grids inside narrow sidebars.
 
+### 6. Iconography & Visual Accents (No Emojis)
+- **Strictly Avoid Raw Emojis**: Do not use raw Unicode emojis (e.g. 🚀, 💡, ⚡, ✨, 🤖, ⚠️) in UI components, buttons, tabs, badges, headers, or empty states. Raw emojis look inconsistent across operating systems and degrade the executive, premium feel.
+- **Use Hugeicons**: Always use the structured [HugeiconsIcon](file:///c:/Users/hamma/Documents/GitHub/PfeMentor-front/SmartPfe-Front/src/components/ui/HugeiconsIcon.tsx) component (or clean SVG stroke-rounded icons) for crisp, elegant, and theme-consistent visuals.
+  - Example: `<HugeiconsIcon icon="ai-spark" size={16} className="text-primary" />` instead of `✨`
+  - Style icons with matching semantic colors (`text-primary`, `text-on-surface-variant`, `text-error`, etc.) and consistent stroke widths.
+
 ---
 
 ## Example Golden Layout (The AI Reference Point)

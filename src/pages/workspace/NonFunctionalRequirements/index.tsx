@@ -9,6 +9,8 @@ import {
   renumberRequirements,
   useNonFunctionalRequirements,
 } from "./hooks/useNonFunctionalRequirements";
+import AiBackgroundBanner from "@/components/ai/AiBackgroundBanner";
+import HugeiconsIcon from "@/components/ui/HugeiconsIcon";
 
 const categoryStyles: Record<string, { icon: string; color: string; bg: string }> = {
   Performance: { icon: "speed", color: "text-secondary", bg: "bg-secondary-container/30" },
@@ -46,6 +48,7 @@ export default function NonFunctionalRequirements() {
     loading,
     saveStatus,
     aiState,
+    isAiBusy,
     suggestion,
     error,
     markUnsaved,
@@ -53,6 +56,7 @@ export default function NonFunctionalRequirements() {
     generateWithAi,
     refineWithAi,
     translateWithAi,
+    cancelAi,
     projectLanguage,
     nonFunctionalRequirementsLanguage,
     acceptSuggestion,
@@ -64,7 +68,6 @@ export default function NonFunctionalRequirements() {
   const [refineOpen, setRefineOpen] = useState(false);
   const [refineInstructions, setRefineInstructions] = useState("");
   const refinePopoverRef = useRef<HTMLDivElement>(null);
-  const isAiBusy = aiState === "generating" || aiState === "refining" || aiState === "translating";
   const shouldShowTranslate = Boolean(
     projectLanguage &&
     requirements.length > 0 &&
@@ -217,7 +220,7 @@ export default function NonFunctionalRequirements() {
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-2">
-                  <span aria-hidden="true">🌐</span>
+                  <HugeiconsIcon icon="globe-02" size={16} strokeWidth={1.75} />
                   Translate to {getLanguageLabel(projectLanguage)}
                 </span>
               )}
@@ -229,6 +232,14 @@ export default function NonFunctionalRequirements() {
           </button>
         </div>
       </div>
+
+      {/* Background AI Progress Banner */}
+      <AiBackgroundBanner
+        isVisible={isAiBusy}
+        moduleName="Non-Functional Requirements"
+        action={aiState}
+        onCancel={cancelAi}
+      />
 
       {error && (
         <div className="mb-6 p-3 rounded-lg bg-error-container text-on-error-container border border-error/20 flex items-center justify-between gap-3">
