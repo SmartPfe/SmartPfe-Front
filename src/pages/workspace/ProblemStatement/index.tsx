@@ -3,9 +3,10 @@ import InfoTooltip from "@/components/ui/InfoTooltip";
 import { useProblemStatement } from "./hooks/useProblemStatement";
 import { getLanguageLabel } from "./hooks/useProblemStatement";
 import RichTextEditor from "./components/RichTextEditor";
-import AiActionBar from "./components/AiActionBar";
 import AiSuggestionPanel from "./components/AiSuggestionPanel";
 import AiBackgroundBanner from "@/components/ai/AiBackgroundBanner";
+import SaveStatusHeader from "@/components/ui/SaveStatusHeader";
+import AiActionToolbar from "@/components/ai/AiActionToolbar";
 
 export default function ProblemStatement() {
   const {
@@ -144,44 +145,34 @@ export default function ProblemStatement() {
   return (
     <div className="max-w-[860px] mx-auto w-full pb-32">
       {/* Page Header */}
-      <div className="mb-8 flex items-end justify-between gap-4">
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-display text-on-surface mb-2 flex items-center">
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <span className="text-xs font-bold uppercase tracking-wider text-primary">Problem Definition</span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-on-surface flex items-center">
             Problem Statement
             <InfoTooltip
               label="Problem Statement"
               tooltip="Clearly articulate the issue your project aims to solve."
             />
           </h1>
-          <p className="text-body-lg text-on-surface-variant max-w-[42rem]">
-            Clearly define the issue your project aims to resolve.
+          <p className="text-sm text-on-surface-variant max-w-[42rem] mt-1.5 leading-relaxed">
+            Clearly define the real-world problem or research challenge your project aims to resolve.
           </p>
         </div>
 
-        {/* Save indicator + Save button */}
-        <div className="flex items-center gap-4 shrink-0">
-          <span className={`text-label-sm transition-colors ${
-            saveStatus === "saving" ? "text-on-surface-variant" :
-            saveStatus === "saved"  ? "text-secondary" :
-            "text-error"
-          }`}>
-            {saveStatus === "saving" ? "Autosaving..." :
-             saveStatus === "saved"  ? "All changes saved" :
-             "Unsaved changes"}
-          </span>
-          <button
-            onClick={() => {
-              if (autosaveTimerRef.current) {
-                window.clearTimeout(autosaveTimerRef.current);
-              }
-              saveContent(editorHtmlRef.current);
-            }}
-            disabled={saveStatus === "saving" || isAiBusy}
-            className="px-5 py-2 rounded-md bg-primary text-on-primary text-label-md font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
-          >
-            Save now
-          </button>
-        </div>
+        {/* Global SaveStatusHeader */}
+        <SaveStatusHeader
+          status={saveStatus}
+          onSave={() => {
+            if (autosaveTimerRef.current) {
+              window.clearTimeout(autosaveTimerRef.current);
+            }
+            saveContent(editorHtmlRef.current);
+          }}
+          isBusy={isAiBusy}
+        />
       </div>
 
       {/* Background AI Progress Banner */}
@@ -194,22 +185,28 @@ export default function ProblemStatement() {
 
       {/* Error Banner */}
       {error && (
-        <div className="mb-6 p-3 rounded-lg bg-error-container text-on-error-container border border-error/20 flex items-center justify-between gap-3">
-          <p className="text-body-md">{error}</p>
-          <button onClick={dismissError} className="shrink-0 text-label-sm underline hover:no-underline">
+        <div className="mb-6 p-3.5 rounded-xl bg-error-container text-on-error-container border border-error/20 flex items-center justify-between gap-3 shadow-2xs">
+          <p className="text-sm font-medium">{error}</p>
+          <button onClick={dismissError} className="shrink-0 text-xs font-semibold underline hover:no-underline">
             Dismiss
           </button>
         </div>
       )}
 
-      {/* AI Action Bar — always visible above editor */}
-      <AiActionBar
+      {/* Global AI Action Toolbar */}
+      <AiActionToolbar
         onGenerate={handleGenerate}
         onRefine={handleRefine}
         onTranslate={handleTranslate}
-        activeAction={aiState === "generating" || aiState === "refining" || aiState === "translating" ? aiState : null}
-        editorIsEmpty={isEditorEmpty}
-        disabled={aiState === "suggestion_ready" || isAiBusy}
+        isGenerating={aiState === "generating"}
+        isRefining={aiState === "refining"}
+        isTranslating={aiState === "translating"}
+        isBusy={isAiBusy || aiState === "suggestion_ready"}
+        canGenerate={isEditorEmpty}
+        canRefine={!isEditorEmpty}
+        generateDisabledTitle="Editor already has content — use Refine instead"
+        refineDisabledTitle="Write something first, then ask AI to refine it"
+        refinePlaceholder="Tell AI what you'd like to improve (e.g., 'Make it more academic and concise')..."
         showTranslate={shouldShowTranslate}
         translateLabel={`Translate to ${getLanguageLabel(projectLanguage)}`}
       />

@@ -19,41 +19,86 @@
 | :--- | :--- | :--- |
 | **Generate with AI** | `"ai-beautify"` / `AiBeautifyIcon` | Diagonal magic wand with burst rays |
 | **Refine with AI** | `"ai-refine"` / `AiRefineIcon` | Magic wand with upper-right star sparkle |
-| **Translate with AI** | `"globe-02"` | Clean globe with latitude/longitude lines |
+| **Translate with AI** | `"ai-translate"` / `AiTranslateIcon` | Asian/Latin character translation glyph with sparkle |
 | **Add / Create Item** | `"add"` | Stroke-rounded plus sign |
 | **Edit Item** | `"edit"` | Pencil/pen vector |
 | **Delete / Remove Item** | `"delete"` | Trash can vector |
 
 ---
 
-## 2. Action Toolbar & Button Formulas
+## 2. Global Shared Components
 
-All action toolbars should follow this unified container and button height formula:
-
-### Toolbar Wrapper:
+### 2.1 `<SaveStatusHeader />` (`src/components/ui/SaveStatusHeader.tsx`)
+Replaces ad-hoc status texts and inline "Save now" buttons:
 ```tsx
-<div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-surface-container-lowest/80 border border-outline-variant/80 rounded-xl p-2 sm:p-2.5 backdrop-blur-xs shadow-2xs">
-  {/* Left: AI Generation & Modification Buttons */}
-  <div className="flex flex-wrap items-center gap-2">...</div>
-  {/* Right: Primary Create Action */}
-  <div>...</div>
-</div>
+import SaveStatusHeader from "@/components/ui/SaveStatusHeader";
+
+<SaveStatusHeader
+  status={saveStatus} // "saved" | "saving" | "unsaved"
+  onSave={() => saveActors(actors, true)}
+  isBusy={isAiBusy}
+/>
 ```
 
-### Standardized Button Classes:
-
+### 2.2 `<AiActionToolbar />` (`src/components/ai/AiActionToolbar.tsx`)
+Provides unified `Generate with AI`, `Refine with AI` (with popover), `Translate with AI`, and an optional right-aligned primary action button:
 ```tsx
-// AI Generate & Refine Button
-const aiButtonClass =
-  "inline-flex items-center justify-center gap-2 h-9 px-3.5 rounded-lg border border-primary/25 bg-gradient-to-r from-primary/10 via-primary/5 to-secondary/10 text-primary text-[13px] font-medium tracking-tight hover:from-primary/15 hover:to-secondary/15 hover:border-primary/40 transition-all duration-150 shadow-2xs active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:grayscale select-none cursor-pointer";
+import AiActionToolbar from "@/components/ai/AiActionToolbar";
 
-// AI Translate Button (Dynamic Language Notice)
-const translateButtonClass =
-  "inline-flex items-center justify-center gap-2 h-9 px-3.5 rounded-lg border border-secondary/30 bg-secondary/10 text-secondary text-[13px] font-medium tracking-tight hover:bg-secondary/15 hover:border-secondary/50 transition-all duration-150 shadow-2xs active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:grayscale select-none cursor-pointer";
+<AiActionToolbar
+  onGenerate={generateWithAi}
+  onRefine={refineWithAi}
+  onTranslate={translateWithAi}
+  isGenerating={aiState === "generating"}
+  isRefining={aiState === "refining"}
+  isTranslating={aiState === "translating"}
+  isBusy={isAiBusy || aiState === "suggestion_ready"}
+  canGenerate={isEditorEmpty /* or true */}
+  canRefine={!isEditorEmpty /* or items.length > 0 */}
+  generateDisabledTitle="Editor already has content — use Refine instead"
+  refineDisabledTitle="Write or generate content first before refining"
+  refinePlaceholder="Tell AI what you'd like to improve..."
+  showTranslate={shouldShowTranslate}
+  translateLabel={`Translate to ${getLanguageLabel(projectLanguage)}`}
+  primaryAction={
+    <button
+      type="button"
+      onClick={handleAddActor}
+      disabled={isAiBusy}
+      className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 h-9 px-4 bg-primary text-on-primary rounded-lg text-[13px] font-semibold tracking-tight hover:bg-primary/90 transition-all duration-150 shadow-2xs active:scale-[0.98] disabled:opacity-50 select-none cursor-pointer"
+    >
+      <HugeiconsIcon icon="add" size={16} strokeWidth={2} />
+      <span>Add Actor</span>
+    </button>
+  }
+/>
+### 2.3 Item Actions (Edit / Delete / Done Buttons)
+Standardized interactive icon button pairs for rows, table items, and cards:
+```tsx
+{/* Edit / Done Button */}
+<button
+  type="button"
+  onClick={() => onEdit(isEditing ? null : id)}
+  className={cn(
+    "w-8 h-8 rounded-lg flex items-center justify-center transition-all cursor-pointer",
+    isEditing
+      ? "bg-primary text-on-primary hover:bg-primary/90 shadow-2xs"
+      : "text-on-surface-variant hover:text-primary hover:bg-surface-container"
+  )}
+  title={isEditing ? "Save edit" : "Edit"}
+>
+  <HugeiconsIcon icon={isEditing ? "check" : "edit"} size={16} strokeWidth={1.8} />
+</button>
 
-// Primary Page Action (e.g. Add Actor / Add Solution)
-const primaryActionClass =
-  "w-full sm:w-auto inline-flex items-center justify-center gap-1.5 h-9 px-4 bg-primary text-on-primary rounded-lg text-[13px] font-semibold tracking-tight hover:bg-primary/90 transition-all duration-150 shadow-2xs active:scale-[0.98] disabled:opacity-50 select-none cursor-pointer";
+{/* Delete Button */}
+<button
+  type="button"
+  onClick={() => onDelete(id)}
+  className="w-8 h-8 rounded-lg flex items-center justify-center text-on-surface-variant hover:text-error hover:bg-error/10 transition-all cursor-pointer"
+  title="Delete"
+>
+  <HugeiconsIcon icon="delete" size={16} strokeWidth={1.8} />
+</button>
 ```
 
 ---

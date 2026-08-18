@@ -1,9 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import InfoTooltip from "@/components/ui/InfoTooltip";
 import { cn } from "@/lib/utils";
 import { Actor, ActorType, getLanguageLabel, useActors } from "./Actors/hooks/useActors";
 import AiBackgroundBanner from "@/components/ai/AiBackgroundBanner";
 import HugeiconsIcon from "@/components/ui/HugeiconsIcon";
+import SaveStatusHeader from "@/components/ui/SaveStatusHeader";
+import AiActionToolbar from "@/components/ai/AiActionToolbar";
 
 const actorTypeOptions: { value: ActorType; label: string }[] = [
   { value: "primary", label: "Acteur principal" },
@@ -22,15 +24,6 @@ const iconOptions = [
   "sensors",
   "smart-toy",
 ];
-
-const aiButtonClass =
-  "inline-flex items-center justify-center gap-2 h-9 px-3.5 rounded-lg border border-primary/25 bg-gradient-to-r from-primary/10 via-primary/5 to-secondary/10 text-primary text-[13px] font-medium tracking-tight hover:from-primary/15 hover:to-secondary/15 hover:border-primary/40 transition-all duration-150 shadow-2xs active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:grayscale select-none cursor-pointer";
-
-const translateButtonClass =
-  "inline-flex items-center justify-center gap-2 h-9 px-3.5 rounded-lg border border-secondary/30 bg-secondary/10 text-secondary text-[13px] font-medium tracking-tight hover:bg-secondary/15 hover:border-secondary/50 transition-all duration-150 shadow-2xs active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:grayscale select-none cursor-pointer";
-
-const primaryActionClass =
-  "w-full sm:w-auto inline-flex items-center justify-center gap-1.5 h-9 px-4 bg-primary text-on-primary rounded-lg text-[13px] font-semibold tracking-tight hover:bg-primary/90 transition-all duration-150 shadow-2xs active:scale-[0.98] disabled:opacity-50 select-none cursor-pointer";
 
 const createEmptyActor = (): Actor => ({
   localId: `new-${Date.now()}`,
@@ -64,40 +57,12 @@ export default function Actors() {
   } = useActors();
 
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [refineOpen, setRefineOpen] = useState(false);
-  const [refineInstructions, setRefineInstructions] = useState("");
-  const refinePopoverRef = useRef<HTMLDivElement>(null);
+
   const shouldShowTranslate = Boolean(
     projectLanguage &&
     actors.length > 0 &&
     actorsLanguage !== projectLanguage
   );
-
-  useEffect(() => {
-    const handlePointerDown = (event: MouseEvent) => {
-      if (refinePopoverRef.current && !refinePopoverRef.current.contains(event.target as Node)) {
-        setRefineOpen(false);
-      }
-    };
-
-    if (refineOpen) {
-      document.addEventListener("mousedown", handlePointerDown);
-    }
-
-    return () => document.removeEventListener("mousedown", handlePointerDown);
-  }, [refineOpen]);
-
-  useEffect(() => {
-    if (aiState === "generating" || aiState === "translating" || aiState === "suggestion_ready" || actors.length === 0) {
-      setRefineOpen(false);
-    }
-  }, [actors.length, aiState]);
-
-  const handleRefineSubmit = async () => {
-    await refineWithAi(refineInstructions);
-    setRefineInstructions("");
-    setRefineOpen(false);
-  };
 
   const updateActor = (id: string, updates: Partial<Actor>) => {
     setActors((prev) =>
@@ -153,25 +118,12 @@ export default function Actors() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3 shrink-0 self-start sm:self-auto">
-          <span className={cn(
-            "text-xs font-medium px-2.5 py-1 rounded-full border transition-all",
-            saveStatus === "saving" && "bg-surface-container text-on-surface-variant border-outline-variant",
-            saveStatus === "saved" && "bg-secondary/10 text-secondary border-secondary/20",
-            saveStatus === "unsaved" && "bg-error/10 text-error border-error/20"
-          )}>
-            {saveStatus === "saving" ? "Autosaving..." :
-             saveStatus === "saved" ? "All changes saved" :
-             "Unsaved changes"}
-          </span>
-          <button
-            onClick={() => saveActors(actors, true)}
-            disabled={saveStatus === "saving" || isAiBusy}
-            className="h-9 px-4 rounded-lg bg-primary text-on-primary text-xs sm:text-sm font-semibold hover:bg-primary/90 transition-all shadow-2xs disabled:opacity-50 cursor-pointer"
-          >
-            Save now
-          </button>
-        </div>
+        {/* Global SaveStatusHeader */}
+        <SaveStatusHeader
+          status={saveStatus}
+          onSave={() => saveActors(actors, true)}
+          isBusy={isAiBusy}
+        />
       </div>
 
       {/* Background AI Progress Banner */}
@@ -182,125 +134,32 @@ export default function Actors() {
         onCancel={cancelAi}
       />
 
-      {/* Action Toolbar */}
-      <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-surface-container-lowest/80 border border-outline-variant/80 rounded-xl p-2 sm:p-2.5 backdrop-blur-xs shadow-2xs">
-        <div className="flex flex-wrap items-center gap-2">
-          <style>{`
-            @keyframes actors-popover-in {
-              from { opacity: 0; transform: translateY(-4px) scale(0.98); }
-              to { opacity: 1; transform: translateY(0) scale(1); }
-            }
-          `}</style>
+      {/* Global AI Action Toolbar */}
+      <AiActionToolbar
+        onGenerate={generateWithAi}
+        onRefine={refineWithAi}
+        onTranslate={translateWithAi}
+        isGenerating={aiState === "generating"}
+        isRefining={aiState === "refining"}
+        isTranslating={aiState === "translating"}
+        isBusy={isAiBusy || aiState === "suggestion_ready"}
+        canRefine={actors.length > 0}
+        refineDisabledTitle="Add or generate actors before refining"
+        refinePlaceholder="Tell AI what you'd like to improve (e.g., 'Add a System Admin and specify hardware sensors')..."
+        showTranslate={shouldShowTranslate}
+        translateLabel={`Translate to ${getLanguageLabel(projectLanguage)}`}
+        primaryAction={
           <button
-            onClick={generateWithAi}
-            disabled={isAiBusy || aiState === "suggestion_ready"}
-            className={aiButtonClass}
-          >
-            {aiState === "generating" ? (
-              <>
-                <span className="w-3.5 h-3.5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                <span>Generating...</span>
-              </>
-            ) : (
-              <>
-                <HugeiconsIcon icon="ai-beautify" size={17} strokeWidth={1.65} />
-                <span>Generate with AI</span>
-              </>
-            )}
-          </button>
-
-          <div className="relative" ref={refinePopoverRef}>
-            <button
-              onClick={() => setRefineOpen(true)}
-              disabled={isAiBusy || aiState === "suggestion_ready" || actors.length === 0}
-              className={aiButtonClass}
-            >
-              {aiState === "refining" ? (
-                <>
-                  <span className="w-3.5 h-3.5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                  <span>Refining...</span>
-                </>
-              ) : (
-                <>
-                  <HugeiconsIcon icon="ai-refine" size={17} strokeWidth={1.65} />
-                  <span>Refine with AI</span>
-                </>
-              )}
-            </button>
-
-            {refineOpen && (
-              <div
-                className="absolute left-0 top-full z-30 mt-2 w-[min(22rem,calc(100vw-2rem))] rounded-xl border border-outline-variant bg-surface-bright p-3.5 shadow-xl"
-                style={{ animation: "actors-popover-in 150ms ease-out" }}
-              >
-                <div className="flex items-center gap-1.5 mb-2 text-xs font-semibold text-on-surface">
-                  <HugeiconsIcon icon="edit" size={14} strokeWidth={1.8} className="text-primary" />
-                  <span>Refine Instructions</span>
-                </div>
-                <textarea
-                  value={refineInstructions}
-                  onChange={(event) => setRefineInstructions(event.target.value)}
-                  placeholder="Tell AI what you'd like to improve (e.g., 'Add a System Admin and specify hardware sensors')..."
-                  rows={4}
-                  className="w-full resize-none rounded-lg border border-outline-variant/80 bg-surface px-3 py-2 text-sm text-on-surface outline-none transition-colors placeholder:text-on-surface-variant/60 focus:border-primary focus:ring-2 focus:ring-primary/15"
-                  autoFocus
-                />
-                <div className="mt-3 flex items-center justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setRefineInstructions("");
-                      setRefineOpen(false);
-                    }}
-                    className="h-8 px-3 rounded-lg border border-outline-variant bg-surface text-xs font-semibold text-on-surface hover:bg-surface-container transition-colors cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleRefineSubmit}
-                    disabled={aiState === "refining"}
-                    className="h-8 px-3.5 rounded-lg bg-primary text-xs font-semibold text-on-primary hover:bg-primary/90 transition-all disabled:opacity-50 cursor-pointer"
-                  >
-                    {aiState === "refining" ? "Refining..." : "Refine"}
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {shouldShowTranslate && (
-            <button
-              onClick={translateWithAi}
-              disabled={isAiBusy || aiState === "suggestion_ready"}
-              className={translateButtonClass}
-            >
-              {aiState === "translating" ? (
-                <>
-                  <span className="w-3.5 h-3.5 border-2 border-secondary border-t-transparent rounded-full animate-spin" />
-                  <span>Translating...</span>
-                </>
-              ) : (
-                <>
-                  <HugeiconsIcon icon="globe-02" size={17} strokeWidth={1.65} />
-                  <span>Translate to {getLanguageLabel(projectLanguage)}</span>
-                </>
-              )}
-            </button>
-          )}
-        </div>
-
-        <div>
-          <button
+            type="button"
             onClick={handleAddActor}
             disabled={isAiBusy}
-            className={primaryActionClass}
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 h-9 px-4 bg-primary text-on-primary rounded-lg text-[13px] font-semibold tracking-tight hover:bg-primary/90 transition-all duration-150 shadow-2xs active:scale-[0.98] disabled:opacity-50 select-none cursor-pointer"
           >
             <HugeiconsIcon icon="add" size={16} strokeWidth={2} />
             <span>Add Actor</span>
           </button>
-        </div>
-      </div>
+        }
+      />
 
       {error && (
         <div className="mb-6 p-3.5 rounded-xl bg-error-container text-on-error-container border border-error/20 flex items-center justify-between gap-3 shadow-2xs">
