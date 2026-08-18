@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import InfoTooltip from "@/components/ui/InfoTooltip";
 import {
@@ -16,16 +16,15 @@ import {
 import PlantUmlRenderer from "@/components/ui/PlantUmlRenderer";
 import AiBackgroundBanner from "@/components/ai/AiBackgroundBanner";
 import HugeiconsIcon from "@/components/ui/HugeiconsIcon";
+import SaveStatusHeader from "@/components/ui/SaveStatusHeader";
+import AiActionToolbar from "@/components/ai/AiActionToolbar";
 
 const diagrams = [
-  { id: "usecase", name: "Use Case Diagram", icon: "person_play" },
-  { id: "class", name: "Class Diagram", icon: "account_tree" },
-  { id: "sequence", name: "Sequence Diagram", icon: "sync_alt" },
-  { id: "activity", name: "Activity Diagram", icon: "schema" },
+  { id: "usecase", name: "Use Case Diagram", icon: "person-play" },
+  { id: "class", name: "Class Diagram", icon: "schema" },
+  { id: "sequence", name: "Sequence Diagram", icon: "sync-alt" },
+  { id: "activity", name: "Activity Diagram", icon: "workflow" },
 ];
-
-const aiButtonClass =
-  "px-5 py-2 rounded-md border border-primary/20 bg-gradient-to-r from-primary/5 to-secondary/5 text-primary text-label-md font-semibold hover:from-primary/10 hover:to-secondary/10 transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed disabled:grayscale";
 
 const createEmptyClass = (): UmlClass => ({
   localId: `class-${Date.now()}`,
@@ -62,40 +61,12 @@ export default function UmlPreparation() {
   const [activeDiagram, setActiveDiagram] = useState("class");
   const [activeView, setActiveView] = useState("diagram");
   const [editingClassId, setEditingClassId] = useState<string | null>(null);
-  const [refineOpen, setRefineOpen] = useState(false);
-  const [refineInstructions, setRefineInstructions] = useState("");
-  const refinePopoverRef = useRef<HTMLDivElement>(null);
+
   const shouldShowTranslate = Boolean(
     projectLanguage &&
     umlPreparation.classes.length > 0 &&
     umlPreparationLanguage !== projectLanguage
   );
-
-  useEffect(() => {
-    const handlePointerDown = (event: MouseEvent) => {
-      if (refinePopoverRef.current && !refinePopoverRef.current.contains(event.target as Node)) {
-        setRefineOpen(false);
-      }
-    };
-
-    if (refineOpen) {
-      document.addEventListener("mousedown", handlePointerDown);
-    }
-
-    return () => document.removeEventListener("mousedown", handlePointerDown);
-  }, [refineOpen]);
-
-  useEffect(() => {
-    if (aiState === "generating" || aiState === "translating" || aiState === "suggestion_ready" || umlPreparation.classes.length === 0) {
-      setRefineOpen(false);
-    }
-  }, [aiState, umlPreparation.classes.length]);
-
-  const handleRefineSubmit = async () => {
-    await refineWithAi(refineInstructions, activeDiagram);
-    setRefineInstructions("");
-    setRefineOpen(false);
-  };
 
   const updatePreparation = (updater: (current: UmlPreparationType) => UmlPreparationType) => {
     setUmlPreparation((current) => updater(current));
@@ -114,41 +85,38 @@ export default function UmlPreparation() {
   if (loading) {
     return (
       <div className="flex flex-col min-h-[50vh] items-center justify-center">
-        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
-        <p className="text-on-surface-variant font-medium">Loading UML preparation...</p>
+        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4" />
+        <p className="text-on-surface-variant font-medium text-sm">Loading UML preparation...</p>
       </div>
     );
   }
 
   return (
-    <div className="w-full max-w-[1520px] mx-auto flex flex-col h-full pb-20">
-      {/* Header: Title on Left, Save Status + Save Now on Right */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6 shrink-0">
+    <div className="w-full max-w-[1520px] mx-auto flex flex-col h-full pb-32">
+      {/* Header Section */}
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-display text-on-surface flex items-center">
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <span className="text-xs font-bold uppercase tracking-wider text-primary">Architecture Modeling</span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-on-surface flex items-center">
             UML Preparation
-            <InfoTooltip label="UML" tooltip="Design the system architecture using Unified Modeling Language diagrams." />
+            <InfoTooltip
+              label="UML Architecture"
+              tooltip="Generate, refine, and edit Use Case, Class, Sequence, and Activity diagrams rendered directly with PlantUML."
+            />
           </h1>
+          <p className="text-sm text-on-surface-variant max-w-[42rem] mt-1.5 leading-relaxed">
+            Design and generate system architecture models with interactive PlantUML rendering and entity editing.
+          </p>
         </div>
 
-        <div className="flex items-center gap-4 shrink-0">
-          <span className={`text-label-sm transition-colors ${
-            saveStatus === "saving" ? "text-on-surface-variant" :
-            saveStatus === "saved" ? "text-secondary" :
-            "text-error"
-          }`}>
-            {saveStatus === "saving" ? "Autosaving..." :
-             saveStatus === "saved" ? "All changes saved" :
-             "Unsaved changes"}
-          </span>
-          <button
-            onClick={() => saveUmlPreparation(umlPreparation)}
-            disabled={saveStatus === "saving" || isAiBusy}
-            className="px-5 py-2 rounded-md bg-primary text-on-primary text-label-md font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
-          >
-            Save now
-          </button>
-        </div>
+        {/* Global SaveStatusHeader */}
+        <SaveStatusHeader
+          status={saveStatus}
+          onSave={() => saveUmlPreparation(umlPreparation)}
+          isBusy={isAiBusy}
+        />
       </div>
 
       {/* Background AI Progress Banner */}
@@ -159,201 +127,191 @@ export default function UmlPreparation() {
         onCancel={cancelAi}
       />
 
-      {/* Error Banner */}
+      {/* Global AI Action Toolbar */}
+      <AiActionToolbar
+        onGenerate={() => generateWithAi(activeDiagram)}
+        onRefine={(instructions) => refineWithAi(instructions, activeDiagram)}
+        onTranslate={translateWithAi}
+        isGenerating={aiState === "generating"}
+        isRefining={aiState === "refining"}
+        isTranslating={aiState === "translating"}
+        isBusy={isAiBusy || aiState === "suggestion_ready"}
+        canRefine={true}
+        refinePlaceholder={`Tell AI what you'd like to refine in the ${activeDiagramObj?.name || "diagram"} (e.g. 'Add JWT Auth middleware and RefreshToken entity')...`}
+        showTranslate={shouldShowTranslate}
+        translateLabel={`Translate to ${getLanguageLabel(projectLanguage)}`}
+        primaryAction={
+          activeDiagram === "class" && activeView === "elements" ? (
+            <button
+              type="button"
+              onClick={addClass}
+              disabled={isAiBusy}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 h-9 px-4 bg-primary text-on-primary rounded-lg text-[13px] font-semibold tracking-tight hover:bg-primary/90 transition-all duration-150 shadow-2xs active:scale-[0.98] disabled:opacity-50 select-none cursor-pointer"
+            >
+              <HugeiconsIcon icon="add" size={16} strokeWidth={2} />
+              <span>Add Class</span>
+            </button>
+          ) : undefined
+        }
+      />
+
       {error && (
-        <div className="mb-6 p-3 rounded-lg bg-error-container text-on-error-container border border-error/20 flex items-center justify-between gap-3">
-          <p className="text-body-md">{error}</p>
-          <button onClick={dismissError} className="shrink-0 text-label-sm underline hover:no-underline">Dismiss</button>
+        <div className="mb-6 p-3.5 rounded-xl bg-error-container text-on-error-container border border-error/20 flex items-center justify-between gap-3 shadow-2xs">
+          <p className="text-sm font-medium">{error}</p>
+          <button onClick={dismissError} className="shrink-0 text-xs font-semibold underline hover:no-underline">
+            Dismiss
+          </button>
         </div>
       )}
 
-      {/* AI Action Bar — Coherent with ProblemStatement and Pitch */}
-      <div className="mb-6 flex flex-wrap items-center gap-3">
-        <style>{`
-          @keyframes uml-popover-in {
-            from { opacity: 0; transform: translateY(-4px) scale(0.98); }
-            to { opacity: 1; transform: translateY(0) scale(1); }
-          }
-        `}</style>
-        <button
-          onClick={() => generateWithAi(activeDiagram)}
-          disabled={isAiBusy || aiState === "suggestion_ready"}
-          className={aiButtonClass}
-          title={`Generate ${activeDiagramObj?.name} with AI`}
-        >
-          {aiState === "generating" ? (
-            <span className="inline-flex items-center gap-2">
-              <span className="w-3.5 h-3.5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-              Generating...
-            </span>
-          ) : (
-            "Generate with AI"
-          )}
-        </button>
-
-        <div className="relative" ref={refinePopoverRef}>
-          <button
-            onClick={() => setRefineOpen(true)}
-            disabled={isAiBusy || aiState === "suggestion_ready"}
-            className={aiButtonClass}
-            title={`Refine ${activeDiagramObj?.name} with AI`}
-          >
-            {aiState === "refining" ? (
-              <span className="inline-flex items-center gap-2">
-                <span className="w-3.5 h-3.5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                Refining...
-              </span>
-            ) : (
-              "Refine with AI"
-            )}
-          </button>
-
-          {refineOpen && (
-            <div
-              className="absolute left-0 top-full z-30 mt-2 w-[min(22rem,calc(100vw-2rem))] rounded-md border border-outline-variant bg-surface-bright p-3 shadow-xl"
-              style={{ animation: "uml-popover-in 150ms ease-out" }}
-            >
-              <textarea
-                value={refineInstructions}
-                onChange={(event) => setRefineInstructions(event.target.value)}
-                placeholder={`Tell AI what you'd like to improve in ${activeDiagramObj?.name} (optional)...`}
-                rows={4}
-                className="w-full resize-none rounded-md border border-outline-variant bg-surface px-3 py-2 text-body-md text-on-surface outline-none transition-colors placeholder:text-on-surface-variant focus:border-primary focus:ring-1 focus:ring-primary"
-                autoFocus
-              />
-              <div className="mt-3 flex items-center justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setRefineInstructions("");
-                    setRefineOpen(false);
-                  }}
-                  className="px-3 py-1.5 rounded-md border border-outline-variant bg-surface text-label-sm font-medium text-on-surface hover:bg-surface-container transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleRefineSubmit}
-                  disabled={aiState === "refining"}
-                  className="px-3 py-1.5 rounded-md bg-primary text-label-sm font-semibold text-on-primary hover:opacity-90 transition-opacity disabled:opacity-50"
-                >
-                  {aiState === "refining" ? "Refining..." : "Refine"}
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {shouldShowTranslate && (
-          <button
-            onClick={translateWithAi}
-            disabled={isAiBusy || aiState === "suggestion_ready"}
-            className="px-5 py-2 rounded-md border border-secondary/30 bg-secondary-container/60 text-secondary text-label-md font-semibold hover:bg-secondary-container transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed disabled:grayscale"
-          >
-            {aiState === "translating" ? (
-              <span className="inline-flex items-center gap-2">
-                <span className="w-3.5 h-3.5 border-2 border-secondary border-t-transparent rounded-full animate-spin" />
-                Translating...
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-2">
-                <HugeiconsIcon icon="globe-02" size={16} strokeWidth={1.75} />
-                Translate to {getLanguageLabel(projectLanguage)}
-              </span>
-            )}
-          </button>
-        )}
-      </div>
-
       {/* AI Suggestion Panel */}
       {aiState === "suggestion_ready" && suggestion && (
-        <div className="mb-6 rounded-lg border border-primary/20 bg-primary-container/20 p-4">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div className="mb-6 rounded-2xl border border-primary/30 bg-primary/5 p-5 shadow-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h3 className="font-label-md font-bold text-on-surface">AI suggestion ready for {activeDiagramObj?.name}</h3>
-              <p className="text-body-md text-on-surface-variant">Review and accept the generated diagram model.</p>
+              <div className="flex items-center gap-2">
+                <HugeiconsIcon icon="ai-spark" size={18} strokeWidth={1.8} className="text-primary" />
+                <h3 className="text-sm font-bold text-on-surface">AI suggestion ready for {activeDiagramObj?.name}</h3>
+              </div>
+              <p className="text-xs text-on-surface-variant mt-0.5">Review and accept the generated diagram model.</p>
             </div>
-            <div className="flex gap-2">
-              <button onClick={discardSuggestion} className="px-4 py-2 rounded-md border border-outline-variant bg-surface text-on-surface text-label-sm hover:bg-surface-container-low transition-colors">Discard</button>
-              <button onClick={acceptSuggestion} className="px-4 py-2 rounded-md bg-primary text-on-primary text-label-sm font-medium hover:opacity-90 transition-opacity">Accept suggestion</button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={discardSuggestion}
+                className="h-8 px-3.5 rounded-lg border border-outline-variant bg-surface text-on-surface text-xs font-semibold hover:bg-surface-container-low transition-colors cursor-pointer"
+              >
+                Discard
+              </button>
+              <button
+                onClick={acceptSuggestion}
+                className="h-8 px-4 rounded-lg bg-primary text-on-primary text-xs font-semibold hover:bg-primary/90 transition-all shadow-2xs cursor-pointer"
+              >
+                Accept suggestion
+              </button>
             </div>
           </div>
         </div>
       )}
 
       {/* Main Workspace Layout: Fixed Left Nav + Full Width Right Diagram Panel */}
-      <div className="flex flex-col lg:flex-row gap-6 flex-1 min-h-0">
+      <div className="flex flex-col lg:flex-row gap-5 flex-1 min-h-0">
         {/* Fixed Diagram Navigation Sidebar */}
-        <div className="w-full lg:w-64 flex flex-col gap-2 shrink-0">
-          <h3 className="text-xs font-bold text-outline-variant uppercase tracking-wider mb-2 px-2">Diagrams</h3>
-          {diagrams.map((diag) => (
-            <button
-              key={diag.id}
-              onClick={() => setActiveDiagram(diag.id)}
-              className={cn(
-                "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors w-full text-left",
-                activeDiagram === diag.id
-                  ? "bg-primary-container text-on-primary-container shadow-sm border border-primary/20"
-                  : "bg-surface text-on-surface-variant border border-transparent hover:bg-surface-container hover:border-outline-variant"
-              )}
-            >
-              <span className="material-symbols-outlined text-[20px]">{diag.icon}</span>
-              {diag.name}
-            </button>
-          ))}
-          <div className="mt-4 p-4 rounded-xl bg-surface border border-outline-variant border-dashed">
-            <div className="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-outline mb-3">
-              <span className="material-symbols-outlined text-[18px]">auto_awesome</span>
+        <div className="w-full lg:w-60 flex flex-col gap-2 shrink-0">
+          <h3 className="text-xs font-bold text-outline-variant uppercase tracking-wider mb-1 px-1.5">Diagrams</h3>
+          {diagrams.map((diag) => {
+            const isActive = activeDiagram === diag.id;
+            return (
+              <button
+                key={diag.id}
+                type="button"
+                onClick={() => setActiveDiagram(diag.id)}
+                className={cn(
+                  "flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all duration-150 w-full text-left cursor-pointer border",
+                  isActive
+                    ? "bg-primary text-on-primary border-primary shadow-2xs"
+                    : "bg-surface-container-lowest text-on-surface-variant border-outline-variant/70 hover:bg-surface-container hover:text-on-surface"
+                )}
+              >
+                <HugeiconsIcon icon={diag.icon} size={18} strokeWidth={1.8} />
+                <span>{diag.name}</span>
+              </button>
+            );
+          })}
+
+          <div className="mt-3 p-4 rounded-2xl bg-surface-container-lowest border border-outline-variant/70">
+            <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-2.5">
+              <HugeiconsIcon icon="ai-spark" size={16} strokeWidth={1.8} />
             </div>
-            <p className="text-xs font-medium text-on-surface mb-1">Independent Generation</p>
-            <p className="text-[11px] text-on-surface-variant leading-relaxed">Each diagram is generated and refined independently for deep architectural precision.</p>
+            <p className="text-xs font-bold text-on-surface mb-1">Architectural Precision</p>
+            <p className="text-[11px] text-on-surface-variant leading-relaxed">
+              Each diagram is generated and refined independently with synced PlantUML rendering.
+            </p>
           </div>
         </div>
 
-        {/* Right Main Content Area: Takes all remaining space */}
-        <div className="flex-1 min-w-0 bg-surface border border-outline-variant rounded-xl flex flex-col overflow-hidden shadow-sm">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border-b border-outline-variant bg-surface-container-lowest gap-4 shrink-0">
+        {/* Right Main Content Area */}
+        <div className="flex-1 min-w-0 bg-surface-container-lowest border border-outline-variant/80 rounded-2xl flex flex-col overflow-hidden shadow-2xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 sm:p-4 border-b border-outline-variant/70 bg-surface-container-low/40 gap-3 shrink-0">
             <div className="flex items-center gap-3 min-w-0">
-              <div className="w-10 h-10 rounded-lg bg-primary text-on-primary flex items-center justify-center shrink-0">
-                <span className="material-symbols-outlined">{activeDiagramObj?.icon}</span>
+              <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 border border-primary/20">
+                <HugeiconsIcon icon={activeDiagramObj?.icon || "schema"} size={18} strokeWidth={1.8} />
               </div>
               <div className="min-w-0">
-                <h2 className="font-bold text-lg text-on-surface truncate">{activeDiagramObj?.name}</h2>
-                <div className="flex items-center gap-2 text-xs text-on-surface-variant mt-0.5">
-                  <span className="flex items-center gap-1 text-secondary">
-                    <span className="material-symbols-outlined text-[14px]">check_circle</span>
-                    Synced with Requirements
-                  </span>
-                </div>
+                <h2 className="font-bold text-sm text-on-surface truncate tracking-tight">{activeDiagramObj?.name}</h2>
+                <span className="inline-flex items-center gap-1.5 text-xs text-secondary font-semibold">
+                  <HugeiconsIcon icon="check-circle" size={13} strokeWidth={1.8} />
+                  Synced with Requirements
+                </span>
               </div>
             </div>
 
-            <div className="flex bg-surface-container border border-outline-variant rounded-lg p-1 shrink-0">
-              <button onClick={() => setActiveView("diagram")} className={cn("px-4 py-1.5 text-sm font-medium rounded-md transition-all flex items-center gap-1.5", activeView === "diagram" ? "bg-surface text-on-surface shadow-sm" : "text-on-surface-variant hover:text-on-surface")}>
-                <span className="material-symbols-outlined text-[16px]">visibility</span>
+            {/* View Mode Toggle Pill */}
+            <div className="flex bg-surface border border-outline-variant/80 rounded-lg p-1 shrink-0">
+              <button
+                type="button"
+                onClick={() => setActiveView("diagram")}
+                className={cn(
+                  "px-3 py-1 text-xs font-semibold rounded-md transition-all flex items-center gap-1.5 cursor-pointer",
+                  activeView === "diagram"
+                    ? "bg-primary text-on-primary shadow-2xs"
+                    : "text-on-surface-variant hover:text-on-surface"
+                )}
+              >
+                <HugeiconsIcon icon="visibility" size={14} strokeWidth={1.8} />
                 Diagram
               </button>
-              <button onClick={() => setActiveView("elements")} className={cn("px-4 py-1.5 text-sm font-medium rounded-md transition-all flex items-center gap-1.5", activeView === "elements" ? "bg-surface text-on-surface shadow-sm" : "text-on-surface-variant hover:text-on-surface")}>
-                <span className="material-symbols-outlined text-[16px]">edit</span>
+              <button
+                type="button"
+                onClick={() => setActiveView("elements")}
+                className={cn(
+                  "px-3 py-1 text-xs font-semibold rounded-md transition-all flex items-center gap-1.5 cursor-pointer",
+                  activeView === "elements"
+                    ? "bg-primary text-on-primary shadow-2xs"
+                    : "text-on-surface-variant hover:text-on-surface"
+                )}
+              >
+                <HugeiconsIcon icon="edit" size={14} strokeWidth={1.8} />
                 Entities
               </button>
-              <button onClick={() => setActiveView("code")} className={cn("px-4 py-1.5 text-sm font-medium rounded-md transition-all flex items-center gap-1.5", activeView === "code" ? "bg-surface text-on-surface shadow-sm" : "text-on-surface-variant hover:text-on-surface")}>
-                <span className="material-symbols-outlined text-[16px]">code</span>
+              <button
+                type="button"
+                onClick={() => setActiveView("code")}
+                className={cn(
+                  "px-3 py-1 text-xs font-semibold rounded-md transition-all flex items-center gap-1.5 cursor-pointer",
+                  activeView === "code"
+                    ? "bg-primary text-on-primary shadow-2xs"
+                    : "text-on-surface-variant hover:text-on-surface"
+                )}
+              >
+                <HugeiconsIcon icon="code" size={14} strokeWidth={1.8} />
                 Markup
               </button>
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-6 bg-surface-container-low/30 relative">
+          <div className="flex-1 overflow-y-auto p-5 sm:p-6 bg-surface-container-low/20 relative">
             {activeView === "diagram" ? (
               <PlantUmlRenderer markup={currentInfo.markup} diagramName={`${activeDiagram}-diagram`} />
             ) : activeView === "elements" ? (
               <div className="flex flex-col gap-6">
-                {activeDiagram === "class" && <ClassElements umlPreparation={umlPreparation} editingClassId={editingClassId} setEditingClassId={setEditingClassId} updatePreparation={updatePreparation} addClass={addClass} />}
-                {activeDiagram === "usecase" && <UseCaseElements umlPreparation={umlPreparation} updatePreparation={updatePreparation} />}
-                {activeDiagram === "sequence" && <SequenceElements umlPreparation={umlPreparation} updatePreparation={updatePreparation} />}
-                {activeDiagram === "activity" && <ActivityElements umlPreparation={umlPreparation} updatePreparation={updatePreparation} />}
+                {activeDiagram === "class" && (
+                  <ClassElements
+                    umlPreparation={umlPreparation}
+                    editingClassId={editingClassId}
+                    setEditingClassId={setEditingClassId}
+                    updatePreparation={updatePreparation}
+                    addClass={addClass}
+                  />
+                )}
+                {activeDiagram === "usecase" && (
+                  <UseCaseElements umlPreparation={umlPreparation} updatePreparation={updatePreparation} />
+                )}
+                {activeDiagram === "sequence" && (
+                  <SequenceElements umlPreparation={umlPreparation} updatePreparation={updatePreparation} />
+                )}
+                {activeDiagram === "activity" && (
+                  <ActivityElements umlPreparation={umlPreparation} updatePreparation={updatePreparation} />
+                )}
               </div>
             ) : (
               <MarkupPanel title={currentInfo.markupTitle} markup={currentInfo.markup} />

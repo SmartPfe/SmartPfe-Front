@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import InfoTooltip from "@/components/ui/InfoTooltip";
 import {
@@ -11,25 +11,31 @@ import {
 } from "./hooks/useNonFunctionalRequirements";
 import AiBackgroundBanner from "@/components/ai/AiBackgroundBanner";
 import HugeiconsIcon from "@/components/ui/HugeiconsIcon";
+import SaveStatusHeader from "@/components/ui/SaveStatusHeader";
+import AiActionToolbar from "@/components/ai/AiActionToolbar";
 
 const categoryStyles: Record<string, { icon: string; color: string; bg: string }> = {
-  Performance: { icon: "speed", color: "text-secondary", bg: "bg-secondary-container/30" },
-  Scalability: { icon: "trending_up", color: "text-secondary", bg: "bg-secondary-container/30" },
-  Security: { icon: "shield_lock", color: "text-primary", bg: "bg-primary-container/30" },
-  Privacy: { icon: "lock", color: "text-primary", bg: "bg-primary-container/30" },
-  Usability: { icon: "touch_app", color: "text-[#d97706]", bg: "bg-[#fef3c7]" },
-  Accessibility: { icon: "accessibility_new", color: "text-[#d97706]", bg: "bg-[#fef3c7]" },
-  Reliability: { icon: "verified", color: "text-[#059669]", bg: "bg-[#d1fae5]" },
-  Availability: { icon: "cloud_done", color: "text-[#059669]", bg: "bg-[#d1fae5]" },
-  Maintainability: { icon: "build", color: "text-on-surface", bg: "bg-surface-container-high" },
-  Compatibility: { icon: "devices", color: "text-on-surface", bg: "bg-surface-container-high" },
+  Performance: { icon: "speed", color: "text-secondary", bg: "bg-secondary/10" },
+  Scalability: { icon: "trending-up", color: "text-secondary", bg: "bg-secondary/10" },
+  Security: { icon: "shield-lock", color: "text-primary", bg: "bg-primary/10" },
+  Privacy: { icon: "lock", color: "text-primary", bg: "bg-primary/10" },
+  Usability: { icon: "touch-app", color: "text-[#d97706]", bg: "bg-[#fef3c7]/60" },
+  Accessibility: { icon: "accessibility-new", color: "text-[#d97706]", bg: "bg-[#fef3c7]/60" },
+  Reliability: { icon: "verified", color: "text-[#059669]", bg: "bg-[#d1fae5]/60" },
+  Availability: { icon: "cloud-done", color: "text-[#059669]", bg: "bg-[#d1fae5]/60" },
+  Maintainability: { icon: "build", color: "text-on-surface", bg: "bg-surface-container" },
+  Compatibility: { icon: "devices", color: "text-on-surface", bg: "bg-surface-container" },
+};
+
+const priorities: Record<RequirementPriority, string> = {
+  "Must Have": "bg-error/10 text-error border-error/20",
+  "Should Have": "bg-secondary/10 text-secondary border-secondary/20",
+  "Could Have": "bg-primary/10 text-primary border-primary/20",
+  "Won't Have": "bg-surface-container text-on-surface-variant border-outline-variant/60",
 };
 
 const priorityOptions: RequirementPriority[] = ["Must Have", "Should Have", "Could Have", "Won't Have"];
 const statusOptions: RequirementStatus[] = ["Draft", "In Review", "Approved"];
-
-const aiButtonClass =
-  "px-5 py-2 rounded-md border border-primary/20 bg-gradient-to-r from-primary/5 to-secondary/5 text-primary text-label-md font-semibold hover:from-primary/10 hover:to-secondary/10 transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed disabled:grayscale";
 
 const createEmptyRequirement = (index: number, category = "Performance"): NonFunctionalRequirement => ({
   localId: `new-${Date.now()}`,
@@ -65,9 +71,7 @@ export default function NonFunctionalRequirements() {
   } = useNonFunctionalRequirements();
 
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [refineOpen, setRefineOpen] = useState(false);
-  const [refineInstructions, setRefineInstructions] = useState("");
-  const refinePopoverRef = useRef<HTMLDivElement>(null);
+
   const shouldShowTranslate = Boolean(
     projectLanguage &&
     requirements.length > 0 &&
@@ -76,32 +80,6 @@ export default function NonFunctionalRequirements() {
 
   const groupedRequirements = useMemo(() => groupRequirements(requirements), [requirements]);
   const groupedSuggestion = useMemo(() => groupRequirements(suggestion || []), [suggestion]);
-
-  useEffect(() => {
-    const handlePointerDown = (event: MouseEvent) => {
-      if (refinePopoverRef.current && !refinePopoverRef.current.contains(event.target as Node)) {
-        setRefineOpen(false);
-      }
-    };
-
-    if (refineOpen) {
-      document.addEventListener("mousedown", handlePointerDown);
-    }
-
-    return () => document.removeEventListener("mousedown", handlePointerDown);
-  }, [refineOpen]);
-
-  useEffect(() => {
-    if (aiState === "generating" || aiState === "translating" || aiState === "suggestion_ready" || requirements.length === 0) {
-      setRefineOpen(false);
-    }
-  }, [aiState, requirements.length]);
-
-  const handleRefineSubmit = async () => {
-    await refineWithAi(refineInstructions);
-    setRefineInstructions("");
-    setRefineOpen(false);
-  };
 
   const updateRequirement = (id: string, updates: Partial<NonFunctionalRequirement>) => {
     setRequirements((prev) =>
@@ -128,109 +106,38 @@ export default function NonFunctionalRequirements() {
   if (loading) {
     return (
       <div className="flex flex-col min-h-[50vh] items-center justify-center">
-        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
-        <p className="text-on-surface-variant font-medium">Loading non-functional requirements...</p>
+        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4" />
+        <p className="text-on-surface-variant font-medium text-sm">Loading non-functional requirements...</p>
       </div>
     );
   }
 
   return (
-    <div className="max-w-6xl mx-auto flex flex-col h-full pb-24">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8 shrink-0">
+    <div className="max-w-[1140px] mx-auto flex flex-col h-full pb-32">
+      {/* Header Section */}
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <h1 className="text-display text-on-surface mb-2 flex items-center">
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <span className="text-xs font-bold uppercase tracking-wider text-primary">System Quality & SLA</span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-on-surface flex items-center">
             Non-Functional Requirements
-            <InfoTooltip label="Non-Func Reqs" tooltip="Define system attributes like performance, security, and scalability." />
+            <InfoTooltip
+              label="Quality Attributes"
+              tooltip="Define constraints and quality standards including performance latency, security policies, reliability metrics, and usability guidelines."
+            />
           </h1>
-          <p className="text-body-lg text-on-surface-variant max-w-[42rem]">
-            Specify the criteria that judge the operation of the system, rather than specific behaviors. Define quality attributes like performance, security, and usability.
+          <p className="text-sm text-on-surface-variant max-w-[42rem] mt-1.5 leading-relaxed">
+            Specify the operational criteria, security standards, and performance attributes your application must uphold.
           </p>
         </div>
-        <div className="flex flex-wrap items-center justify-end gap-3">
-          <span className={`text-label-sm transition-colors ${
-            saveStatus === "saving" ? "text-on-surface-variant" :
-            saveStatus === "saved" ? "text-secondary" :
-            "text-error"
-          }`}>
-            {saveStatus === "saving" ? "Autosaving..." : saveStatus === "saved" ? "All changes saved" : "Unsaved changes"}
-          </span>
-          <style>{`
-            @keyframes non-functional-requirements-popover-in {
-              from { opacity: 0; transform: translateY(-4px) scale(0.98); }
-              to { opacity: 1; transform: translateY(0) scale(1); }
-            }
-          `}</style>
-          <button onClick={() => saveRequirements(requirements, true)} disabled={saveStatus === "saving" || isAiBusy} className="px-4 py-2 rounded-md bg-primary text-on-primary text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50">
-            Save now
-          </button>
-          <button onClick={generateWithAi} disabled={isAiBusy || aiState === "suggestion_ready"} className={aiButtonClass}>
-            {aiState === "generating" ? "Generating..." : "Generate with AI"}
-          </button>
-          <div className="relative" ref={refinePopoverRef}>
-            <button onClick={() => setRefineOpen(true)} disabled={isAiBusy || aiState === "suggestion_ready" || requirements.length === 0} className={aiButtonClass}>
-              {aiState === "refining" ? "Refining..." : "Refine with AI"}
-            </button>
 
-            {refineOpen && (
-              <div
-                className="absolute right-0 top-full z-30 mt-2 w-[min(22rem,calc(100vw-2rem))] rounded-md border border-outline-variant bg-surface-bright p-3 shadow-xl"
-                style={{ animation: "non-functional-requirements-popover-in 150ms ease-out" }}
-              >
-                <textarea
-                  value={refineInstructions}
-                  onChange={(event) => setRefineInstructions(event.target.value)}
-                  placeholder="Tell AI what you'd like to improve (optional)..."
-                  rows={4}
-                  className="w-full resize-none rounded-md border border-outline-variant bg-surface px-3 py-2 text-body-md text-on-surface outline-none transition-colors placeholder:text-on-surface-variant focus:border-primary focus:ring-1 focus:ring-primary"
-                  autoFocus
-                />
-                <div className="mt-3 flex items-center justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setRefineInstructions("");
-                      setRefineOpen(false);
-                    }}
-                    className="px-3 py-1.5 rounded-md border border-outline-variant bg-surface text-label-sm font-medium text-on-surface hover:bg-surface-container transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleRefineSubmit}
-                    disabled={aiState === "refining"}
-                    className="px-3 py-1.5 rounded-md bg-primary text-label-sm font-semibold text-on-primary hover:opacity-90 transition-opacity disabled:opacity-50"
-                  >
-                    {aiState === "refining" ? "Refining..." : "Refine"}
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-          {shouldShowTranslate && (
-            <button
-              onClick={translateWithAi}
-              disabled={isAiBusy || aiState === "suggestion_ready"}
-              className="px-5 py-2 rounded-md border border-secondary/30 bg-secondary-container/60 text-secondary text-label-md font-semibold hover:bg-secondary-container transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed disabled:grayscale"
-            >
-              {aiState === "translating" ? (
-                <span className="inline-flex items-center gap-2">
-                  <span className="w-3.5 h-3.5 border-2 border-secondary border-t-transparent rounded-full animate-spin" />
-                  Translating...
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-2">
-                  <HugeiconsIcon icon="globe-02" size={16} strokeWidth={1.75} />
-                  Translate to {getLanguageLabel(projectLanguage)}
-                </span>
-              )}
-            </button>
-          )}
-          <button onClick={() => addRequirement()} disabled={isAiBusy} className="flex items-center gap-2 px-4 py-2 bg-primary text-on-primary rounded-md text-sm font-medium hover:opacity-90 transition-colors shadow-sm disabled:opacity-50">
-            <span className="material-symbols-outlined text-[18px]">add</span>
-            Add NFR
-          </button>
-        </div>
+        {/* Global SaveStatusHeader */}
+        <SaveStatusHeader
+          status={saveStatus}
+          onSave={() => saveRequirements(requirements, true)}
+          isBusy={isAiBusy}
+        />
       </div>
 
       {/* Background AI Progress Banner */}
@@ -241,38 +148,103 @@ export default function NonFunctionalRequirements() {
         onCancel={cancelAi}
       />
 
+      {/* Global AI Action Toolbar */}
+      <AiActionToolbar
+        onGenerate={generateWithAi}
+        onRefine={refineWithAi}
+        onTranslate={translateWithAi}
+        isGenerating={aiState === "generating"}
+        isRefining={aiState === "refining"}
+        isTranslating={aiState === "translating"}
+        isBusy={isAiBusy || aiState === "suggestion_ready"}
+        canRefine={requirements.length > 0}
+        refineDisabledTitle="Add or generate requirements before refining"
+        refinePlaceholder="Tell AI what you'd like to improve (e.g., 'Add strict OWASP Top 10 security standards and 99.9% uptime SLA')..."
+        showTranslate={shouldShowTranslate}
+        translateLabel={`Translate to ${getLanguageLabel(projectLanguage)}`}
+        primaryAction={
+          <button
+            type="button"
+            onClick={() => addRequirement()}
+            disabled={isAiBusy}
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 h-9 px-4 bg-primary text-on-primary rounded-lg text-[13px] font-semibold tracking-tight hover:bg-primary/90 transition-all duration-150 shadow-2xs active:scale-[0.98] disabled:opacity-50 select-none cursor-pointer"
+          >
+            <HugeiconsIcon icon="add" size={16} strokeWidth={2} />
+            <span>Add NFR</span>
+          </button>
+        }
+      />
+
       {error && (
-        <div className="mb-6 p-3 rounded-lg bg-error-container text-on-error-container border border-error/20 flex items-center justify-between gap-3">
-          <p className="text-body-md">{error}</p>
-          <button onClick={dismissError} className="shrink-0 text-label-sm underline hover:no-underline">Dismiss</button>
+        <div className="mb-6 p-3.5 rounded-xl bg-error-container text-on-error-container border border-error/20 flex items-center justify-between gap-3 shadow-2xs">
+          <p className="text-sm font-medium">{error}</p>
+          <button onClick={dismissError} className="shrink-0 text-xs font-semibold underline hover:no-underline">
+            Dismiss
+          </button>
         </div>
       )}
 
+      {/* AI Suggestion Ready */}
       {aiState === "suggestion_ready" && suggestion && (
-        <div className="mb-6 rounded-lg border border-primary/20 bg-primary-container/20 p-4">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
+        <div className="mb-6 rounded-2xl border border-primary/30 bg-primary/5 p-5 shadow-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
             <div>
-              <h3 className="font-label-md font-bold text-on-surface">AI suggestion ready</h3>
-              <p className="text-body-md text-on-surface-variant">Review the generated non-functional requirements before applying them.</p>
+              <div className="flex items-center gap-2">
+                <HugeiconsIcon icon="ai-spark" size={18} strokeWidth={1.8} className="text-primary" />
+                <h3 className="text-sm font-bold text-on-surface">AI suggestion ready</h3>
+              </div>
+              <p className="text-xs text-on-surface-variant mt-0.5">
+                Review the generated non-functional quality standards before applying them.
+              </p>
             </div>
-            <div className="flex gap-2">
-              <button onClick={discardSuggestion} className="px-4 py-2 rounded-md border border-outline-variant bg-surface text-on-surface text-label-sm hover:bg-surface-container-low">Discard</button>
-              <button onClick={acceptSuggestion} className="px-4 py-2 rounded-md bg-primary text-on-primary text-label-sm hover:opacity-90">Accept requirements</button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={discardSuggestion}
+                className="h-8 px-3.5 rounded-lg border border-outline-variant bg-surface text-on-surface text-xs font-semibold hover:bg-surface-container-low transition-colors cursor-pointer"
+              >
+                Discard
+              </button>
+              <button
+                onClick={acceptSuggestion}
+                className="h-8 px-4 rounded-lg bg-primary text-on-primary text-xs font-semibold hover:bg-primary/90 transition-all shadow-2xs cursor-pointer"
+              >
+                Accept requirements
+              </button>
             </div>
           </div>
-          <RequirementGrid groupedRequirements={groupedSuggestion} editingId={null} readOnly onEdit={() => {}} onDelete={() => {}} onUpdate={() => {}} onAdd={() => {}} />
+          <RequirementGrid
+            groupedRequirements={groupedSuggestion}
+            editingId={null}
+            readOnly
+            onEdit={() => {}}
+            onDelete={() => {}}
+            onUpdate={() => {}}
+            onAdd={() => {}}
+          />
         </div>
       )}
 
+      {/* Grid or Empty State */}
       {requirements.length === 0 ? (
-        <button onClick={() => addRequirement()} className="rounded-xl border-2 border-dashed border-outline-variant bg-surface hover:bg-surface-container-low transition-colors py-14 flex flex-col items-center justify-center gap-4 text-on-surface-variant group">
-          <div className="w-12 h-12 rounded-full bg-surface-container border border-outline-variant flex items-center justify-center group-hover:scale-110 group-hover:text-primary transition-all duration-300">
-            <span className="material-symbols-outlined text-[24px]">add</span>
+        <button
+          onClick={() => addRequirement()}
+          className="rounded-2xl border-2 border-dashed border-outline-variant/80 bg-surface-container-lowest/50 hover:bg-surface-container-low/40 transition-all py-16 flex flex-col items-center justify-center gap-3 text-on-surface-variant group cursor-pointer"
+        >
+          <div className="w-12 h-12 rounded-full bg-surface-container border border-outline-variant/80 flex items-center justify-center group-hover:scale-110 group-hover:text-primary transition-all duration-200">
+            <HugeiconsIcon icon="add" size={22} strokeWidth={2} />
           </div>
-          <span className="font-medium">Generate with AI or add your first non-functional requirement.</span>
+          <span className="font-semibold text-sm text-on-surface">Add First Quality Requirement</span>
+          <span className="text-xs text-on-surface-variant/70">Or click "Generate with AI" to analyze security, scalability, and performance goals</span>
         </button>
       ) : (
-        <RequirementGrid groupedRequirements={groupedRequirements} editingId={editingId} onEdit={setEditingId} onDelete={deleteRequirement} onUpdate={updateRequirement} onAdd={addRequirement} />
+        <RequirementGrid
+          groupedRequirements={groupedRequirements}
+          editingId={editingId}
+          onEdit={setEditingId}
+          onDelete={deleteRequirement}
+          onUpdate={updateRequirement}
+          onAdd={addRequirement}
+        />
       )}
     </div>
   );
@@ -296,26 +268,46 @@ function RequirementGrid({
   onAdd: (category: string) => void;
 }) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-8">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       {groupedRequirements.map((group) => {
         const style = getCategoryStyle(group.category);
         return (
-          <div key={group.category} className="flex flex-col gap-4">
-            <div className="flex items-center gap-3 border-b border-outline-variant/50 pb-2">
-              <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center shrink-0", style.bg, style.color)}>
-                <span className="material-symbols-outlined text-[18px]">{style.icon}</span>
+          <div key={group.category} className="flex flex-col gap-3.5">
+            {/* Category Section Bar */}
+            <div className="flex items-center justify-between gap-3 px-1">
+              <div className="flex items-center gap-2.5">
+                <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border border-outline-variant/50", style.bg, style.color)}>
+                  <HugeiconsIcon icon={style.icon} size={16} strokeWidth={1.8} />
+                </div>
+                <h2 className="text-base font-bold text-on-surface tracking-tight">{group.category}</h2>
               </div>
-              <h2 className="text-lg font-bold text-on-surface">{group.category}</h2>
-              <span className="ml-auto text-xs font-bold text-on-surface-variant bg-surface-container-high px-2 py-0.5 rounded-full">{group.requirements.length}</span>
+              <span className="text-xs font-mono font-semibold text-on-surface-variant px-2.5 py-0.5 rounded-full bg-surface-container border border-outline-variant/60">
+                {group.requirements.length}
+              </span>
             </div>
+
+            {/* Requirement Cards */}
             <div className="flex flex-col gap-3">
               {group.requirements.map((requirement) => (
-                <RequirementCard key={getRequirementKey(requirement)} requirement={requirement} editingId={editingId} readOnly={readOnly} style={style} onEdit={onEdit} onDelete={onDelete} onUpdate={onUpdate} />
+                <RequirementCard
+                  key={getRequirementKey(requirement)}
+                  requirement={requirement}
+                  editingId={editingId}
+                  readOnly={readOnly}
+                  onEdit={onEdit}
+                  onDelete={onDelete}
+                  onUpdate={onUpdate}
+                />
               ))}
+
               {!readOnly && (
-                <button onClick={() => onAdd(group.category)} className="flex items-center gap-2 px-4 py-3 border border-dashed border-outline-variant rounded-xl text-on-surface-variant text-sm font-medium hover:bg-surface-container hover:text-on-surface transition-colors justify-center">
-                  <span className="material-symbols-outlined text-[18px]">add</span>
-                  Add {group.category} Req
+                <button
+                  type="button"
+                  onClick={() => onAdd(group.category)}
+                  className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-dashed border-outline-variant/80 text-xs font-semibold text-on-surface-variant hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all cursor-pointer"
+                >
+                  <HugeiconsIcon icon="add" size={14} strokeWidth={2} />
+                  <span>Add {group.category} Requirement</span>
                 </button>
               )}
             </div>
@@ -330,7 +322,6 @@ function RequirementCard({
   requirement,
   editingId,
   readOnly,
-  style,
   onEdit,
   onDelete,
   onUpdate,
@@ -338,7 +329,6 @@ function RequirementCard({
   requirement: NonFunctionalRequirement;
   editingId: string | null;
   readOnly: boolean;
-  style: { bg: string; color: string; icon: string };
   onEdit: (id: string | null) => void;
   onDelete: (id: string) => void;
   onUpdate: (id: string, updates: Partial<NonFunctionalRequirement>) => void;
@@ -347,48 +337,109 @@ function RequirementCard({
   const isEditing = editingId === id;
 
   return (
-    <div className="bg-surface border border-outline-variant rounded-xl p-5 hover:shadow-sm transition-shadow group relative overflow-hidden">
-      <div className={cn("absolute left-0 top-0 bottom-0 w-1 opacity-50", style.bg)}></div>
-      <div className="flex items-start justify-between gap-4 mb-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="text-[10px] font-mono font-bold text-outline-variant bg-surface-container px-2 py-0.5 rounded uppercase tracking-wider">{requirement.code}</span>
+    <div
+      className={cn(
+        "bg-surface-container-lowest border rounded-2xl p-4.5 transition-all duration-200 group shadow-2xs",
+        isEditing
+          ? "border-primary/50 ring-1 ring-primary/20 bg-primary/5"
+          : "border-outline-variant/80 hover:border-outline hover:shadow-xs"
+      )}
+    >
+      {/* Top Header Row */}
+      <div className="flex items-center justify-between gap-3 mb-2.5">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <span className="text-xs font-mono font-bold text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-md shrink-0">
+            {requirement.code}
+          </span>
           {isEditing ? (
-            <input value={requirement.title} onChange={(event) => onUpdate(id, { title: event.target.value })} className="w-full bg-surface border border-outline-variant rounded-md px-3 py-2 outline-none focus:border-primary text-sm font-bold" placeholder="Requirement title" />
+            <input
+              value={requirement.title}
+              onChange={(event) => onUpdate(id, { title: event.target.value })}
+              className="flex-1 bg-surface border border-outline-variant/80 rounded-lg px-2.5 py-1 text-xs font-bold text-on-surface outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+              placeholder="Requirement title"
+              autoFocus
+            />
           ) : (
-            <h3 className="font-bold text-on-surface text-sm leading-tight">{requirement.title || "Untitled requirement"}</h3>
+            <h3 className="font-bold text-sm text-on-surface tracking-tight truncate">
+              {requirement.title || "Untitled requirement"}
+            </h3>
           )}
         </div>
+
+        {/* Action Buttons */}
         {!readOnly && (
-          <div className="flex items-center opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity shrink-0">
-            <button onClick={() => onEdit(isEditing ? null : id)} className="w-7 h-7 rounded hover:bg-surface-container flex items-center justify-center text-outline-variant hover:text-on-surface transition-colors" title={isEditing ? "Done" : "Edit"}>
-              <span className="material-symbols-outlined text-[16px]">{isEditing ? "check" : "edit"}</span>
+          <div className="flex items-center gap-1 shrink-0 opacity-100 md:opacity-0 md:group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
+            <button
+              type="button"
+              onClick={() => onEdit(isEditing ? null : id)}
+              className={cn(
+                "w-7 h-7 rounded-lg flex items-center justify-center transition-all cursor-pointer",
+                isEditing
+                  ? "bg-primary text-on-primary hover:bg-primary/90 shadow-2xs"
+                  : "text-on-surface-variant hover:text-primary hover:bg-surface-container"
+              )}
+              title={isEditing ? "Save edit" : "Edit requirement"}
+            >
+              <HugeiconsIcon icon={isEditing ? "check" : "edit"} size={15} strokeWidth={1.8} />
             </button>
-            <button onClick={() => onDelete(id)} className="w-7 h-7 rounded hover:bg-error-container flex items-center justify-center text-outline-variant hover:text-error transition-colors" title="Delete">
-              <span className="material-symbols-outlined text-[16px]">delete</span>
+            <button
+              type="button"
+              onClick={() => onDelete(id)}
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-on-surface-variant hover:text-error hover:bg-error/10 transition-all cursor-pointer"
+              title="Delete requirement"
+            >
+              <HugeiconsIcon icon="delete" size={15} strokeWidth={1.8} />
             </button>
           </div>
         )}
       </div>
 
+      {/* Body / Description */}
       {isEditing ? (
-        <div className="flex flex-col gap-2">
-          <input value={requirement.category} onChange={(event) => onUpdate(id, { category: event.target.value })} className="w-full bg-surface border border-outline-variant rounded-md px-3 py-2 outline-none focus:border-primary text-sm" placeholder="Category" />
-          <textarea value={requirement.description} onChange={(event) => onUpdate(id, { description: event.target.value })} className="w-full min-h-[92px] bg-surface border border-outline-variant rounded-md px-3 py-2 outline-none focus:border-primary resize-y text-sm" placeholder="The system shall..." />
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <select value={requirement.priority} onChange={(event) => onUpdate(id, { priority: event.target.value as RequirementPriority })} className="w-full bg-surface border border-outline-variant rounded-md px-3 py-2 outline-none focus:border-primary text-sm">
-              {priorityOptions.map((priority) => <option key={priority} value={priority}>{priority}</option>)}
+        <div className="flex flex-col gap-2.5 mt-2">
+          <textarea
+            value={requirement.description}
+            onChange={(event) => onUpdate(id, { description: event.target.value })}
+            className="w-full min-h-[80px] bg-surface border border-outline-variant/80 rounded-lg px-3 py-2 text-xs text-on-surface outline-none focus:border-primary focus:ring-1 focus:ring-primary resize-y"
+            placeholder="Specify threshold (e.g., 'API response latency must not exceed 200ms under 5,000 req/sec')..."
+          />
+          <div className="grid grid-cols-2 gap-2">
+            <select
+              value={requirement.priority}
+              onChange={(event) => onUpdate(id, { priority: event.target.value as RequirementPriority })}
+              className="w-full bg-surface border border-outline-variant/80 rounded-lg px-2.5 py-1.5 text-xs text-on-surface outline-none focus:border-primary cursor-pointer"
+            >
+              {priorityOptions.map((priority) => (
+                <option key={priority} value={priority}>
+                  {priority}
+                </option>
+              ))}
             </select>
-            <select value={requirement.status} onChange={(event) => onUpdate(id, { status: event.target.value as RequirementStatus })} className="w-full bg-surface border border-outline-variant rounded-md px-3 py-2 outline-none focus:border-primary text-sm">
-              {statusOptions.map((status) => <option key={status} value={status}>{status}</option>)}
+            <select
+              value={requirement.status}
+              onChange={(event) => onUpdate(id, { status: event.target.value as RequirementStatus })}
+              className="w-full bg-surface border border-outline-variant/80 rounded-lg px-2.5 py-1.5 text-xs text-on-surface outline-none focus:border-primary cursor-pointer"
+            >
+              {statusOptions.map((status) => (
+                <option key={status} value={status}>
+                  {status}
+                </option>
+              ))}
             </select>
           </div>
         </div>
       ) : (
         <>
-          <p className="text-sm text-on-surface-variant leading-relaxed">{requirement.description || "No description yet."}</p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <span className="text-[10px] uppercase tracking-wider font-bold text-on-surface-variant bg-surface-container px-2 py-1 rounded">{requirement.priority}</span>
-            <span className="text-[10px] uppercase tracking-wider font-bold text-on-surface-variant bg-surface-container px-2 py-1 rounded">{requirement.status}</span>
+          <p className="text-xs text-on-surface-variant leading-relaxed line-clamp-3">
+            {requirement.description || <span className="text-on-surface-variant/50 italic">No description provided.</span>}
+          </p>
+          <div className="mt-3 flex items-center gap-2">
+            <span className={cn("text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border", priorities[requirement.priority])}>
+              {requirement.priority}
+            </span>
+            <span className="text-[10px] font-semibold text-on-surface-variant px-2 py-0.5 rounded-full bg-surface-container border border-outline-variant/60">
+              {requirement.status}
+            </span>
           </div>
         </>
       )}
@@ -406,9 +457,10 @@ function groupRequirements(requirements: NonFunctionalRequirement[]) {
 }
 
 function getCategoryStyle(category: string) {
-  return categoryStyles[category] || categoryStyles[category.split(" ")[0]] || { icon: "tune", color: "text-on-surface", bg: "bg-surface-container-high" };
+  return categoryStyles[category] || categoryStyles[category.split(" ")[0]] || { icon: "tune", color: "text-on-surface", bg: "bg-surface-container" };
 }
 
 function getRequirementKey(requirement: NonFunctionalRequirement) {
   return requirement._id || requirement.localId || requirement.code;
 }
+

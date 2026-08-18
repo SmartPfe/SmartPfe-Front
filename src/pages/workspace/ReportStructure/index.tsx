@@ -1,4 +1,4 @@
-import { DragEvent, useEffect, useMemo, useRef, useState } from "react";
+import { DragEvent, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import InfoTooltip from "@/components/ui/InfoTooltip";
 import {
@@ -9,14 +9,13 @@ import {
 } from "./hooks/useReportStructure";
 import AiBackgroundBanner from "@/components/ai/AiBackgroundBanner";
 import HugeiconsIcon from "@/components/ui/HugeiconsIcon";
+import SaveStatusHeader from "@/components/ui/SaveStatusHeader";
+import AiActionToolbar from "@/components/ai/AiActionToolbar";
 
 const MAX_DEPTH = 3;
 
 type DropPosition = "before" | "after" | "child";
 type DropTarget = { path: number[]; position: DropPosition } | null;
-
-const aiButtonClass =
-  "px-5 py-2 rounded-md border border-primary/20 bg-gradient-to-r from-primary/5 to-secondary/5 text-primary text-label-md font-semibold hover:from-primary/10 hover:to-secondary/10 transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed disabled:grayscale";
 
 export default function ReportStructure() {
   const {
@@ -44,43 +43,28 @@ export default function ReportStructure() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [dragPath, setDragPath] = useState<number[] | null>(null);
   const [dropTarget, setDropTarget] = useState<DropTarget>(null);
-  const [refineOpen, setRefineOpen] = useState(false);
-  const [refineInstructions, setRefineInstructions] = useState("");
-  const refinePopoverRef = useRef<HTMLDivElement>(null);
 
   const flatCount = useMemo(() => countSections(reportStructure), [reportStructure]);
   const chapterCount = reportStructure.length;
+
+  const maxDepth = useMemo(() => {
+    if (!reportStructure.length) return 0;
+    return Math.max(...reportStructure.map(getSubtreeDepth));
+  }, [reportStructure]);
+
+  const structureQuality = useMemo(() => {
+    if (chapterCount === 0) return { label: "Empty", color: "text-on-surface-variant", hint: "No chapters added yet" };
+    if (chapterCount < 3) return { label: "Brief Outline", color: "text-amber-500", hint: "Recommended: 4–6 chapters" };
+    if (chapterCount >= 3 && chapterCount <= 7 && maxDepth >= 2) return { label: "Thesis Ready", color: "text-secondary", hint: "Optimal chapter & depth balance" };
+    if (chapterCount > 8) return { label: "Extensive", color: "text-primary", hint: "Consider merging related chapters" };
+    return { label: "Standard", color: "text-secondary", hint: `${maxDepth}-level hierarchy` };
+  }, [chapterCount, maxDepth]);
+
   const shouldShowTranslate = Boolean(
     projectLanguage &&
     reportStructure.length > 0 &&
     reportStructureLanguage !== projectLanguage
   );
-
-  useEffect(() => {
-    const handlePointerDown = (event: MouseEvent) => {
-      if (refinePopoverRef.current && !refinePopoverRef.current.contains(event.target as Node)) {
-        setRefineOpen(false);
-      }
-    };
-
-    if (refineOpen) {
-      document.addEventListener("mousedown", handlePointerDown);
-    }
-
-    return () => document.removeEventListener("mousedown", handlePointerDown);
-  }, [refineOpen]);
-
-  useEffect(() => {
-    if (aiState === "generating" || aiState === "translating" || aiState === "suggestion_ready" || reportStructure.length === 0) {
-      setRefineOpen(false);
-    }
-  }, [aiState, reportStructure.length]);
-
-  const handleRefineSubmit = async () => {
-    await refineWithAi(refineInstructions);
-    setRefineInstructions("");
-    setRefineOpen(false);
-  };
 
   const updateTree = (updater: (tree: ReportSection[]) => ReportSection[]) => {
     setReportStructure((current) => updater(current));
@@ -127,108 +111,38 @@ export default function ReportStructure() {
   if (loading) {
     return (
       <div className="flex flex-col min-h-[50vh] items-center justify-center">
-        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
-        <p className="text-on-surface-variant font-medium">Loading report structure...</p>
+        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4" />
+        <p className="text-on-surface-variant font-medium text-sm">Loading report structure...</p>
       </div>
     );
   }
 
   return (
-    <div className="max-w-6xl mx-auto flex flex-col h-full pb-24">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8 shrink-0">
+    <div className="max-w-[1140px] mx-auto flex flex-col h-full pb-32">
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <h1 className="text-display text-on-surface mb-2 flex items-center">
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <span className="text-xs font-bold uppercase tracking-wider text-primary">Academic Document</span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-on-surface flex items-center">
             Report Structure
-            <InfoTooltip label="Structure" tooltip="Outline the chapters and sections of your final PFE report." />
+            <InfoTooltip
+              label="Report Outline"
+              tooltip="Define the chapters and sections hierarchy for your final PFE academic thesis."
+            />
           </h1>
-          <p className="text-body-lg text-on-surface-variant max-w-[42rem]">
-            Define the table of contents that will guide the final report generator. Drag chapters, edit titles, and organize the hierarchy.
+          <p className="text-sm text-on-surface-variant max-w-[42rem] mt-1.5 leading-relaxed">
+            Organize the table of contents and chapter hierarchy that will structure your final generated report.
           </p>
         </div>
-        <div className="flex flex-wrap items-center justify-end gap-3">
-          <style>{`
-            @keyframes report-structure-popover-in {
-              from { opacity: 0; transform: translateY(-4px) scale(0.98); }
-              to { opacity: 1; transform: translateY(0) scale(1); }
-            }
-          `}</style>
-          <span className={`text-label-sm transition-colors ${
-            saveStatus === "saving" ? "text-on-surface-variant" :
-            saveStatus === "saved" ? "text-secondary" :
-            "text-error"
-          }`}>
-            {saveStatus === "saving" ? "Autosaving..." : saveStatus === "saved" ? "All changes saved" : "Unsaved changes"}
-          </span>
-          <button onClick={() => saveReportStructure(reportStructure, true)} disabled={saveStatus === "saving" || isAiBusy} className="px-4 py-2 rounded-md bg-primary text-on-primary text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50">
-            Save now
-          </button>
-          <button onClick={generateWithAi} disabled={isAiBusy || aiState === "suggestion_ready"} className={aiButtonClass}>
-            {aiState === "generating" ? "Generating..." : "Generate with AI"}
-          </button>
-          <div className="relative" ref={refinePopoverRef}>
-            <button onClick={() => setRefineOpen(true)} disabled={isAiBusy || aiState === "suggestion_ready" || reportStructure.length === 0} className={aiButtonClass}>
-              {aiState === "refining" ? "Refining..." : "Refine with AI"}
-            </button>
 
-            {refineOpen && (
-              <div
-                className="absolute right-0 top-full z-30 mt-2 w-[min(22rem,calc(100vw-2rem))] rounded-md border border-outline-variant bg-surface-bright p-3 shadow-xl"
-                style={{ animation: "report-structure-popover-in 150ms ease-out" }}
-              >
-                <textarea
-                  value={refineInstructions}
-                  onChange={(event) => setRefineInstructions(event.target.value)}
-                  placeholder="Tell AI what you'd like to improve (optional)..."
-                  rows={4}
-                  className="w-full resize-none rounded-md border border-outline-variant bg-surface px-3 py-2 text-body-md text-on-surface outline-none transition-colors placeholder:text-on-surface-variant focus:border-primary focus:ring-1 focus:ring-primary"
-                  autoFocus
-                />
-                <div className="mt-3 flex items-center justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setRefineInstructions("");
-                      setRefineOpen(false);
-                    }}
-                    className="px-3 py-1.5 rounded-md border border-outline-variant bg-surface text-label-sm font-medium text-on-surface hover:bg-surface-container transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleRefineSubmit}
-                    disabled={aiState === "refining"}
-                    className="px-3 py-1.5 rounded-md bg-primary text-label-sm font-semibold text-on-primary hover:opacity-90 transition-opacity disabled:opacity-50"
-                  >
-                    {aiState === "refining" ? "Refining..." : "Refine"}
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-          {shouldShowTranslate && (
-            <button
-              onClick={translateWithAi}
-              disabled={isAiBusy || aiState === "suggestion_ready"}
-              className="px-5 py-2 rounded-md border border-secondary/30 bg-secondary-container/60 text-secondary text-label-md font-semibold hover:bg-secondary-container transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed disabled:grayscale"
-            >
-              {aiState === "translating" ? (
-                <span className="inline-flex items-center gap-2">
-                  <span className="w-3.5 h-3.5 border-2 border-secondary border-t-transparent rounded-full animate-spin" />
-                  Translating...
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-2">
-                  <HugeiconsIcon icon="globe-02" size={16} strokeWidth={1.75} />
-                  Translate to {getLanguageLabel(projectLanguage)}
-                </span>
-              )}
-            </button>
-          )}
-        </div>
+        <SaveStatusHeader
+          status={saveStatus}
+          onSave={() => saveReportStructure(reportStructure, true)}
+          isBusy={isAiBusy}
+        />
       </div>
 
-      {/* Background AI Progress Banner */}
       <AiBackgroundBanner
         isVisible={isAiBusy}
         moduleName="Report Structure"
@@ -236,56 +150,141 @@ export default function ReportStructure() {
         onCancel={cancelAi}
       />
 
+      <AiActionToolbar
+        onGenerate={generateWithAi}
+        onRefine={refineWithAi}
+        onTranslate={translateWithAi}
+        isGenerating={aiState === "generating"}
+        isRefining={aiState === "refining"}
+        isTranslating={aiState === "translating"}
+        isBusy={isAiBusy || aiState === "suggestion_ready"}
+        canRefine={reportStructure.length > 0}
+        refineDisabledTitle="Add or generate chapters before refining"
+        refinePlaceholder="Tell AI what you'd like to improve (e.g., 'Organize into 5 academic chapters: Intro, State of Art, Needs, Architecture, and Implementation')..."
+        showTranslate={shouldShowTranslate}
+        translateLabel={`Translate to ${getLanguageLabel(projectLanguage)}`}
+        primaryAction={
+          <button
+            type="button"
+            onClick={() => insertSection([Math.max(0, reportStructure.length - 1)], reportStructure.length ? "after" : "before")}
+            disabled={isAiBusy}
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 h-9 px-4 bg-primary text-on-primary rounded-lg text-[13px] font-semibold tracking-tight hover:bg-primary/90 transition-all duration-150 shadow-2xs active:scale-[0.98] disabled:opacity-50 select-none cursor-pointer"
+          >
+            <HugeiconsIcon icon="add" size={16} strokeWidth={2} />
+            <span>Add Chapter</span>
+          </button>
+        }
+      />
+
       {error && (
-        <div className="mb-6 p-3 rounded-lg bg-error-container text-on-error-container border border-error/20 flex items-center justify-between gap-3">
-          <p className="text-body-md">{error}</p>
-          <button onClick={dismissError} className="shrink-0 text-label-sm underline hover:no-underline">Dismiss</button>
+        <div className="mb-6 p-3.5 rounded-xl bg-error-container text-on-error-container border border-error/20 flex items-center justify-between gap-3 shadow-2xs">
+          <p className="text-sm font-medium">{error}</p>
+          <button onClick={dismissError} className="shrink-0 text-xs font-semibold underline hover:no-underline">
+            Dismiss
+          </button>
         </div>
       )}
 
       {aiState === "suggestion_ready" && suggestion && (
-        <div className="mb-6 rounded-lg border border-primary/20 bg-primary-container/20 p-4">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
+        <div className="mb-6 rounded-2xl border border-primary/30 bg-primary/5 p-5 shadow-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
             <div>
-              <h3 className="font-label-md font-bold text-on-surface">AI suggestion ready</h3>
-              <p className="text-body-md text-on-surface-variant">Review the generated table of contents before applying it.</p>
+              <div className="flex items-center gap-2">
+                <HugeiconsIcon icon="ai-spark" size={18} strokeWidth={1.8} className="text-primary" />
+                <h3 className="text-sm font-bold text-on-surface">AI suggestion ready</h3>
+              </div>
+              <p className="text-xs text-on-surface-variant mt-0.5">
+                Review the generated table of contents before applying it to your report.
+              </p>
             </div>
-            <div className="flex gap-2">
-              <button onClick={discardSuggestion} className="px-4 py-2 rounded-md border border-outline-variant bg-surface text-on-surface text-label-sm hover:bg-surface-container-low">Discard</button>
-              <button onClick={acceptSuggestion} className="px-4 py-2 rounded-md bg-primary text-on-primary text-label-sm hover:opacity-90">Accept structure</button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={discardSuggestion}
+                className="h-8 px-3.5 rounded-lg border border-outline-variant bg-surface text-on-surface text-xs font-semibold hover:bg-surface-container-low transition-colors cursor-pointer"
+              >
+                Discard
+              </button>
+              <button
+                onClick={acceptSuggestion}
+                className="h-8 px-4 rounded-lg bg-primary text-on-primary text-xs font-semibold hover:bg-primary/90 transition-all shadow-2xs cursor-pointer"
+              >
+                Accept structure
+              </button>
             </div>
           </div>
-          <div className="bg-surface rounded-lg border border-outline-variant p-3 max-h-[380px] overflow-y-auto">
+          <div className="bg-surface rounded-xl border border-outline-variant/80 p-3 max-h-[380px] overflow-y-auto">
             <OutlineTree sections={suggestion} readOnly />
           </div>
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <SummaryCard icon="menu_book" label="Main chapters" value={String(chapterCount)} helper="Top-level report chapters" />
-        <SummaryCard icon="account_tree" label="Total sections" value={String(flatCount)} helper="Includes subsections and sub-subsections" />
-        <SummaryCard icon="auto_awesome" label="AI context" value="Synced" helper="Uses previous wizard artifacts" />
+      <div className="mb-6 rounded-2xl border border-outline-variant/80 bg-surface-container-lowest p-3 sm:p-4 shadow-2xs">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 divide-y sm:divide-y-0 sm:divide-x divide-outline-variant/60">
+          <div className="flex items-center gap-3 px-2 sm:px-3 py-1">
+            <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 border border-primary/20">
+              <HugeiconsIcon icon="book-open" size={18} strokeWidth={1.8} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-lg font-bold font-mono text-on-surface leading-none">{chapterCount}</span>
+                <span className="text-xs font-semibold text-on-surface-variant">Main Chapters</span>
+              </div>
+              <span className="text-[11px] text-on-surface-variant/80 mt-0.5 block">Top-level report divisions</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 px-2 sm:px-4 py-1">
+            <div className="w-9 h-9 rounded-xl bg-secondary/10 text-secondary flex items-center justify-center shrink-0 border border-secondary/20">
+              <HugeiconsIcon icon="schema" size={18} strokeWidth={1.8} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-lg font-bold font-mono text-on-surface leading-none">{flatCount}</span>
+                <span className="text-xs font-semibold text-on-surface-variant">Total Elements</span>
+              </div>
+              <span className="text-[11px] text-on-surface-variant/80 mt-0.5 block">
+                Across {maxDepth} nesting level{maxDepth === 1 ? "" : "s"}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 px-2 sm:px-4 py-1">
+            <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 border border-primary/20">
+              <HugeiconsIcon icon="verified" size={18} strokeWidth={1.8} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className={cn("text-xs font-bold uppercase tracking-wider", structureQuality.color)}>
+                  {structureQuality.label}
+                </span>
+              </div>
+              <span className="text-[11px] text-on-surface-variant/80 mt-0.5 block">
+                {structureQuality.hint}
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div className="bg-surface border border-outline-variant rounded-xl flex flex-col flex-1 min-h-0 overflow-hidden shadow-sm">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 border-b border-outline-variant bg-surface-container-lowest shrink-0">
+      <div className="bg-surface-container-lowest border border-outline-variant/80 rounded-2xl flex flex-col flex-1 min-h-0 overflow-hidden shadow-2xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 sm:p-4 border-b border-outline-variant/70 bg-surface-container-low/40 shrink-0">
           <div>
-            <h2 className="font-headline-sm text-headline-sm text-on-surface">Table of Contents</h2>
-            <p className="text-body-md text-on-surface-variant">Numbering updates automatically after every edit.</p>
+            <h2 className="text-sm font-bold text-on-surface tracking-tight">Document Hierarchy</h2>
+            <p className="text-xs text-on-surface-variant mt-0.5">Drag to rearrange. Numbering updates automatically.</p>
           </div>
-          <button onClick={() => insertSection([Math.max(0, reportStructure.length - 1)], reportStructure.length ? "after" : "before")} className="flex items-center justify-center gap-2 px-4 py-2 bg-primary text-on-primary rounded-md text-sm font-medium hover:opacity-90 transition-colors shadow-sm">
-            <span className="material-symbols-outlined text-[18px]">add</span>
-            Add Chapter
-          </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 bg-surface-container-low/20">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-surface-container-low/20">
           {reportStructure.length === 0 ? (
-            <button onClick={() => insertSection([0], "before")} className="w-full rounded-xl border-2 border-dashed border-outline-variant bg-surface hover:bg-surface-container-low transition-colors py-14 flex flex-col items-center justify-center gap-4 text-on-surface-variant group">
-              <div className="w-12 h-12 rounded-full bg-surface-container border border-outline-variant flex items-center justify-center group-hover:scale-110 group-hover:text-primary transition-all duration-300">
-                <span className="material-symbols-outlined text-[24px]">add</span>
+            <button
+              onClick={() => insertSection([0], "before")}
+              className="w-full rounded-2xl border-2 border-dashed border-outline-variant/80 bg-surface-container-lowest/50 hover:bg-surface-container-low/40 transition-all py-16 flex flex-col items-center justify-center gap-3 text-on-surface-variant group cursor-pointer"
+            >
+              <div className="w-12 h-12 rounded-full bg-surface-container border border-outline-variant/80 flex items-center justify-center group-hover:scale-110 group-hover:text-primary transition-all duration-200">
+                <HugeiconsIcon icon="add" size={22} strokeWidth={2} />
               </div>
-              <span className="font-medium">Generate with AI or create your first chapter.</span>
+              <span className="font-semibold text-sm text-on-surface">Add First Chapter</span>
+              <span className="text-xs text-on-surface-variant/70">Or click "Generate with AI" to construct a complete academic outline</span>
             </button>
           ) : (
             <OutlineTree
@@ -306,19 +305,6 @@ export default function ReportStructure() {
           )}
         </div>
       </div>
-    </div>
-  );
-}
-
-function SummaryCard({ icon, label, value, helper }: { icon: string; label: string; value: string; helper: string }) {
-  return (
-    <div className="rounded-xl border border-outline-variant/80 bg-surface-container-lowest p-5 shadow-xs transition-all hover:border-outline">
-      <div className="flex items-center gap-2 mb-2">
-        <span className="material-symbols-outlined text-[18px] text-primary">{icon}</span>
-        <span className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">{label}</span>
-      </div>
-      <p className="text-2xl sm:text-3xl font-bold tracking-tight font-mono text-on-surface">{value}</p>
-      <p className="text-xs text-on-surface-variant mt-1.5 leading-relaxed">{helper}</p>
     </div>
   );
 }
@@ -355,7 +341,7 @@ function OutlineTree({
   onDrop?: () => void;
 }) {
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-1.5">
       {sections.map((section, index) => (
         <OutlineNode
           key={section.id}
@@ -440,10 +426,10 @@ function OutlineNode({
       {!readOnly && (
         <button
           onClick={() => onInsert(path, "before")}
-          className="absolute -top-2 left-10 z-10 h-5 w-5 rounded-full border border-primary/30 bg-surface text-primary shadow-sm flex items-center justify-center opacity-0 group-hover/node:opacity-100 hover:bg-primary hover:text-on-primary transition-all"
+          className="absolute -top-2 left-10 z-10 h-5 w-5 rounded-full border border-primary/30 bg-surface text-primary shadow-2xs flex items-center justify-center opacity-0 group-hover/node:opacity-100 hover:bg-primary hover:text-on-primary transition-all cursor-pointer"
           title="Insert section here"
         >
-          <span className="material-symbols-outlined text-[14px]">add</span>
+          <HugeiconsIcon icon="add" size={12} strokeWidth={2} />
         </button>
       )}
 
@@ -458,28 +444,36 @@ function OutlineNode({
           onDrop();
         }}
         className={cn(
-          "relative flex items-center gap-sm p-3 rounded-lg border transition-colors bg-surface",
-          "hover:bg-surface-container-low hover:border-outline-variant",
-          targetPosition === "child" ? "border-primary bg-primary-container/20" : "border-transparent",
+          "relative flex items-center gap-2 p-2.5 rounded-xl border transition-all duration-150 bg-surface",
+          "hover:bg-surface-container-low hover:border-outline-variant/80 hover:shadow-2xs",
+          targetPosition === "child" ? "border-primary bg-primary/10" : "border-outline-variant/60",
           targetPosition === "after" ? "mb-1" : ""
         )}
-        style={{ marginLeft: readOnly ? `${(level - 1) * 28}px` : `${(level - 1) * 34}px` }}
+        style={{ marginLeft: readOnly ? `${(level - 1) * 24}px` : `${(level - 1) * 28}px` }}
       >
         {!readOnly && (
-          <span className="material-symbols-outlined text-outline cursor-grab active:cursor-grabbing shrink-0">drag_indicator</span>
+          <span className="text-on-surface-variant/40 hover:text-on-surface-variant cursor-grab active:cursor-grabbing shrink-0 flex items-center">
+            <HugeiconsIcon icon="drag-indicator" size={16} strokeWidth={1.8} />
+          </span>
         )}
+
         <button
           type="button"
           disabled={!hasChildren}
           onClick={() => onToggle(path)}
-          className={cn("w-6 h-6 rounded flex items-center justify-center shrink-0 text-on-surface-variant", hasChildren ? "hover:bg-surface-container" : "opacity-0")}
+          className={cn(
+            "w-6 h-6 rounded-lg flex items-center justify-center shrink-0 text-on-surface-variant transition-colors cursor-pointer",
+            hasChildren ? "hover:bg-surface-container hover:text-on-surface" : "opacity-0 pointer-events-none"
+          )}
           title={section.collapsed ? "Expand" : "Collapse"}
         >
-          <span className="material-symbols-outlined text-[18px]">{section.collapsed ? "chevron_right" : "expand_more"}</span>
+          <HugeiconsIcon icon={section.collapsed ? "chevron-right" : "chevron-down"} size={14} strokeWidth={2} />
         </button>
-        <div className={cn("rounded bg-surface-container flex items-center justify-center text-primary font-label-md shrink-0", level === 1 ? "min-w-9 h-8 px-2" : "min-w-8 h-7 px-2 text-label-sm")}>
+
+        <div className={cn("rounded-lg bg-surface-container flex items-center justify-center text-primary font-mono font-bold shrink-0 border border-outline-variant/50", level === 1 ? "min-w-8 h-7 px-2 text-xs" : "min-w-7 h-6 px-1.5 text-[11px]")}>
           {number}
         </div>
+
         <div className="flex-1 min-w-0">
           {isEditing && !readOnly ? (
             <input
@@ -490,40 +484,78 @@ function OutlineNode({
                 if (event.key === "Enter") onEdit(null);
               }}
               autoFocus
-              className="w-full bg-surface border border-outline-variant rounded-md px-3 py-2 outline-none focus:border-primary text-sm font-semibold"
+              className="w-full bg-surface border border-outline-variant/80 rounded-lg px-2.5 py-1 outline-none focus:border-primary text-xs font-bold text-on-surface"
             />
           ) : (
             <button
               type="button"
               onDoubleClick={() => !readOnly && onEdit(section.id)}
-              className={cn("text-left truncate w-full", level === 1 ? "font-headline-sm text-headline-sm text-on-surface" : "font-body-md text-body-md text-on-surface")}
+              className={cn(
+                "text-left truncate w-full cursor-pointer tracking-tight",
+                level === 1 ? "font-bold text-sm text-on-surface" : "font-medium text-xs text-on-surface-variant hover:text-on-surface"
+              )}
             >
-              {section.title}
+              {section.title || "Untitled section"}
             </button>
           )}
         </div>
 
         {!readOnly && (
-          <div className="opacity-100 md:opacity-0 md:group-hover/node:opacity-100 flex items-center gap-xs transition-opacity shrink-0">
-            <button onClick={() => onInsert(path, "after")} className="text-on-surface-variant hover:text-primary p-1" title="Add sibling">
-              <span className="material-symbols-outlined text-[19px]">add</span>
+          <div className="opacity-100 md:opacity-0 md:group-hover/node:opacity-100 flex items-center gap-1 transition-opacity shrink-0">
+            <button
+              type="button"
+              onClick={() => onInsert(path, "after")}
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-on-surface-variant hover:text-primary hover:bg-surface-container transition-colors cursor-pointer"
+              title="Add sibling"
+            >
+              <HugeiconsIcon icon="add" size={15} strokeWidth={1.8} />
             </button>
             {level < MAX_DEPTH && (
-              <button onClick={() => onInsert(path, "child")} className="text-on-surface-variant hover:text-primary p-1" title="Add subsection">
-                <span className="material-symbols-outlined text-[19px]">subdirectory_arrow_right</span>
+              <button
+                type="button"
+                onClick={() => onInsert(path, "child")}
+                className="w-7 h-7 rounded-lg flex items-center justify-center text-on-surface-variant hover:text-primary hover:bg-surface-container transition-colors cursor-pointer"
+                title="Add subsection"
+              >
+                <HugeiconsIcon icon="subdirectory-arrow-right" size={15} strokeWidth={1.8} />
               </button>
             )}
-            <button onClick={() => onMove(path, -1)} className="text-on-surface-variant hover:text-on-surface p-1" title="Move up">
-              <span className="material-symbols-outlined text-[19px]">keyboard_arrow_up</span>
+            <button
+              type="button"
+              onClick={() => onMove(path, -1)}
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors cursor-pointer"
+              title="Move up"
+            >
+              <HugeiconsIcon icon="arrow-right" size={13} strokeWidth={1.8} className="-rotate-90" />
             </button>
-            <button onClick={() => onMove(path, 1)} className="text-on-surface-variant hover:text-on-surface p-1" title="Move down">
-              <span className="material-symbols-outlined text-[19px]">keyboard_arrow_down</span>
+            <button
+              type="button"
+              onClick={() => onMove(path, 1)}
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors cursor-pointer"
+              title="Move down"
+            >
+              <HugeiconsIcon icon="arrow-right" size={13} strokeWidth={1.8} className="rotate-90" />
             </button>
-            <button onClick={() => onEdit(isEditing ? null : section.id)} className="text-on-surface-variant hover:text-primary p-1" title="Edit">
-              <span className="material-symbols-outlined text-[19px]">{isEditing ? "check" : "edit"}</span>
+            <button
+              type="button"
+              onClick={() => onEdit(isEditing ? null : section.id)}
+              className={cn(
+                "w-7 h-7 rounded-lg flex items-center justify-center transition-all cursor-pointer",
+                isEditing
+                  ? "bg-primary text-on-primary hover:bg-primary/90 shadow-2xs"
+                  : "text-on-surface-variant hover:text-primary hover:bg-surface-container"
+              )}
+              title={isEditing ? "Save" : "Edit"}
+            >
+              <HugeiconsIcon icon={isEditing ? "check" : "edit"} size={15} strokeWidth={1.8} />
             </button>
-            <button onClick={() => onDelete(path)} className="text-on-surface-variant hover:text-error p-1" title="Delete">
-              <span className="material-symbols-outlined text-[19px]">delete</span>
+            <button
+              type="button"
+              onClick={() => onDelete(path)}
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-on-surface-variant hover:text-error hover:bg-error/10 transition-all cursor-pointer"
+              title="Delete"
+            >
+              <HugeiconsIcon icon="delete" size={15} strokeWidth={1.8} />
             </button>
           </div>
         )}
@@ -532,7 +564,7 @@ function OutlineNode({
       {targetPosition === "after" && <div className="h-0.5 bg-primary rounded-full mt-1" />}
 
       {hasChildren && !section.collapsed && (
-        <div className="mt-1 border-l border-outline-variant/70 ml-8">
+        <div className="mt-1.5 border-l border-outline-variant/60 ml-6 pl-1 flex flex-col gap-1.5">
           {section.children.map((child, index) => (
             <OutlineNode
               key={child.id}
@@ -578,14 +610,6 @@ function getSubtreeDepth(node: ReportSection): number {
   return 1 + Math.max(...node.children.map(getSubtreeDepth));
 }
 
-function getChildrenAtPath(tree: ReportSection[], parentPath: number[]) {
-  let children = tree;
-  for (const index of parentPath) {
-    children = children[index]?.children || [];
-  }
-  return children;
-}
-
 function updateNode(tree: ReportSection[], path: number[], updater: (node: ReportSection) => ReportSection): ReportSection[] {
   return tree.map((node, index) => {
     if (index !== path[0]) return node;
@@ -601,57 +625,42 @@ function removeNode(tree: ReportSection[], path: number[]): { tree: ReportSectio
     return { tree: next, node: node || null };
   }
 
-  const index = path[0];
-  const result = removeNode(tree[index].children, path.slice(1));
-  return {
-    tree: tree.map((node, nodeIndex) => nodeIndex === index ? { ...node, children: result.tree } : node),
-    node: result.node,
-  };
+  const [head, ...tail] = path;
+  let removed: ReportSection | null = null;
+  const next = tree.map((node, index) => {
+    if (index !== head) return node;
+    const result = removeNode(node.children, tail);
+    removed = result.node;
+    return { ...node, children: result.tree };
+  });
+
+  return { tree: next, node: removed };
 }
 
-function insertIntoParent(tree: ReportSection[], parentPath: number[], index: number, node: ReportSection): ReportSection[] {
+function insertNode(tree: ReportSection[], path: number[], position: DropPosition, nodeToInsert: ReportSection): ReportSection[] {
+  if (position === "child") {
+    return updateNode(tree, path, (node) => ({
+      ...node,
+      collapsed: false,
+      children: [...node.children, nodeToInsert],
+    }));
+  }
+
+  const parentPath = path.slice(0, -1);
+  const targetIndex = path[path.length - 1] ?? 0;
+  const insertIndex = position === "before" ? targetIndex : targetIndex + 1;
+
   if (parentPath.length === 0) {
     const next = [...tree];
-    next.splice(index, 0, node);
+    next.splice(insertIndex, 0, nodeToInsert);
     return next;
   }
 
-  return tree.map((section, sectionIndex) => {
-    if (sectionIndex !== parentPath[0]) return section;
-    return { ...section, children: insertIntoParent(section.children, parentPath.slice(1), index, node) };
+  return updateNode(tree, parentPath, (parent) => {
+    const nextChildren = [...parent.children];
+    nextChildren.splice(insertIndex, 0, nodeToInsert);
+    return { ...parent, children: nextChildren };
   });
-}
-
-function insertNode(tree: ReportSection[], targetPath: number[], position: DropPosition, node: ReportSection): ReportSection[] {
-  if (!tree.length && position === "before") return [node];
-  if (position === "child") {
-    const targetDepth = targetPath.length;
-    if (targetDepth + getSubtreeDepth(node) > MAX_DEPTH) return tree;
-    return updateNode(tree, targetPath, (target) => ({ ...target, collapsed: false, children: [...target.children, node] }));
-  }
-
-  const parentPath = targetPath.slice(0, -1);
-  const targetIndex = targetPath[targetPath.length - 1] ?? -1;
-  const insertIndex = position === "before" ? Math.max(0, targetIndex) : targetIndex + 1;
-  if (parentPath.length + getSubtreeDepth(node) > MAX_DEPTH) return tree;
-  return insertIntoParent(tree, parentPath, insertIndex, node);
-}
-
-function moveNode(tree: ReportSection[], sourcePath: number[], targetPath: number[], position: DropPosition): ReportSection[] {
-  const removed = removeNode(tree, sourcePath);
-  if (!removed.node) return tree;
-
-  let adjustedTarget = [...targetPath];
-  if (sourcePath.length === targetPath.length && sourcePath.slice(0, -1).every((value, index) => value === targetPath[index])) {
-    const sourceIndex = sourcePath[sourcePath.length - 1];
-    const targetIndex = targetPath[targetPath.length - 1];
-    if (sourceIndex < targetIndex) adjustedTarget[adjustedTarget.length - 1] -= 1;
-  }
-
-  const parentDepth = position === "child" ? adjustedTarget.length : adjustedTarget.length - 1;
-  if (parentDepth + getSubtreeDepth(removed.node) > MAX_DEPTH) return tree;
-
-  return insertNode(removed.tree, adjustedTarget, position, removed.node);
 }
 
 function moveSibling(tree: ReportSection[], path: number[], targetIndex: number): ReportSection[] {
