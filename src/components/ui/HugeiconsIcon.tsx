@@ -418,6 +418,26 @@ const ICONS: Record<string, (props: { strokeWidth: number }) => React.ReactNode>
       <path d="M22 7L13.5 15.5L8.5 10.5L2 17M22 7H16M22 7V13" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
     </>
   ),
+  "list-ordered": ({ strokeWidth }) => (
+    <>
+      <path d="M10 6H20M10 12H20M10 18H20" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M4 5V8M4 8H5M4 8H3" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M3 11.5C3 11 3.5 10.5 4.5 10.5C5.5 10.5 6 11 6 12C6 13.2 3 14 3 15H6" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M3 17.5H5C5.5 17.5 6 18 6 18.5C6 19 5.5 19.5 5 19.5H4M5 19.5C5.5 19.5 6 20 6 20.5C6 21 5.5 21.5 5 21.5H3" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
+  "check-circle": ({ strokeWidth }) => (
+    <>
+      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M8.5 12.5L11 15L15.5 9.5" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
+  "alert-circle": ({ strokeWidth }) => (
+    <>
+      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M12 8V12M12 16H12.01" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
   "verified": ({ strokeWidth }) => (
     <>
       <path d="M12 2L15.09 5.09L19.45 5.55L20.45 9.8L23.45 12.8L20.45 15.8L19.45 20.05L15.09 20.51L12 23.6L8.91 20.51L4.55 20.05L3.55 15.8L0.55 12.8L3.55 9.8L4.55 5.55L8.91 5.09L12 2Z" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
@@ -534,6 +554,18 @@ const ICONS: Record<string, (props: { strokeWidth: number }) => React.ReactNode>
   ),
   "subdirectory-arrow-right": ({ strokeWidth }) => (
     <path d="M4 6V14C4 16.2091 5.79086 18 8 18H20M20 18L15 13M20 18L15 23" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+  ),
+  "mic": ({ strokeWidth }) => (
+    <>
+      <rect x="9" y="2" width="6" height="12" rx="3" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M5 10V11C5 14.866 8.13401 18 12 18C15.866 18 19 14.866 19 11V10M12 18V22M8 22H16" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
+  "stop-circle": ({ strokeWidth }) => (
+    <>
+      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <rect x="9" y="9" width="6" height="6" rx="1" fill="currentColor" />
+    </>
   ),
   "chevron-right": ({ strokeWidth }) => (
     <path d="M9 18L15 12L9 6" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />

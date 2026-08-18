@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import InfoTooltip from "@/components/ui/InfoTooltip";
 import {
   estimateSpeechSeconds,
   formatDuration,
@@ -11,11 +12,8 @@ import {
 } from "./hooks/usePitch";
 import AiBackgroundBanner from "@/components/ai/AiBackgroundBanner";
 import HugeiconsIcon from "@/components/ui/HugeiconsIcon";
-
-const aiButtonClass =
-  "px-5 py-2 rounded-md border border-primary/20 bg-gradient-to-r from-primary/5 to-secondary/5 text-primary text-label-md font-semibold hover:from-primary/10 hover:to-secondary/10 transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed disabled:grayscale";
-const translateButtonClass =
-  "px-5 py-2 rounded-md border border-secondary/30 bg-secondary-container/60 text-secondary text-label-md font-semibold hover:bg-secondary-container transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed disabled:grayscale";
+import SaveStatusHeader from "@/components/ui/SaveStatusHeader";
+import AiActionToolbar from "@/components/ai/AiActionToolbar";
 
 const escapeHtml = (value = "") =>
   value
@@ -54,12 +52,6 @@ export default function PitchPage() {
 
   const [selectedSlideId, setSelectedSlideId] = useState<string | null>(null);
   const [tipsOpen, setTipsOpen] = useState(true);
-  const [deckRefineOpen, setDeckRefineOpen] = useState(false);
-  const [deckRefineInstructions, setDeckRefineInstructions] = useState("");
-  const [slideRefineOpen, setSlideRefineOpen] = useState(false);
-  const [slideRefineInstructions, setSlideRefineInstructions] = useState("");
-  const deckRefinePopoverRef = useRef<HTMLDivElement>(null);
-  const slideRefinePopoverRef = useRef<HTMLDivElement>(null);
 
   const slides = pitch.slides;
   const selectedSlide = slides.find((slide) => slide.slideId === selectedSlideId) || slides[0];
@@ -94,29 +86,6 @@ export default function PitchPage() {
     }
   }, [selectedIndex, selectedSlideId, slides]);
 
-  useEffect(() => {
-    const handlePointerDown = (event: MouseEvent) => {
-      const target = event.target as Node;
-      if (deckRefinePopoverRef.current && !deckRefinePopoverRef.current.contains(target)) {
-        setDeckRefineOpen(false);
-      }
-      if (slideRefinePopoverRef.current && !slideRefinePopoverRef.current.contains(target)) {
-        setSlideRefineOpen(false);
-      }
-    };
-
-    if (deckRefineOpen || slideRefineOpen) {
-      document.addEventListener("mousedown", handlePointerDown);
-    }
-
-    return () => document.removeEventListener("mousedown", handlePointerDown);
-  }, [deckRefineOpen, slideRefineOpen]);
-
-  useEffect(() => {
-    setSlideRefineOpen(false);
-    setSlideRefineInstructions("");
-  }, [selectedSlide?.slideId]);
-
   const updateSlide = (slideId: string, updates: Partial<PitchSlide>) => {
     updatePitch((current) => ({
       ...current,
@@ -128,19 +97,6 @@ export default function PitchPage() {
     updateSlide(slideId, {
       tips: value.split(/\r?\n/).map((tip) => tip.replace(/^\s*[-*•]\s*/, "").trim()).filter(Boolean),
     });
-  };
-
-  const handleDeckRefineSubmit = async () => {
-    await refineWithAi(deckRefineInstructions);
-    setDeckRefineInstructions("");
-    setDeckRefineOpen(false);
-  };
-
-  const handleSlideRefineSubmit = async () => {
-    if (!selectedSlide) return;
-    await refineSlideWithAi(selectedSlide.slideId, slideRefineInstructions);
-    setSlideRefineInstructions("");
-    setSlideRefineOpen(false);
   };
 
   const exportPdf = () => {
@@ -248,127 +204,38 @@ export default function PitchPage() {
     return (
       <div className="flex min-h-[50vh] flex-col items-center justify-center">
         <div className="mb-4 h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-        <p className="font-medium text-on-surface-variant">Loading pitch...</p>
+        <p className="text-sm font-medium text-on-surface-variant">Loading pitch...</p>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto flex max-w-[1440px] flex-col gap-5 pb-24">
-      <header className="sticky top-0 z-20 -mx-2 border-b border-outline-variant/80 bg-surface/90 px-4 py-3.5 backdrop-blur-md">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Presentation Duration</span>
-              <span className="text-sm font-bold text-on-surface font-mono">{pitch.durationMinutes} min</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Estimated Current Duration</span>
-              <span className="text-sm font-bold text-primary font-mono">{formatDuration(totalEstimatedSeconds)}</span>
-            </div>
+    <div className="mx-auto flex max-w-[1440px] flex-col h-full pb-32">
+      {/* Header Section */}
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <span className="text-xs font-bold uppercase tracking-wider text-primary">Oral Defense Speech</span>
           </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <style>{`
-              @keyframes pitch-popover-in {
-                from { opacity: 0; transform: translateY(-4px) scale(0.98); }
-                to { opacity: 1; transform: translateY(0) scale(1); }
-              }
-            `}</style>
-            {!hasPitch ? (
-              <button
-                onClick={generateWithAi}
-                disabled={!isAiIdle || !hasPresentation}
-                className={aiButtonClass}
-              >
-                {aiState === "generating" ? (
-                  <span className="inline-flex items-center gap-2">
-                    <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                    Generating...
-                  </span>
-                ) : "Generate with AI"}
-              </button>
-            ) : (
-              <div className="relative" ref={deckRefinePopoverRef}>
-                <button
-                  onClick={() => setDeckRefineOpen(true)}
-                  disabled={!isAiIdle}
-                  className={aiButtonClass}
-                >
-                  {aiState === "refining" ? (
-                    <span className="inline-flex items-center gap-2">
-                      <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                      Refining...
-                    </span>
-                  ) : "Refine with AI"}
-                </button>
-
-                {deckRefineOpen && (
-                  <div
-                    className="absolute right-0 top-full z-30 mt-2 w-[min(22rem,calc(100vw-2rem))] rounded-xl border border-outline-variant bg-surface-bright p-3.5 shadow-xl"
-                    style={{ animation: "pitch-popover-in 150ms ease-out" }}
-                  >
-                    <textarea
-                      value={deckRefineInstructions}
-                      onChange={(event) => setDeckRefineInstructions(event.target.value)}
-                      placeholder="Tell AI what you'd like to improve (optional)..."
-                      rows={4}
-                      className="w-full resize-none rounded-lg border border-outline-variant/80 bg-surface px-3 py-2 text-sm text-on-surface outline-none transition-colors placeholder:text-on-surface-variant/60 focus:border-primary focus:ring-2 focus:ring-primary/15"
-                      autoFocus
-                    />
-                    <div className="mt-3 flex items-center justify-end gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setDeckRefineInstructions("");
-                          setDeckRefineOpen(false);
-                        }}
-                        className="px-3 py-1.5 rounded-lg border border-outline-variant bg-surface text-xs font-semibold text-on-surface hover:bg-surface-container transition-colors"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleDeckRefineSubmit}
-                        disabled={aiState === "refining"}
-                        className="px-3 py-1.5 rounded-lg bg-primary text-xs font-semibold text-on-primary hover:bg-primary/90 transition-all disabled:opacity-50"
-                      >
-                        {aiState === "refining" ? "Refining..." : "Refine"}
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-            {shouldShowTranslate && selectedSlide && (
-              <button
-                onClick={() => translateSlideWithAi(selectedSlide.slideId)}
-                disabled={!isAiIdle}
-                className={translateButtonClass}
-              >
-                {aiState === "translating" ? (
-                  <span className="inline-flex items-center gap-2">
-                    <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-secondary border-t-transparent" />
-                    Translating...
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-2">
-                    <HugeiconsIcon icon="globe-02" size={16} strokeWidth={1.75} />
-                    Translate to {getLanguageLabel(projectLanguage)}
-                  </span>
-                )}
-              </button>
-            )}
-            <button
-              onClick={exportPdf}
-              disabled={!hasPitch}
-              className="rounded-lg border border-outline-variant/80 bg-surface px-4 py-2 text-sm font-semibold text-on-surface transition-all hover:bg-surface-container-low disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              Export PDF
-            </button>
-          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-on-surface flex items-center">
+            Pitch Speech
+            <InfoTooltip
+              label="Speech"
+              tooltip="Craft the exact spoken script and timing for every slide of your defense presentation."
+            />
+          </h1>
+          <p className="text-sm text-on-surface-variant max-w-[48rem] mt-1.5 leading-relaxed">
+            Write and rehearse your full oral presentation speech with live time estimates and speaker delivery tips.
+          </p>
         </div>
-      </header>
+
+        {/* Global SaveStatusHeader */}
+        <SaveStatusHeader
+          status="saved"
+          onSave={() => {}}
+          isBusy={isAiBusy}
+        />
+      </div>
 
       {/* Background AI Progress Banner */}
       <AiBackgroundBanner
@@ -378,176 +245,168 @@ export default function PitchPage() {
         onCancel={cancelAi}
       />
 
+      {/* Speaking Duration Status Bar */}
+      <div className="mb-6 rounded-2xl border border-outline-variant/80 bg-surface-container-lowest p-3.5 sm:p-4 shadow-2xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Target Duration:</span>
+              <span className="text-sm font-bold font-mono text-on-surface">{pitch.durationMinutes} min</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Estimated Speech:</span>
+              <span className="text-sm font-bold font-mono text-primary">{formatDuration(totalEstimatedSeconds)}</span>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={exportPdf}
+            disabled={!hasPitch}
+            className="inline-flex items-center gap-2 h-8 px-3.5 rounded-lg border border-outline-variant/80 bg-surface text-xs font-bold text-on-surface hover:bg-surface-container transition-all shadow-2xs cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <HugeiconsIcon icon="book-open" size={15} strokeWidth={1.8} className="text-primary" />
+            <span>Export Speech PDF</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Global AI Action Toolbar */}
+      <AiActionToolbar
+        onGenerate={generateWithAi}
+        onRefine={refineWithAi}
+        onTranslate={() => selectedSlide && translateSlideWithAi(selectedSlide.slideId)}
+        isGenerating={aiState === "generating"}
+        isRefining={aiState === "refining"}
+        isTranslating={aiState === "translating"}
+        isBusy={isAiBusy}
+        canRefine={hasPitch}
+        refineDisabledTitle="Generate speech before refining"
+        refinePlaceholder="Tell AI what to refine across the entire pitch speech (e.g., 'Make the speech more engaging and confident for an academic jury')..."
+        showTranslate={shouldShowTranslate}
+        translateLabel={`Translate to ${getLanguageLabel(projectLanguage)}`}
+        primaryAction={
+          selectedSlide ? (
+            <button
+              type="button"
+              onClick={() => generateSlideWithAi(selectedSlide.slideId)}
+              disabled={isAiBusy}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 h-9 px-4 bg-primary text-on-primary rounded-lg text-[13px] font-semibold tracking-tight hover:bg-primary/90 transition-all duration-150 shadow-2xs active:scale-[0.98] disabled:opacity-50 select-none cursor-pointer"
+            >
+              <HugeiconsIcon icon="refresh" size={15} strokeWidth={2} />
+              <span>Regenerate Slide</span>
+            </button>
+          ) : undefined
+        }
+      />
+
       {error && (
-        <div className="flex items-center justify-between gap-3 rounded-lg border border-error/20 bg-error-container p-3 text-on-error-container">
-          <p className="text-body-md">{error}</p>
-          <button onClick={dismissError} className="shrink-0 text-label-sm underline hover:no-underline">Dismiss</button>
+        <div className="mb-6 p-3.5 rounded-xl bg-error-container text-on-error-container border border-error/20 flex items-center justify-between gap-3 shadow-2xs">
+          <p className="text-sm font-medium">{error}</p>
+          <button onClick={dismissError} className="shrink-0 text-xs font-semibold underline hover:no-underline">
+            Dismiss
+          </button>
         </div>
       )}
 
       {!hasPresentation ? (
-        <section className="mx-auto flex min-h-[560px] max-w-2xl flex-col items-center justify-center px-6 text-center">
-          <span className="mb-2 text-xs font-bold uppercase tracking-wider text-primary">Pitch</span>
-          <h1 className="mb-3 text-2xl sm:text-3xl font-bold tracking-tight text-on-surface">Generate your presentation first</h1>
-          <p className="mb-8 text-sm text-on-surface-variant leading-relaxed">
-            The speech follows your slide order and selected duration, so Smart PFE needs a generated presentation before creating the pitch.
+        <section className="mx-auto flex min-h-[520px] max-w-xl flex-col items-center justify-center px-6 text-center rounded-2xl border border-outline-variant/80 bg-surface-container-lowest shadow-2xs">
+          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary border border-primary/20">
+            <HugeiconsIcon icon="presentation" size={32} strokeWidth={1.8} />
+          </div>
+          <h2 className="mb-2 text-2xl font-bold tracking-tight text-on-surface">Generate your presentation first</h2>
+          <p className="mb-6 text-sm text-on-surface-variant leading-relaxed">
+            The speech script aligns directly with your slide structure and duration. Generate your presentation slides before crafting the speech.
           </p>
           <button
+            type="button"
             onClick={() => navigate("/workspace/presentation")}
-            className="rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-on-primary shadow-xs transition-all hover:bg-primary/90"
+            className="inline-flex items-center gap-2 h-9 px-5 rounded-lg bg-primary text-on-primary text-xs font-bold shadow-2xs hover:bg-primary/90 transition-all cursor-pointer"
           >
-            Go to Presentation
+            <span>Go to Presentation</span>
+            <HugeiconsIcon icon="arrow-right" size={14} strokeWidth={2} />
           </button>
         </section>
       ) : (
-        <section className="grid h-[calc(100dvh-185px)] min-h-[620px] grid-cols-1 overflow-hidden rounded-2xl border border-outline-variant/80 bg-surface shadow-xs lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[340px_minmax(0,1fr)]">
+        <section className="grid min-h-[580px] grid-cols-1 overflow-hidden rounded-2xl border border-outline-variant/80 bg-surface shadow-2xs lg:grid-cols-[280px_minmax(0,1fr)] xl:grid-cols-[320px_minmax(0,1fr)]">
           <aside className="min-w-0 border-b border-outline-variant/80 bg-surface-container-lowest px-3 py-4 lg:border-b-0 lg:border-r">
-            <nav className="flex h-full max-h-[300px] flex-col gap-1.5 overflow-y-auto pr-1 lg:max-h-none">
+            <div className="mb-3 px-2 flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-outline-variant">Slides</span>
+              <span className="text-xs font-semibold text-primary">{slides.length} total</span>
+            </div>
+            <nav className="flex flex-col gap-1.5 pr-1">
               {slides.map((slide, index) => (
                 <button
                   key={slide.slideId}
+                  type="button"
                   onClick={() => setSelectedSlideId(slide.slideId)}
                   className={cn(
-                    "grid w-full grid-cols-[2rem_minmax(0,1fr)] items-center gap-2.5 rounded-xl px-3 py-2.5 text-left transition-all",
+                    "grid w-full grid-cols-[2rem_minmax(0,1fr)] items-center gap-2.5 rounded-xl px-3 py-2.5 text-left transition-all duration-150 cursor-pointer",
                     slide.slideId === selectedSlide?.slideId
-                      ? "border border-primary/40 bg-primary/10 text-primary shadow-xs font-semibold"
-                      : "border border-transparent text-on-surface-variant hover:bg-surface-container-low/60 hover:text-on-surface"
+                      ? "border border-primary bg-primary/10 text-primary shadow-2xs font-semibold"
+                      : "border border-outline-variant/60 bg-surface text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
                   )}
                 >
-                  <span className="flex h-6 w-6 items-center justify-center rounded-md border border-outline-variant/80 bg-surface text-xs font-bold text-primary font-mono">{index + 1}</span>
-                  <span className="truncate text-xs sm:text-sm font-medium">{slide.title || `Slide ${index + 1}`}</span>
+                  <span className="flex h-6 w-6 items-center justify-center rounded-lg border border-outline-variant/80 bg-surface text-xs font-bold text-primary font-mono">{index + 1}</span>
+                  <span className="truncate text-xs sm:text-sm font-medium text-on-surface">{slide.title || `Slide ${index + 1}`}</span>
                 </button>
               ))}
             </nav>
           </aside>
 
           {selectedSlide && (
-            <main className="min-w-0 overflow-y-auto bg-surface px-4 py-8 sm:px-8 lg:px-12">
+            <main className="min-w-0 bg-surface-container-lowest px-5 py-7 sm:px-8 lg:px-10">
               <div className="mx-auto flex max-w-[860px] flex-col">
-                <div className="mb-6">
-                  <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+                <div className="mb-6 pb-4 border-b border-outline-variant/60">
+                  <div className="mb-2 flex flex-wrap items-center gap-x-4 gap-y-2">
                     <span className="text-xs font-bold uppercase tracking-wider text-primary">Slide {selectedIndex + 1}</span>
-                    <span className="inline-flex items-center gap-2 whitespace-nowrap rounded-full border border-outline-variant/80 bg-surface-container-lowest px-3 py-1 text-xs text-on-surface-variant font-medium shadow-xs">
-                      <span>Estimated speaking time:</span>
+                    <span className="inline-flex items-center gap-1.5 rounded-lg border border-outline-variant/80 bg-surface px-2.5 py-1 text-xs text-on-surface-variant font-medium shadow-2xs">
+                      <HugeiconsIcon icon="clock" size={13} strokeWidth={1.8} className="text-primary" />
+                      <span>Speaking duration:</span>
                       <span className="font-bold text-on-surface font-mono">{formatDuration(getCurrentSeconds(selectedSlide))}</span>
                     </span>
                   </div>
-                  <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-on-surface leading-snug">
+                  <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-on-surface leading-snug">
                     {selectedSlide.title}
-                  </h1>
+                  </h2>
                 </div>
 
-                <div className="rounded-2xl border border-outline-variant/80 bg-surface-container-lowest p-6 sm:p-8 shadow-xs">
+                <div className="rounded-2xl border border-outline-variant/80 bg-surface p-5 sm:p-7 shadow-2xs">
                   <label className="block">
                     <textarea
                       value={selectedSlide.speech}
                       onChange={(event) => updateSlide(selectedSlide.slideId, { speech: event.target.value })}
-                      rows={18}
-                      className="min-h-[440px] w-full resize-y rounded-xl border border-outline-variant/80 bg-surface p-5 sm:p-6 text-sm sm:text-base leading-relaxed text-on-surface outline-none transition-all placeholder:text-on-surface-variant/60 focus:border-primary focus:ring-2 focus:ring-primary/15"
-                      placeholder="Generate with AI or start writing the speech for this slide."
+                      rows={14}
+                      className="min-h-[380px] w-full resize-y rounded-xl border border-outline-variant/80 bg-surface-container-lowest p-4 sm:p-5 text-xs sm:text-sm leading-relaxed text-on-surface outline-none transition-all placeholder:text-on-surface-variant/60 focus:border-primary focus:ring-1 focus:ring-primary font-sans"
+                      placeholder="Generate with AI or start drafting the oral speech for this slide..."
                     />
                   </label>
 
-                  <section className="mt-5 overflow-hidden rounded-xl border border-outline-variant/80 bg-surface shadow-xs">
+                  <section className="mt-5 overflow-hidden rounded-xl border border-outline-variant/80 bg-surface shadow-2xs">
                     <button
+                      type="button"
                       onClick={() => setTipsOpen((value) => !value)}
-                      className="flex w-full items-center justify-between px-5 py-3.5 text-left text-sm font-semibold text-on-surface hover:bg-surface-container-low/40 transition-colors"
+                      className="flex w-full items-center justify-between px-5 py-3.5 text-left text-xs font-bold uppercase tracking-wider text-on-surface hover:bg-surface-container-low/40 transition-colors cursor-pointer"
                     >
-                      <span className="flex items-center gap-2">
-                        <span className="material-symbols-outlined text-[18px] text-primary">tips_and_updates</span>
-                        Speaker Tips
-                      </span>
-                      <span className="material-symbols-outlined text-[20px] text-on-surface-variant">
-                        {tipsOpen ? "expand_less" : "expand_more"}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <HugeiconsIcon icon="lightbulb" size={16} strokeWidth={1.8} className="text-primary" />
+                        <span>Speaker Delivery Tips</span>
+                      </div>
+                      <HugeiconsIcon icon={tipsOpen ? "chevron-down" : "chevron-right"} size={16} strokeWidth={1.8} className="text-on-surface-variant" />
                     </button>
 
                     {tipsOpen && (
-                      <div className="border-t border-outline-variant/80 p-5">
+                      <div className="border-t border-outline-variant/80 p-4 sm:p-5 bg-surface-container-lowest/50">
                         <textarea
                           value={selectedSlide.tips.join("\n")}
                           onChange={(event) => updateTips(selectedSlide.slideId, event.target.value)}
                           rows={4}
-                          className="w-full resize-y rounded-lg border border-outline-variant/80 bg-surface-container-lowest p-4 text-xs sm:text-sm leading-relaxed text-on-surface outline-none transition-all placeholder:text-on-surface-variant/60 focus:border-primary focus:ring-2 focus:ring-primary/15"
+                          className="w-full resize-y rounded-lg border border-outline-variant/80 bg-surface p-3 text-xs sm:text-sm leading-relaxed text-on-surface outline-none transition-all placeholder:text-on-surface-variant/60 focus:border-primary focus:ring-1 focus:ring-primary"
                           placeholder="Emphasis, pauses, transitions, or mistakes to avoid."
                         />
                       </div>
                     )}
                   </section>
-
-                  <div className="mt-6 flex flex-wrap items-center gap-2">
-                    <div className="relative" ref={slideRefinePopoverRef}>
-                      <button
-                        onClick={() => setSlideRefineOpen(true)}
-                        disabled={!isAiIdle || !selectedSlide.speech.trim()}
-                        className={aiButtonClass}
-                      >
-                        {aiState === "refining" ? "Refining..." : "Refine with AI"}
-                      </button>
-
-                      {slideRefineOpen && (
-                        <div
-                          className="absolute left-0 bottom-full z-30 mb-2 w-[min(22rem,calc(100vw-2rem))] rounded-xl border border-outline-variant bg-surface-bright p-3.5 shadow-xl"
-                          style={{ animation: "pitch-popover-in 150ms ease-out" }}
-                        >
-                          <textarea
-                            value={slideRefineInstructions}
-                            onChange={(event) => setSlideRefineInstructions(event.target.value)}
-                            placeholder="Tell AI what you'd like to improve (optional)..."
-                            rows={4}
-                            className="w-full resize-none rounded-lg border border-outline-variant/80 bg-surface px-3 py-2 text-sm text-on-surface outline-none transition-colors placeholder:text-on-surface-variant/60 focus:border-primary focus:ring-2 focus:ring-primary/15"
-                            autoFocus
-                          />
-                          <div className="mt-3 flex items-center justify-end gap-2">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setSlideRefineInstructions("");
-                                setSlideRefineOpen(false);
-                              }}
-                              className="px-3 py-1.5 rounded-lg border border-outline-variant bg-surface text-xs font-semibold text-on-surface hover:bg-surface-container transition-colors"
-                            >
-                              Cancel
-                            </button>
-                            <button
-                              type="button"
-                              onClick={handleSlideRefineSubmit}
-                              disabled={aiState === "refining"}
-                              className="px-3 py-1.5 rounded-lg bg-primary text-xs font-semibold text-on-primary hover:bg-primary/90 transition-all disabled:opacity-50"
-                            >
-                              {aiState === "refining" ? "Refining..." : "Refine"}
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                    {shouldShowTranslate && (
-                      <button
-                        onClick={() => translateSlideWithAi(selectedSlide.slideId)}
-                        disabled={!isAiIdle}
-                        className={translateButtonClass}
-                      >
-                        {aiState === "translating" ? (
-                          <span className="inline-flex items-center gap-2">
-                            <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-secondary border-t-transparent" />
-                            Translating...
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-2">
-                            <HugeiconsIcon icon="globe-02" size={16} strokeWidth={1.75} />
-                            Translate to {getLanguageLabel(projectLanguage)}
-                          </span>
-                        )}
-                      </button>
-                    )}
-                    <button
-                      onClick={() => generateSlideWithAi(selectedSlide.slideId)}
-                      disabled={!isAiIdle}
-                      className={aiButtonClass}
-                    >
-                      {aiState === "generating" ? "Generating..." : "Regenerate"}
-                    </button>
-                  </div>
                 </div>
               </div>
             </main>

@@ -5,6 +5,8 @@ import { cn } from "@/lib/utils";
 import { useWorkflow } from "@/context/WorkflowContext";
 import { normalizePresentation, PresentationDeck, PresentationSlide } from "./Presentation/hooks/usePresentation";
 import { formatDuration, normalizePitch, PitchDeck, PitchSlide } from "./Pitch/hooks/usePitch";
+import HugeiconsIcon from "@/components/ui/HugeiconsIcon";
+import InfoTooltip from "@/components/ui/InfoTooltip";
 
 type JuryStage = "loading" | "prepare" | "presenting" | "analyzing" | "results";
 type MicStatus = "unknown" | "checking" | "ready" | "denied" | "unavailable";
@@ -298,55 +300,34 @@ export default function JurySimulation() {
       recorder.stop();
     });
 
-  const analyzeRecording = async (audioBlob: Blob, actualSeconds: number) => {
-    if (!project?._id) throw new Error("Project is not ready yet. Please refresh the page.");
-    if (!audioBlob.size) throw new Error("The recording is empty. Please try again.");
-    if (actualSeconds < 5) throw new Error("The recording is too short to analyze. Please record at least a short attempt.");
-
-    const formData = new FormData();
-    formData.append("projectId", project._id);
-    formData.append("actualSeconds", String(actualSeconds));
-    formData.append("presentation", JSON.stringify(presentation));
-    formData.append("pitch", JSON.stringify(pitch));
-    formData.append("objectiveMetrics", JSON.stringify({
-      actualSeconds,
-      targetSeconds,
-      slideCount: slides.length,
-      expectedSpeechSeconds: alignedPitchSlides.reduce((sum, slide) => sum + (Number(slide?.estimatedSeconds) || 0), 0),
-      mimeType: audioBlob.type,
-      sizeBytes: audioBlob.size,
-    }));
-    formData.append("audio", audioBlob, `jury-defense-${Date.now()}.${recordingExtension(audioBlob.type)}`);
-
-    const response = await fetch(`${API_BASE_URL}/ai/jury-simulation/analyze`, {
-      method: "POST",
-      headers: authHeaders(),
-      body: formData,
-    });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(data.message || "AI analysis failed. Please try again.");
-    return data.attempt as JuryAttempt;
-  };
-
   const finishDefense = async () => {
+    if (stage !== "presenting") return;
+    setStage("analyzing");
+    setError("");
+
     try {
-      const actualSeconds = normalizeSeconds(startedAt ? (Date.now() - startedAt) / 1000 : elapsedSeconds);
-      setElapsedSeconds(actualSeconds);
-      setStage("analyzing");
-      setError("");
       const audioBlob = await stopRecording();
-      const attempt = await analyzeRecording(audioBlob, actualSeconds);
+      const projectData = project || (await fetchApi("/projects/my-project"));
+      const formData = new FormData();
+      const ext = audioBlob.type.includes("ogg") ? "ogg" : audioBlob.type.includes("mp4") ? "m4a" : "webm";
+      formData.append("audio", audioBlob, `jury-attempt.${ext}`);
+      formData.append("targetSeconds", String(targetSeconds));
+      formData.append("actualSeconds", String(elapsedSeconds));
+
+      const response = await fetch(`${API_BASE_URL}/projects/${projectData._id}/jury-simulation/evaluate`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        body: formData,
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to analyze the jury simulation.");
+      }
+
+      const attempt = data.attempt;
+      setAttempts((current) => [attempt, ...current.filter((item) => item._id !== attempt._id)]);
       setCurrentAttempt(attempt);
-      setAttempts((current) => [
-        { ...attempt, isCurrent: true },
-        ...current.map((item) => ({
-          ...item,
-          isCurrent:
-            item.status === "completed" &&
-            item.presentationVersion === attempt.presentationVersion &&
-            item.pitchVersion === attempt.pitchVersion,
-        })),
-      ]);
       await refreshWorkflow();
       setStage("results");
     } catch (err: any) {
@@ -370,11 +351,9 @@ export default function JurySimulation() {
 
   if (stage === "loading") {
     return (
-      <div className="min-h-[calc(100dvh-150px)] rounded-lg border border-outline-variant bg-surface p-xl">
-        <div className="flex min-h-[420px] items-center justify-center gap-3 text-on-surface-variant">
-          <span className="h-5 w-5 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
-          <span className="font-label-md">Loading Jury Simulation...</span>
-        </div>
+      <div className="flex min-h-[50vh] flex-col items-center justify-center">
+        <div className="mb-4 h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        <p className="text-sm font-medium text-on-surface-variant">Loading Jury Simulation...</p>
       </div>
     );
   }
@@ -397,14 +376,12 @@ export default function JurySimulation() {
 
   if (stage === "analyzing") {
     return (
-      <div className="min-h-[calc(100dvh-150px)] rounded-lg border border-outline-variant bg-surface p-xl">
-        <div className="flex min-h-[520px] flex-col items-center justify-center text-center">
-          <span className="mb-5 h-12 w-12 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
-          <h1 className="text-headline-lg text-on-surface">Analyzing your defense...</h1>
-          <p className="mt-2 max-w-md text-body-md text-on-surface-variant">
-            Smart PFE is comparing your recording with the presentation and expected pitch.
-          </p>
-        </div>
+      <div className="mx-auto flex max-w-xl min-h-[520px] flex-col items-center justify-center text-center p-8 rounded-2xl border border-outline-variant/80 bg-surface-container-lowest shadow-2xs">
+        <div className="mb-5 h-12 w-12 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
+        <h1 className="text-2xl font-bold tracking-tight text-on-surface">Analyzing your defense speech...</h1>
+        <p className="mt-2 text-sm text-on-surface-variant max-w-md leading-relaxed">
+          Smart PFE AI is evaluating your verbal clarity, pacing, slide coverage, and vocal delivery confidence.
+        </p>
       </div>
     );
   }
@@ -421,130 +398,143 @@ export default function JurySimulation() {
   }
 
   return (
-    <div className="min-h-[calc(100dvh-150px)] rounded-lg border border-outline-variant bg-surface">
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-xl p-md sm:p-xl">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div className="min-w-0 flex-1">
-            <p className="mb-2 text-label-sm font-semibold uppercase text-primary">Final step</p>
-            <h1 className="text-headline-lg text-on-surface">Jury Simulation</h1>
-            <p className="mt-2 max-w-3xl text-body-md leading-7 text-on-surface-variant">
-              Practice your PFE defense in realistic conditions using your generated slides, pitch, and microphone recording.
-            </p>
+    <div className="mx-auto flex max-w-[1440px] flex-col h-full pb-32">
+      {/* Header */}
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <span className="text-xs font-bold uppercase tracking-wider text-primary">Live Rehearsal</span>
           </div>
-          {latestCurrentAttempt && (
-            <button
-              type="button"
-              onClick={() => {
-                setCurrentAttempt(latestCurrentAttempt);
-                setStage("results");
-              }}
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-outline-variant bg-surface-container-low px-4 text-label-md font-semibold text-on-surface hover:bg-surface-container"
-            >
-              <span className="material-symbols-outlined text-[18px]">analytics</span>
-              Latest assessment
-            </button>
-          )}
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-on-surface flex items-center">
+            Jury Simulation
+            <InfoTooltip
+              label="Defense Rehearsal"
+              tooltip="Simulate your live defense presentation with audio recording and instant AI jury feedback."
+            />
+          </h1>
+          <p className="text-sm text-on-surface-variant max-w-2xl mt-1.5 leading-relaxed">
+            Practice your PFE defense in realistic conditions using your slides, pitch speech, and live voice recording.
+          </p>
         </div>
 
-        {error && (
-          <div className="flex items-start gap-3 rounded-md border border-error/30 bg-error/5 p-4 text-body-sm text-on-surface">
-            <span className="material-symbols-outlined text-error">error</span>
-            <div>
-              <p className="font-semibold text-error">Simulation needs attention</p>
-              <p className="mt-1 text-on-surface-variant">{error}</p>
-            </div>
-          </div>
+        {latestCurrentAttempt && (
+          <button
+            type="button"
+            onClick={() => {
+              setCurrentAttempt(latestCurrentAttempt);
+              setStage("results");
+            }}
+            className="inline-flex items-center gap-2 h-9 px-4 rounded-lg border border-outline-variant/80 bg-surface text-xs font-bold text-on-surface hover:bg-surface-container transition-all shadow-2xs cursor-pointer"
+          >
+            <HugeiconsIcon icon="analytics" size={16} strokeWidth={1.8} className="text-primary" />
+            <span>Latest Assessment ({latestCurrentAttempt.analysis.overallScore}/100)</span>
+          </button>
         )}
+      </div>
 
-        {olderAttemptsExist && (
-          <div className="flex items-start gap-3 rounded-md border border-outline-variant bg-surface-container-low p-4 text-body-sm text-on-surface-variant">
-            <span className="material-symbols-outlined text-primary">history</span>
-            <p>Your previous defense attempts were based on an older version of your presentation or pitch.</p>
-          </div>
-        )}
+      {error && (
+        <div className="mb-6 p-3.5 rounded-xl bg-error-container text-on-error-container border border-error/20 flex items-center justify-between gap-3 shadow-2xs">
+          <p className="text-sm font-medium">{error}</p>
+          <button onClick={() => setError("")} className="shrink-0 text-xs font-semibold underline hover:no-underline">
+            Dismiss
+          </button>
+        </div>
+      )}
 
-        <section className="grid gap-md md:grid-cols-[1fr_340px]">
-          <div className="rounded-lg border border-outline-variant bg-surface-container-lowest p-lg">
-            <h2 className="text-headline-sm text-on-surface">Prepare</h2>
-            <div className="mt-lg grid gap-3">
+      {olderAttemptsExist && (
+        <div className="mb-6 p-3.5 rounded-xl border border-outline-variant/80 bg-surface-container-low text-xs text-on-surface-variant flex items-center gap-2.5">
+          <HugeiconsIcon icon="clock" size={16} strokeWidth={1.8} className="text-primary shrink-0" />
+          <span>Your earlier defense attempts were recorded on a previous version of the presentation.</span>
+        </div>
+      )}
+
+      <section className="grid gap-6 md:grid-cols-[1fr_360px]">
+        {/* Preparation Check Card */}
+        <div className="rounded-2xl border border-outline-variant/80 bg-surface-container-lowest p-6 sm:p-7 shadow-2xs flex flex-col justify-between">
+          <div>
+            <h2 className="text-sm font-bold uppercase tracking-wider text-outline-variant mb-4">Readiness Checklist</h2>
+            <div className="grid gap-3">
               <ReadinessRow
-                icon="present_to_all"
-                label="Presentation"
-                value={hasPresentation ? `${slides.length} slides ready` : "Missing"}
+                icon="presentation"
+                label="Presentation Deck"
+                value={hasPresentation ? `${slides.length} slides ready` : "Missing slides"}
                 ready={hasPresentation}
-                action={!hasPresentation ? <Link to="/workspace/presentation" className="text-label-sm font-semibold text-primary">Open</Link> : null}
+                action={!hasPresentation ? <Link to="/workspace/presentation" className="text-xs font-bold text-primary hover:underline">Create</Link> : null}
               />
               <ReadinessRow
-                icon="campaign"
-                label="Pitch"
-                value={hasPitch ? `${alignedPitchSlides.filter((slide) => getPitchSpeech(slide)).length} slide speeches ready` : "Missing"}
+                icon="book-open"
+                label="Pitch Speech"
+                value={hasPitch ? `${alignedPitchSlides.filter((slide) => getPitchSpeech(slide)).length} slide speeches ready` : "Missing speech"}
                 ready={hasPitch}
-                action={!hasPitch ? <Link to="/workspace/pitch" className="text-label-sm font-semibold text-primary">Open</Link> : null}
+                action={!hasPitch ? <Link to="/workspace/pitch" className="text-xs font-bold text-primary hover:underline">Draft</Link> : null}
               />
-              <ReadinessRow icon="timer" label="Target Duration" value={formatDuration(targetSeconds)} ready />
+              <ReadinessRow
+                icon="clock"
+                label="Target Duration"
+                value={formatDuration(targetSeconds)}
+                ready
+              />
               <ReadinessRow
                 icon="mic"
-                label="Microphone"
+                label="Microphone Audio"
                 value={micLabel(micStatus)}
                 ready={micStatus === "ready"}
                 action={
                   <button
                     type="button"
                     onClick={checkMicrophone}
-                    className="text-label-sm font-semibold text-primary disabled:text-outline"
+                    className="text-xs font-bold text-primary hover:underline cursor-pointer disabled:opacity-40"
                     disabled={micStatus === "checking"}
                   >
-                    {micStatus === "checking" ? "Checking" : "Check"}
+                    {micStatus === "checking" ? "Checking..." : "Test Mic"}
                   </button>
                 }
               />
             </div>
-
-            <div className="mt-lg rounded-md border border-outline-variant bg-surface-container-low p-4 text-body-sm text-on-surface-variant">
-              Your recording will be sent to our AI service to analyze your defense performance.
-              Avoid including sensitive or confidential information while practicing.
+            <div className="mt-5 rounded-xl border border-outline-variant/60 bg-surface-container-low/40 p-3.5 text-xs text-on-surface-variant/80 leading-relaxed">
+              Your voice recording will be securely processed by AI to generate a detailed jury review, timing breakdown, and slide-by-slide feedback.
             </div>
 
-            <div className="mt-lg flex flex-col gap-3 sm:flex-row">
+            <div className="mt-6 flex flex-col sm:flex-row gap-3">
               <button
                 type="button"
                 onClick={startSimulation}
                 disabled={!canStart}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-primary px-5 text-label-lg font-semibold text-on-primary shadow-sm transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex items-center justify-center gap-2 h-10 px-6 rounded-lg bg-primary text-on-primary text-xs font-bold shadow-2xs hover:bg-primary/90 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                <span className="material-symbols-outlined text-[20px]">radio_button_checked</span>
-                Start Simulation
+                <HugeiconsIcon icon="play-circle" size={17} strokeWidth={2} />
+                <span>Start Live Simulation</span>
               </button>
               <button
                 type="button"
                 onClick={loadSimulation}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-md border border-outline-variant bg-surface px-5 text-label-lg font-semibold text-on-surface hover:bg-surface-container-low"
+                className="inline-flex items-center justify-center gap-1.5 h-10 px-4 rounded-lg border border-outline-variant/80 bg-surface text-xs font-semibold text-on-surface hover:bg-surface-container transition-all cursor-pointer"
               >
-                <span className="material-symbols-outlined text-[20px]">refresh</span>
-                Refresh
+                <HugeiconsIcon icon="refresh" size={15} strokeWidth={1.8} />
+                <span>Refresh Status</span>
               </button>
             </div>
           </div>
+        </div>
 
-          <AttemptHistory
-            attempts={attempts}
-            onSelectAttempt={(attempt) => {
-              setCurrentAttempt(attempt);
-              setStage("results");
-            }}
-          />
-        </section>
-      </div>
+        <AttemptHistory
+          attempts={attempts}
+          onSelectAttempt={(attempt) => {
+            setCurrentAttempt(attempt);
+            setStage("results");
+          }}
+        />
+      </section>
     </div>
   );
 }
 
 function micLabel(status: MicStatus) {
-  if (status === "ready") return "Ready";
-  if (status === "denied") return "Not connected";
-  if (status === "unavailable") return "Unavailable";
-  if (status === "checking") return "Checking...";
-  return "Permission needed";
+  if (status === "ready") return "Ready to record";
+  if (status === "denied") return "Permission denied";
+  if (status === "unavailable") return "Not detected";
+  if (status === "checking") return "Testing...";
+  return "Permission required";
 }
 
 function ReadinessRow({
@@ -561,16 +551,21 @@ function ReadinessRow({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center gap-3 rounded-md border border-outline-variant bg-surface p-3">
-      <span className="material-symbols-outlined text-[22px] text-primary">{icon}</span>
+    <div className="flex items-center gap-3 rounded-xl border border-outline-variant/70 bg-surface p-3.5 transition-all">
+      <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 border border-primary/20">
+        <HugeiconsIcon icon={icon} size={16} strokeWidth={1.8} />
+      </div>
       <div className="min-w-0 flex-1">
-        <p className="text-label-md font-semibold text-on-surface">{label}</p>
-        <p className="truncate text-body-sm text-on-surface-variant">{value}</p>
+        <p className="text-xs font-bold text-on-surface">{label}</p>
+        <p className="truncate text-xs text-on-surface-variant/80 mt-0.5">{value}</p>
       </div>
       {action}
-      <span className={cn("material-symbols-outlined text-[20px]", ready ? "text-[#10B981]" : "text-outline")}>
-        {ready ? "check_circle" : "radio_button_unchecked"}
-      </span>
+      <HugeiconsIcon
+        icon={ready ? "check-circle" : "alert-circle"}
+        size={18}
+        strokeWidth={1.8}
+        className={ready ? "text-secondary" : "text-outline-variant"}
+      />
     </div>
   );
 }
@@ -597,66 +592,81 @@ function SimulationMode({
   onFinish: () => void;
 }) {
   return (
-    <div className="min-h-[calc(100dvh-150px)] rounded-lg border border-outline-variant bg-surface text-on-surface">
+    <div className="min-h-[calc(100dvh-150px)] rounded-2xl border border-outline-variant/80 bg-surface text-on-surface overflow-hidden shadow-2xs">
       <div className="flex min-h-[calc(100dvh-150px)] flex-col">
-        <header className="flex flex-col gap-3 border-b border-outline-variant p-md sm:flex-row sm:items-center sm:justify-between">
+        <header className="flex flex-col gap-3 border-b border-outline-variant/70 p-4 bg-surface-container-low/40 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             <span className="flex h-3 w-3 rounded-full bg-error animate-pulse" />
             <div>
-              <p className="text-label-md font-semibold text-error">Recording</p>
-              <p className="text-body-sm text-on-surface-variant">Slide {slideIndex + 1} of {totalSlides}</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-error">Recording In Progress</p>
+              <p className="text-xs font-semibold text-on-surface">Slide {slideIndex + 1} of {totalSlides}</p>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            <TimerPill label="Current" value={formatDuration(elapsedSeconds)} />
+            <TimerPill label="Elapsed" value={formatDuration(elapsedSeconds)} />
             <TimerPill label="Target" value={formatDuration(targetSeconds)} />
             <button
               type="button"
               onClick={onFinish}
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-error px-4 text-label-md font-semibold text-white hover:bg-error/90"
+              className="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-error px-4 text-xs font-bold text-white shadow-2xs hover:bg-error/90 transition-all cursor-pointer"
             >
-              <span className="material-symbols-outlined text-[18px]">stop_circle</span>
-              Finish Defense
+              <HugeiconsIcon icon="stop-circle" size={16} strokeWidth={2} />
+              <span>Finish Defense</span>
             </button>
           </div>
         </header>
 
-        <main className="grid flex-1 gap-md p-md lg:grid-cols-[minmax(0,1fr)_360px]">
-          <section className="flex min-h-[420px] flex-col rounded-lg border border-outline-variant bg-surface-container-lowest p-lg">
-            <div className="mb-md flex items-center justify-between gap-3">
-              <p className="text-label-sm font-semibold uppercase text-primary">Current slide</p>
-              <div className="flex items-center gap-2">
-                <button type="button" onClick={onPrevious} disabled={slideIndex === 0} className="flex h-9 w-9 items-center justify-center rounded-md border border-outline-variant bg-surface disabled:opacity-40" title="Previous slide">
-                  <span className="material-symbols-outlined text-[20px]">chevron_left</span>
-                </button>
-                <button type="button" onClick={onNext} disabled={slideIndex >= totalSlides - 1} className="flex h-9 w-9 items-center justify-center rounded-md border border-outline-variant bg-surface disabled:opacity-40" title="Next slide">
-                  <span className="material-symbols-outlined text-[20px]">chevron_right</span>
-                </button>
+        <main className="grid flex-1 gap-5 p-5 sm:p-6 lg:grid-cols-[minmax(0,1fr)_380px] bg-surface-container-lowest">
+          <section className="flex min-h-[420px] flex-col rounded-2xl border border-outline-variant/80 bg-surface p-6 sm:p-8 shadow-2xs justify-between">
+            <div>
+              <div className="mb-4 flex items-center justify-between gap-3 pb-3 border-b border-outline-variant/60">
+                <span className="text-xs font-bold uppercase tracking-wider text-primary">Live Slide View</span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={onPrevious}
+                    disabled={slideIndex === 0}
+                    className="w-8 h-8 rounded-lg border border-outline-variant/80 bg-surface flex items-center justify-center text-on-surface hover:bg-surface-container disabled:opacity-30 cursor-pointer"
+                    title="Previous slide"
+                  >
+                    <HugeiconsIcon icon="arrow-right" size={14} strokeWidth={2} className="rotate-180" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onNext}
+                    disabled={slideIndex >= totalSlides - 1}
+                    className="w-8 h-8 rounded-lg border border-outline-variant/80 bg-surface flex items-center justify-center text-on-surface hover:bg-surface-container disabled:opacity-30 cursor-pointer"
+                    title="Next slide"
+                  >
+                    <HugeiconsIcon icon="arrow-right" size={14} strokeWidth={2} />
+                  </button>
+                </div>
               </div>
-            </div>
-            <div className="flex flex-1 flex-col justify-center">
-              <h1 className="text-headline-lg text-on-surface">{slide?.title || "Untitled slide"}</h1>
-              <ul className="mt-lg space-y-3 text-body-lg text-on-surface">
+
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-on-surface">{slide?.title || "Untitled slide"}</h1>
+              <ul className="mt-6 space-y-3 text-sm sm:text-base text-on-surface">
                 {(slide?.bullets || []).map((bullet, index) => (
-                  <li key={`${bullet}-${index}`} className="flex gap-3">
-                    <span className="mt-2 h-2 w-2 rounded-full bg-primary" />
-                    <span>{bullet}</span>
+                  <li key={`${bullet}-${index}`} className="flex items-start gap-3">
+                    <span className="mt-2 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+                    <span className="leading-relaxed">{bullet}</span>
                   </li>
                 ))}
               </ul>
-              {slide?.notes && (
-                <p className="mt-xl rounded-md border border-outline-variant bg-surface-container-low p-4 text-body-md text-on-surface-variant">
-                  {slide.notes}
-                </p>
-              )}
             </div>
+
+            {slide?.notes && (
+              <div className="mt-8 rounded-xl border border-outline-variant/70 bg-surface-container-low/40 p-4 text-xs text-on-surface-variant leading-relaxed">
+                <span className="font-bold text-on-surface uppercase tracking-wider block mb-1">Speaker Notes:</span>
+                {slide.notes}
+              </div>
+            )}
           </section>
 
-          <aside className="rounded-lg border border-outline-variant bg-surface-container-lowest p-lg">
-            <p className="text-label-sm font-semibold uppercase text-primary">Speech reference</p>
-            <h2 className="mt-2 text-headline-sm text-on-surface">{pitch?.title || slide?.title || "Current slide"}</h2>
-            <div className="mt-md max-h-[52dvh] overflow-y-auto pr-1 text-body-md leading-7 text-on-surface-variant">
-              {pitch?.speech || "No pitch text is available for this slide."}
+          <aside className="rounded-2xl border border-outline-variant/80 bg-surface p-6 shadow-2xs flex flex-col">
+            <span className="text-xs font-bold uppercase tracking-wider text-primary mb-2">Speech Reference Script</span>
+            <h2 className="text-sm font-bold text-on-surface pb-3 border-b border-outline-variant/60">{pitch?.title || slide?.title || "Current slide"}</h2>
+            <div className="mt-4 flex-1 overflow-y-auto pr-1 text-xs sm:text-sm leading-relaxed text-on-surface-variant font-sans">
+              {pitch?.speech || "No pitch script is available for this slide."}
             </div>
           </aside>
         </main>
@@ -667,9 +677,9 @@ function SimulationMode({
 
 function TimerPill({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-md border border-outline-variant bg-surface-container-low px-3 py-2">
-      <p className="text-[11px] font-semibold uppercase text-on-surface-variant">{label}</p>
-      <p className="font-mono text-label-lg text-on-surface">{value}</p>
+    <div className="rounded-lg border border-outline-variant/80 bg-surface px-3 py-1.5 shadow-2xs">
+      <p className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">{label}</p>
+      <p className="font-mono text-xs font-bold text-on-surface">{value}</p>
     </div>
   );
 }
@@ -688,84 +698,88 @@ function ResultsView({
   const analysis = attempt.analysis;
 
   return (
-    <div className="min-h-[calc(100dvh-150px)] rounded-lg border border-outline-variant bg-surface">
-      <div className="mx-auto grid w-full max-w-6xl gap-xl p-md sm:p-xl lg:grid-cols-[minmax(0,1fr)_340px]">
-        <main className="space-y-xl">
-          <section className="rounded-lg border border-outline-variant bg-surface-container-lowest p-lg">
-            <p className="mb-2 text-label-sm font-semibold uppercase text-primary">Defense Assessment</p>
-            <div className="flex flex-col gap-lg sm:flex-row sm:items-center sm:justify-between">
+    <div className="mx-auto flex max-w-[1440px] flex-col h-full pb-32">
+      <div className="grid w-full gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <main className="space-y-6">
+          <section className="rounded-2xl border border-outline-variant/80 bg-surface-container-lowest p-6 sm:p-7 shadow-2xs">
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <span className="text-xs font-bold uppercase tracking-wider text-primary">AI Evaluation</span>
+            </div>
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between pb-6 border-b border-outline-variant/60">
               <div>
-                <h1 className="text-headline-lg text-on-surface">{analysis.overallScore} / 100</h1>
-                <p className="mt-1 text-headline-sm text-on-surface">{analysis.overallLabel}</p>
-                <p className="mt-2 text-body-sm text-on-surface-variant">
-                  {attemptVersionLabel(attempt)} - Presentation v{attempt.presentationVersion}, Pitch v{attempt.pitchVersion}
+                <h1 className="text-3xl sm:text-4xl font-bold font-mono text-on-surface tracking-tight">{analysis.overallScore} / 100</h1>
+                <p className="mt-1 text-base font-bold text-primary">{analysis.overallLabel}</p>
+                <p className="mt-1 text-xs text-on-surface-variant">
+                  {attemptVersionLabel(attempt)} · Presentation v{attempt.presentationVersion}, Pitch v{attempt.pitchVersion}
                 </p>
               </div>
-              <button type="button" onClick={onPracticeAgain} className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-primary px-5 text-label-lg font-semibold text-on-primary hover:bg-primary/90">
-                <span className="material-symbols-outlined text-[20px]">refresh</span>
-                Practice Again
+              <button
+                type="button"
+                onClick={onPracticeAgain}
+                className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-lg bg-primary text-on-primary text-xs font-bold shadow-2xs hover:bg-primary/90 transition-all cursor-pointer"
+              >
+                <HugeiconsIcon icon="refresh" size={15} strokeWidth={2} />
+                <span>Practice Again</span>
               </button>
             </div>
-            <div className="mt-lg grid gap-3 sm:grid-cols-5">
+            <div className="mt-6 grid gap-3 grid-cols-2 sm:grid-cols-5">
               {scoreCategories.map(([key, label]) => (
-                <div key={key} className="rounded-md border border-outline-variant bg-surface p-3">
-                  <p className="text-label-sm font-semibold text-on-surface-variant">{label}</p>
-                  <p className="mt-1 text-headline-sm text-on-surface">{analysis.categoryScores[key]}</p>
+                <div key={key} className="rounded-xl border border-outline-variant/80 bg-surface p-3.5 text-center shadow-2xs">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">{label}</p>
+                  <p className="mt-1 text-xl font-bold font-mono text-on-surface">{analysis.categoryScores[key]}</p>
                 </div>
               ))}
             </div>
           </section>
 
-          <section className="grid gap-md md:grid-cols-2">
-            <FeedbackBlock title="Your strengths" icon="check_circle" tone="good" items={analysis.strengths} />
-            <FeedbackBlock title="Improve next time" icon="trending_up" tone="warn" items={analysis.improvements} />
+          <section className="grid gap-5 md:grid-cols-2">
+            <FeedbackBlock title="Key Strengths" icon="check-circle" tone="good" items={analysis.strengths} />
+            <FeedbackBlock title="Areas For Improvement" icon="trending-up" tone="warn" items={analysis.improvements} />
           </section>
 
-          <section className="rounded-lg border border-outline-variant bg-surface-container-lowest p-lg">
-            <div className="flex items-start gap-3">
-              <span className="material-symbols-outlined text-primary">timer</span>
+          <section className="rounded-2xl border border-outline-variant/80 bg-surface-container-lowest p-6 shadow-2xs">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 border border-primary/20">
+                <HugeiconsIcon icon="clock" size={18} strokeWidth={1.8} />
+              </div>
               <div>
-                <h2 className="text-headline-sm text-on-surface">Timing</h2>
-                <p className="mt-2 text-body-md text-on-surface-variant">{analysis.timing.assessment}</p>
-                <p className="mt-2 text-body-sm text-on-surface-variant">
+                <h2 className="text-sm font-bold text-on-surface tracking-tight">Speech Timing Breakdown</h2>
+                <p className="text-xs text-on-surface-variant mt-0.5">{analysis.timing.assessment}</p>
+                <p className="text-xs font-semibold text-primary mt-1 font-mono">
                   Actual {formatDuration(analysis.timing.actualSeconds)} / Target {formatDuration(analysis.timing.targetSeconds)}
                 </p>
               </div>
             </div>
           </section>
 
-          <section className="rounded-lg border border-outline-variant bg-surface-container-lowest p-lg">
-            <h2 className="text-headline-sm text-on-surface">Next attempt</h2>
-            <ol className="mt-md space-y-3">
+          <section className="rounded-2xl border border-outline-variant/80 bg-surface-container-lowest p-6 shadow-2xs">
+            <h2 className="text-sm font-bold uppercase tracking-wider text-outline-variant mb-4">Recommended Action Plan</h2>
+            <ol className="space-y-3">
               {analysis.actionPlan.map((item, index) => (
-                <li key={`${item}-${index}`} className="flex gap-3 text-body-md text-on-surface-variant">
-                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-label-sm font-semibold text-on-primary">{index + 1}</span>
-                  <span>{item}</span>
+                <li key={`${item}-${index}`} className="flex gap-3 text-xs sm:text-sm text-on-surface">
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-on-primary font-mono">{index + 1}</span>
+                  <span className="leading-relaxed">{item}</span>
                 </li>
               ))}
             </ol>
           </section>
 
-          <section className="rounded-lg border border-outline-variant bg-surface-container-lowest p-lg">
-            <h2 className="text-headline-sm text-on-surface">Slide-by-slide feedback</h2>
-            <div className="mt-md space-y-3">
+          <section className="rounded-2xl border border-outline-variant/80 bg-surface-container-lowest p-6 shadow-2xs">
+            <h2 className="text-sm font-bold uppercase tracking-wider text-outline-variant mb-4">Slide-by-Slide Analysis</h2>
+            <div className="space-y-3">
               {analysis.sectionFeedback.length ? analysis.sectionFeedback.map((section) => (
-                <details key={`${section.slideNumber}-${section.slideTitle}`} className="rounded-md border border-outline-variant bg-surface p-4">
-                  <summary className="cursor-pointer text-label-lg font-semibold text-on-surface">
-                    Slide {section.slideNumber} - {section.slideTitle}
+                <details key={`${section.slideNumber}-${section.slideTitle}`} className="rounded-xl border border-outline-variant/80 bg-surface p-4 shadow-2xs group">
+                  <summary className="cursor-pointer text-xs sm:text-sm font-bold text-on-surface flex items-center justify-between">
+                    <span>Slide {section.slideNumber} — {section.slideTitle}</span>
+                    <HugeiconsIcon icon="chevron-down" size={16} strokeWidth={1.8} className="text-on-surface-variant group-open:rotate-180 transition-transform" />
                   </summary>
-                  <div className="mt-4 grid gap-4 md:grid-cols-2">
-                    <MiniList title="Good" items={section.strengths} />
-                    <MiniList title="Improve" items={section.improvements} />
+                  <div className="mt-4 grid gap-4 md:grid-cols-2 pt-3 border-t border-outline-variant/60">
+                    <MiniList title="Positive Observations" items={section.strengths} />
+                    <MiniList title="Recommendations" items={section.improvements} />
                   </div>
-                  {section.observations.length > 0 && (
-                    <div className="mt-4">
-                      <MiniList title="Observations" items={section.observations} />
-                    </div>
-                  )}
                 </details>
               )) : (
-                <p className="text-body-md text-on-surface-variant">No slide-specific feedback was returned for this attempt.</p>
+                <p className="text-xs text-on-surface-variant">No slide-specific feedback was recorded for this attempt.</p>
               )}
             </div>
           </section>
@@ -779,23 +793,23 @@ function ResultsView({
 
 function FeedbackBlock({ title, icon, tone, items }: { title: string; icon: string; tone: "good" | "warn"; items: string[] }) {
   const toneClass = tone === "good"
-    ? "border-[#10B981]/30 bg-[#10B981]/5 text-[#047857]"
-    : "border-[#F59E0B]/30 bg-[#F59E0B]/5 text-[#B45309]";
+    ? "border-secondary/30 bg-secondary/5 text-secondary"
+    : "border-amber-500/30 bg-amber-500/5 text-amber-600";
 
   return (
-    <section className={cn("rounded-lg border p-lg", toneClass)}>
-      <h2 className="flex items-center gap-2 text-label-lg font-semibold uppercase">
-        <span className="material-symbols-outlined text-[20px]">{icon}</span>
+    <section className={cn("rounded-2xl border p-5 sm:p-6 shadow-2xs", toneClass)}>
+      <h2 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider">
+        <HugeiconsIcon icon={icon} size={17} strokeWidth={1.8} />
         {title}
       </h2>
-      <ul className="mt-md space-y-2 text-body-md text-on-surface">
+      <ul className="mt-3 space-y-2 text-xs sm:text-sm text-on-surface">
         {items.length ? items.map((item, index) => (
-          <li key={`${item}-${index}`} className="flex gap-2">
-            <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-current" />
-            <span>{item}</span>
+          <li key={`${item}-${index}`} className="flex items-start gap-2">
+            <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-current" />
+            <span className="leading-relaxed">{item}</span>
           </li>
         )) : (
-          <li className="text-on-surface-variant">No item was returned for this category.</li>
+          <li className="text-on-surface-variant">No feedback returned for this category.</li>
         )}
       </ul>
     </section>
@@ -805,15 +819,15 @@ function FeedbackBlock({ title, icon, tone, items }: { title: string; icon: stri
 function MiniList({ title, items }: { title: string; items: string[] }) {
   return (
     <div>
-      <h3 className="text-label-md font-semibold text-on-surface">{title}</h3>
-      <ul className="mt-2 space-y-2 text-body-sm text-on-surface-variant">
+      <h3 className="text-xs font-bold text-on-surface mb-2">{title}</h3>
+      <ul className="space-y-1.5 text-xs text-on-surface-variant">
         {items.length ? items.map((item, index) => (
-          <li key={`${title}-${item}-${index}`} className="flex gap-2">
-            <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+          <li key={`${title}-${item}-${index}`} className="flex items-start gap-2">
+            <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-primary" />
             <span>{item}</span>
           </li>
         )) : (
-          <li>No feedback for this item.</li>
+          <li className="text-on-surface-variant/60">No items in this section.</li>
         )}
       </ul>
     </div>
@@ -822,31 +836,33 @@ function MiniList({ title, items }: { title: string; items: string[] }) {
 
 function AttemptHistory({ attempts, onSelectAttempt, selectedId }: { attempts: JuryAttempt[]; onSelectAttempt: (attempt: JuryAttempt) => void; selectedId?: string }) {
   return (
-    <aside className="rounded-lg border border-outline-variant bg-surface-container-lowest p-lg">
-      <h2 className="text-headline-sm text-on-surface">Previous Attempts</h2>
-      <div className="mt-md space-y-3">
+    <aside className="rounded-2xl border border-outline-variant/80 bg-surface-container-lowest p-5 sm:p-6 shadow-2xs h-fit">
+      <h2 className="text-xs font-bold uppercase tracking-wider text-outline-variant mb-4">Attempt History</h2>
+      <div className="space-y-2.5">
         {attempts.length ? attempts.map((attempt) => (
           <button
             key={attempt._id || attempt.attemptNumber}
             type="button"
             onClick={() => onSelectAttempt(attempt)}
             className={cn(
-              "w-full rounded-md border p-4 text-left transition hover:bg-surface-container-low",
-              selectedId === attempt._id ? "border-primary bg-primary/5" : "border-outline-variant bg-surface"
+              "w-full rounded-xl border p-3.5 text-left transition-all duration-150 cursor-pointer shadow-2xs",
+              selectedId === attempt._id
+                ? "border-primary bg-primary/10"
+                : "border-outline-variant/70 bg-surface hover:bg-surface-container"
             )}
           >
             <div className="flex items-center justify-between gap-3">
-              <span className="text-label-lg font-semibold text-on-surface">Attempt #{attempt.attemptNumber}</span>
-              <span className="text-headline-sm text-on-surface">{attempt.analysis?.overallScore ?? 0}</span>
+              <span className="text-xs font-bold text-on-surface">Attempt #{attempt.attemptNumber}</span>
+              <span className="text-sm font-bold font-mono text-primary">{attempt.analysis?.overallScore ?? 0}</span>
             </div>
-            <p className={cn("mt-1 text-body-sm", attempt.isCurrent ? "text-[#047857]" : "text-on-surface-variant")}>
+            <p className={cn("mt-1 text-[11px] font-semibold", attempt.isCurrent ? "text-secondary" : "text-on-surface-variant/70")}>
               {attemptVersionLabel(attempt)}
             </p>
-            <p className="mt-1 text-body-sm text-on-surface-variant">{formatDuration(attempt.actualSeconds)} recorded</p>
+            <p className="mt-0.5 text-[11px] text-on-surface-variant font-mono">{formatDuration(attempt.actualSeconds)} recorded</p>
           </button>
         )) : (
-          <p className="rounded-md border border-dashed border-outline-variant p-4 text-body-sm text-on-surface-variant">
-            No previous attempts yet.
+          <p className="rounded-xl border border-dashed border-outline-variant/80 p-4 text-xs text-on-surface-variant text-center">
+            No previous attempts recorded.
           </p>
         )}
       </div>
