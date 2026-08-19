@@ -1,8 +1,8 @@
 import React from "react";
 import { cn } from "@/lib/utils";
 
-export interface HugeiconsIconProps extends React.SVGProps<SVGSVGElement> {
-  icon: string;
+export interface HugeiconsIconProps extends Omit<React.SVGProps<SVGSVGElement>, "color"> {
+  icon?: string | React.ComponentType<any> | any;
   size?: number | string;
   strokeWidth?: number;
   className?: string;

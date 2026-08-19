@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { TextField } from "@/components/onboarding/FormControls";
 import { fetchApi } from "@/lib/api";
+import HugeiconsIcon from "@/components/ui/HugeiconsIcon";
 
 type AccountForm = {
   fullName: string;
@@ -63,11 +65,11 @@ export default function AccountSettings() {
   ];
   const isPasswordFormValid =
     !wantsPasswordChange ||
-    Boolean(form.currentPassword) &&
+    (Boolean(form.currentPassword) &&
       newPasswordHasMinLength &&
       newPasswordHasUppercase &&
       newPasswordHasNumberOrSymbol &&
-      confirmationMatches;
+      confirmationMatches);
   const canSave = !loading && isPasswordFormValid;
 
   const updateField = (field: keyof AccountForm, value: string) => {
@@ -100,8 +102,8 @@ export default function AccountSettings() {
         return;
       }
 
-      if (form.newPassword !== form.confirmPassword) {
-        setError("Password confirmation does not match.");
+      if (!confirmationMatches) {
+        setError("New password and confirmation do not match.");
         return;
       }
     }
@@ -109,42 +111,41 @@ export default function AccountSettings() {
     setLoading(true);
     setError("");
     setSuccessMessage("");
+    setSaved(false);
 
     try {
-      const data = await fetchApi("/auth/profile", {
+      const payload: { fullName?: string; currentPassword?: string; newPassword?: string } = {
+        fullName: form.fullName,
+      };
+
+      if (wantsPasswordChange) {
+        payload.currentPassword = form.currentPassword;
+        payload.newPassword = form.newPassword;
+      }
+
+      const response = await fetchApi("/auth/profile", {
         method: "PUT",
-        body: JSON.stringify({
-          fullName: form.fullName,
-          currentPassword: form.currentPassword,
-          newPassword: form.newPassword,
-        }),
+        body: JSON.stringify(payload),
       });
 
-      const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
-      localStorage.setItem(
-        "user",
-        JSON.stringify({
-          ...currentUser,
-          _id: data._id || currentUser._id,
-          fullName: data.fullName,
-          email: data.email,
-          avatar: data.avatar,
-          authProvider: data.authProvider || "email",
-          role: data.role || currentUser.role || "etudiant",
-        })
-      );
-      window.dispatchEvent(new Event("user-updated"));
-      setForm((current) => ({ ...current, currentPassword: "", newPassword: "", confirmPassword: "" }));
-      setSuccessMessage(
-        data.passwordChanged
-          ? "Password changed successfully. Please use your new password the next time you sign in."
-          : "Account settings saved."
-      );
+      if (response?.user) {
+        localStorage.setItem("user", JSON.stringify(response.user));
+        window.dispatchEvent(new Event("user-updated"));
+      }
+
+      setForm((current) => ({
+        ...current,
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      }));
       setSaved(true);
-      window.setTimeout(() => {
-        setSaved(false);
-        setSuccessMessage("");
-      }, 3500);
+      setSuccessMessage(
+        wantsPasswordChange
+          ? "Profile and password updated successfully."
+          : "Account settings saved successfully."
+      );
+      window.setTimeout(() => setSaved(false), 2400);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update account settings.");
     } finally {
@@ -153,42 +154,64 @@ export default function AccountSettings() {
   };
 
   return (
-    <div className="flex flex-col gap-xl max-w-3xl">
-      <header className="flex flex-col gap-xs">
-        <span className="font-label-md text-label-md text-primary uppercase tracking-wider">Account</span>
-        <h1 className="font-headline-lg text-headline-lg text-on-surface">Account Settings</h1>
-        <p className="font-body-lg text-body-lg text-on-surface-variant">
-          Manage your profile name and password.
-        </p>
+    <div className="mx-auto flex w-full max-w-3xl flex-col h-full pb-24 font-sans">
+      {/* Header & Notion Back Navigation */}
+      <header className="mb-6 flex flex-col gap-2">
+        <Link
+          to="/workspace/settings"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-on-surface-variant hover:text-primary transition-colors cursor-pointer w-fit"
+        >
+          <HugeiconsIcon icon="arrow-left" size={14} strokeWidth={2} />
+          <span>Back to Settings</span>
+        </Link>
+
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-1">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-on-surface">
+              Account & Security
+            </h1>
+            <p className="text-xs sm:text-sm text-on-surface-variant max-w-xl leading-relaxed mt-1">
+              Manage your profile credentials, university email, and workspace authentication password.
+            </p>
+          </div>
+        </div>
       </header>
 
+      {/* Google Account Notice */}
       {isGoogleAccount && (
-        <div className="rounded-lg border border-primary-fixed-dim bg-primary-container px-md py-sm text-on-primary-container font-body-md text-body-md flex items-start gap-sm">
-          <span className="material-symbols-outlined text-[20px] mt-base">verified_user</span>
+        <div className="mb-6 rounded-2xl border border-primary/20 bg-primary/5 p-4 text-on-surface flex items-start gap-3 shadow-2xs">
+          <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+            <HugeiconsIcon icon="shield" size={16} strokeWidth={1.8} />
+          </div>
           <div>
-            <p className="font-semibold">You are connected with Gmail.</p>
-            <p className="mt-base">
-              Your name, email, password and profile photo are managed by Google. You cannot edit them from this app.
+            <p className="text-xs font-bold text-on-surface">Connected via Google Single Sign-On</p>
+            <p className="text-xs text-on-surface-variant mt-0.5 leading-relaxed">
+              Your name, email, and authentication credentials are provided by Google SSO.
             </p>
           </div>
         </div>
       )}
 
+      {/* Success Notification */}
       {saved && (
-        <div className="rounded-lg border border-secondary-fixed-dim bg-secondary-container px-md py-sm text-on-secondary-container font-body-md text-body-md">
-          {successMessage || "Account settings saved."}
+        <div className="mb-6 flex items-center gap-2.5 rounded-xl border border-secondary/30 bg-secondary/10 px-4 py-3 text-secondary text-xs font-semibold shadow-2xs animate-in fade-in duration-200">
+          <HugeiconsIcon icon="checkmark-circle-02" size={18} strokeWidth={2} className="shrink-0" />
+          <span>{successMessage || "Account settings saved successfully."}</span>
         </div>
       )}
 
+      {/* Error Notification */}
       {error && (
-        <div className="rounded-lg border border-error bg-error-container px-md py-sm text-on-error-container font-body-md text-body-md">
-          {error}
+        <div className="mb-6 flex items-center gap-2.5 rounded-xl border border-error/30 bg-error/10 px-4 py-3 text-error text-xs font-semibold shadow-2xs animate-in fade-in duration-200">
+          <HugeiconsIcon icon="cancel-circle" size={18} strokeWidth={2} className="shrink-0" />
+          <span>{error}</span>
         </div>
       )}
 
-      <section className="bg-surface border border-outline-variant rounded-lg p-lg flex flex-col gap-lg">
-        <div className="flex items-center gap-md pb-lg border-b border-outline-variant">
-          <div className="w-14 h-14 rounded-full bg-primary text-white flex items-center justify-center font-bold overflow-hidden shrink-0">
+      {/* Profile Form Card */}
+      <section className="bg-surface-container-lowest border border-outline-variant/80 rounded-2xl p-6 shadow-2xs flex flex-col gap-6">
+        <div className="flex items-center gap-4 pb-5 border-b border-outline-variant/40">
+          <div className="w-14 h-14 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center font-bold text-base overflow-hidden shrink-0 shadow-2xs">
             {form.avatar ? (
               <img src={form.avatar} alt="Account avatar" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
             ) : (
@@ -196,35 +219,40 @@ export default function AccountSettings() {
             )}
           </div>
           <div className="min-w-0">
-            <p className="font-headline-sm text-headline-sm text-on-surface truncate">{form.fullName || "User"}</p>
-            <p className="font-body-md text-body-md text-on-surface-variant truncate">{form.email}</p>
+            <p className="text-base font-bold text-on-surface truncate">{form.fullName || "Student Account"}</p>
+            <p className="text-xs text-on-surface-variant truncate mt-0.5">{form.email}</p>
+            <span className="inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded bg-surface border border-outline-variant text-[10px] font-semibold text-outline-variant uppercase tracking-wide">
+              <span>{isGoogleAccount ? "Google Verified" : "Student Member"}</span>
+            </span>
           </div>
         </div>
 
-        <TextField
-          id="account-full-name"
-          label="Full Name"
-          value={form.fullName}
-          onChange={(fullName) => updateField("fullName", fullName)}
-          placeholder="Your full name"
-          disabled={isGoogleAccount}
-        />
-        <TextField
-          id="account-email"
-          label="Email"
-          type="email"
-          value={form.email}
-          onChange={() => undefined}
-          disabled
-          helperText="Email cannot be changed from this page."
-        />
+        <div className="flex flex-col gap-4">
+          <TextField
+            id="account-full-name"
+            label="Full Name"
+            value={form.fullName}
+            onChange={(fullName) => updateField("fullName", fullName)}
+            placeholder="Your full name"
+            disabled={isGoogleAccount}
+          />
+          <TextField
+            id="account-email"
+            label="Email"
+            type="email"
+            value={form.email}
+            onChange={() => undefined}
+            disabled
+            helperText="Email address cannot be changed."
+          />
+        </div>
 
         {!isGoogleAccount && (
-          <div className="border-t border-outline-variant pt-lg flex flex-col gap-lg">
+          <div className="border-t border-outline-variant/40 pt-5 flex flex-col gap-4">
             <div>
-              <h2 className="font-headline-sm text-headline-sm text-on-surface">Change Password</h2>
-              <p className="font-body-md text-body-md text-on-surface-variant mt-base">
-                Leave these fields empty if you only want to update your name.
+              <h2 className="text-sm font-bold text-on-surface">Change Password</h2>
+              <p className="text-xs text-on-surface-variant mt-0.5 leading-relaxed">
+                Leave these fields empty if you only want to update your profile name.
               </p>
             </div>
             <TextField
@@ -234,11 +262,11 @@ export default function AccountSettings() {
               type="password"
               value={form.currentPassword}
               onChange={(currentPassword) => updateField("currentPassword", currentPassword)}
-              placeholder="Enter your current password"
-              helperText="Required only when changing your password."
+              placeholder="Enter current password"
+              helperText="Required only when changing password."
               autoComplete="new-password"
             />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-lg">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <TextField
                 id="account-new-password"
                 name="manual-account-new-secret"
@@ -260,20 +288,23 @@ export default function AccountSettings() {
                 autoComplete="new-password"
               />
             </div>
+
             {wantsPasswordChange && (
-              <div className="rounded-lg border border-outline-variant bg-surface-container-low p-md">
-                <p className="font-label-md text-label-md text-on-surface mb-sm">Password requirements</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-xs">
+              <div className="rounded-xl border border-outline-variant/60 bg-surface p-4">
+                <p className="text-xs font-bold text-on-surface mb-2">Password Requirements</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {passwordRules.map((rule) => (
                     <div
                       key={rule.label}
-                      className={`flex items-center gap-xs font-body-sm text-body-sm ${
-                        rule.isValid ? "text-secondary" : "text-on-surface-variant"
+                      className={`flex items-center gap-1.5 text-xs font-medium ${
+                        rule.isValid ? "text-secondary font-semibold" : "text-on-surface-variant"
                       }`}
                     >
-                      <span className="material-symbols-outlined text-[18px]">
-                        {rule.isValid ? "check_circle" : "radio_button_unchecked"}
-                      </span>
+                      <HugeiconsIcon 
+                        icon={rule.isValid ? "checkmark-circle-02" : "time-02"} 
+                        size={14} 
+                        strokeWidth={2}
+                      />
                       <span>{rule.label}</span>
                     </div>
                   ))}
@@ -284,15 +315,17 @@ export default function AccountSettings() {
         )}
       </section>
 
+      {/* Save Action Footer */}
       {!isGoogleAccount && (
-        <footer className="flex justify-end pt-md border-t border-outline-variant">
+        <footer className="flex justify-end pt-5 mt-5 border-t border-outline-variant/60">
           <button
             type="button"
             onClick={handleSave}
             disabled={!canSave}
-            className="px-lg py-sm rounded-DEFAULT bg-primary text-on-primary font-label-md text-label-md hover:bg-on-primary-fixed-variant transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+            className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-xl bg-primary text-on-primary text-xs font-bold shadow-2xs hover:bg-primary/90 active:scale-98 transition-all disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
           >
-            {loading ? "Saving..." : wantsPasswordChange ? "Update Password" : "Save Account Settings"}
+            <HugeiconsIcon icon={loading ? "cloud-sync" : "cloud-check"} size={16} className={loading ? "animate-spin" : ""} strokeWidth={1.8} />
+            <span>{loading ? "Saving..." : wantsPasswordChange ? "Update Password" : "Save Changes"}</span>
           </button>
         </footer>
       )}
