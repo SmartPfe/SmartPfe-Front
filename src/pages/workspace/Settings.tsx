@@ -1,31 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import HugeiconsIcon, { Folder01Icon } from "@/components/ui/HugeiconsIcon";
 import { useOnboarding } from "@/context/OnboardingContext";
+import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
 export default function Settings() {
   const { data } = useOnboarding();
   const [user, setUser] = useState(() => JSON.parse(localStorage.getItem("user") || "{}"));
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    if (typeof window !== "undefined") {
-      return document.documentElement.classList.contains("dark") ||
-        (localStorage.theme === "dark" || (!("theme" in localStorage) && window.matchMedia("(prefers-color-scheme: dark)").matches));
-    }
-    return false;
-  });
-
+  const { isDarkMode, toggleTheme } = useTheme();
   const [downloaded, setDownloaded] = useState(false);
-
-  useEffect(() => {
-    if (isDarkMode) {
-      document.documentElement.classList.add("dark");
-      localStorage.theme = "dark";
-    } else {
-      document.documentElement.classList.remove("dark");
-      localStorage.theme = "light";
-    }
-  }, [isDarkMode]);
 
   const handleExportJson = () => {
     try {
@@ -185,7 +169,7 @@ export default function Settings() {
 
           <button
             type="button"
-            onClick={() => setIsDarkMode(!isDarkMode)}
+            onClick={toggleTheme}
             className={cn(
               "w-10 h-5.5 rounded-full p-0.5 transition-colors relative flex items-center shrink-0 cursor-pointer",
               isDarkMode ? "bg-primary" : "bg-outline-variant"

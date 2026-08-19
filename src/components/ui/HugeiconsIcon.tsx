@@ -246,6 +246,20 @@ const ICONS: Record<string, (props: { strokeWidth: number }) => React.ReactNode>
       <path d="M12 7V12L15 14" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
     </>
   ),
+  "lock": ({ strokeWidth }) => (
+    <>
+      <path d="M16.4964 9V6.5C16.4964 4.01472 14.4817 2 11.9964 2C9.51112 2 7.4964 4.01472 7.4964 6.5V9" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M13.4958 9H10.4964C8.16158 9 6.99417 9 6.11049 9.47237C5.41275 9.84535 4.84128 10.4169 4.46837 11.1146C3.99608 11.9984 3.99619 13.1658 3.99641 15.5006C3.99662 17.835 3.99673 19.0023 4.46907 19.8858C4.84203 20.5835 5.41347 21.1548 6.11115 21.5277C6.99475 22 8.16197 22 10.4964 22H13.4958C15.8304 22 16.9978 22 17.8814 21.5277C18.5791 21.1548 19.1506 20.5833 19.5235 19.8856C19.9958 19.0019 19.9958 17.8346 19.9958 15.5C19.9958 13.1654 19.9958 11.9981 19.5235 11.1144C19.1506 10.4167 18.5791 9.84525 17.8814 9.47231C16.9978 9 15.8304 9 13.4958 9Z" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" />
+      <circle cx="11.9964" cy="15.5" r="2" stroke="currentColor" strokeWidth={strokeWidth} />
+    </>
+  ),
+  "lock-open": ({ strokeWidth }) => (
+    <>
+      <circle cx="11.9961" cy="15.5" r="2" stroke="currentColor" strokeWidth={strokeWidth} />
+      <path d="M7.49609 9V6.5C7.49609 4.01472 9.51081 2 11.9961 2C13.9554 2 15.3783 3.25221 15.9961 5" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M13.4955 9H10.4961C8.16128 9 6.99386 9 6.11018 9.47237C5.41244 9.84535 4.84098 10.4169 4.46807 11.1146C3.99578 11.9984 3.99589 13.1658 3.9961 15.5006C3.99632 17.835 3.99643 19.0023 4.46877 19.8858C4.84172 20.5835 5.41317 21.1548 6.11085 21.5277C6.99445 22 8.16166 22 10.4961 22H13.4955C15.8301 22 16.9974 22 17.8811 21.5277C18.5788 21.1548 19.1503 20.5833 19.5232 19.8856C19.9955 19.0019 19.9955 17.8346 19.9955 15.5C19.9955 13.1654 19.9955 11.9981 19.5232 11.1144C19.1503 10.4167 18.5788 9.84525 17.8811 9.47231C16.9974 9 15.8301 9 13.4955 9Z" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" />
+    </>
+  ),
   "cloud-sync": ({ strokeWidth }) => (
     <>
       <path d="M6.5 19C4.01 19 2 16.99 2 14.5C2 12.16 3.79 10.24 6.1 10.03C6.6 6.64 9.5 4 13 4C17.08 4 20.44 7.15 20.94 11.16C21.57 11.53 22 12.22 22 13C22 14.1 21.1 15 20 15H19M6.5 19H19" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
@@ -387,9 +401,23 @@ const ICONS: Record<string, (props: { strokeWidth: number }) => React.ReactNode>
   ),
   "school": ({ strokeWidth }) => (
     <>
-      <path d="M2 9L12 4L22 9L12 14L2 9Z" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M6 11.5V16.5C6 16.5 8 19 12 19C16 19 18 16.5 18 16.5V11.5" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M22 9V16" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M22 10L12 5L2 10L12 15L22 10Z" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M6 12.5V17C6 17 8.5 19.5 12 19.5C15.5 19.5 18 17 18 17V12.5" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M22 10V16" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
+  "mortarboard-02": ({ strokeWidth }) => (
+    <>
+      <path d="M22 10L12 5L2 10L12 15L22 10Z" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M6 12.5V17C6 17 8.5 19.5 12 19.5C15.5 19.5 18 17 18 17V12.5" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M22 10V16" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
+  "mortarboard-01": ({ strokeWidth }) => (
+    <>
+      <path d="M22 10L12 5L2 10L12 15L22 10Z" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M6 12.5V17C6 17 8.5 19.5 12 19.5C15.5 19.5 18 17 18 17V12.5" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M22 10V16" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
     </>
   ),
   "business-center": ({ strokeWidth }) => (
@@ -601,12 +629,7 @@ const ICONS: Record<string, (props: { strokeWidth: number }) => React.ReactNode>
       <path d="M12 13V15" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" />
     </>
   ),
-  "lock": ({ strokeWidth }) => (
-    <>
-      <rect x="5" y="11" width="14" height="10" rx="2" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M8 11V7C8 4.79086 9.79086 3 12 3C14.2091 3 16 4.79086 16 7V11" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
-    </>
-  ),
+
   "speed": ({ strokeWidth }) => (
     <>
       <path d="M12 4C7.02944 4 3 8.02944 3 13C3 15.3585 3.90793 17.5054 5.3934 19.1171M21 13C21 8.02944 16.9706 4 12 4M18.6066 19.1171C20.0921 17.5054 21 15.3585 21 13" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
@@ -908,8 +931,12 @@ export const AiRefineIcon = ({ size = 18, strokeWidth = 1.5, className, color, .
   <HugeiconsIcon icon="ai-refine" size={size} strokeWidth={strokeWidth} className={className} color={color} {...props} />
 );
 
-export const AiTranslateIcon = ({ size = 18, strokeWidth = 1.5, className, color, ...props }: Omit<HugeiconsIconProps, "icon">) => (
-  <HugeiconsIcon icon="ai-translate" size={size} strokeWidth={strokeWidth} className={className} color={color} {...props} />
+export const Mortarboard02Icon = ({ size = 18, strokeWidth = 1.5, className, color, ...props }: Omit<HugeiconsIconProps, "icon">) => (
+  <HugeiconsIcon icon="mortarboard-02" size={size} strokeWidth={strokeWidth} className={className} color={color} {...props} />
+);
+
+export const Mortarboard01Icon = ({ size = 18, strokeWidth = 1.5, className, color, ...props }: Omit<HugeiconsIconProps, "icon">) => (
+  <HugeiconsIcon icon="mortarboard-01" size={size} strokeWidth={strokeWidth} className={className} color={color} {...props} />
 );
 
 export { HugeiconsIcon };
