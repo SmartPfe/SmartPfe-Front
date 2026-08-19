@@ -663,6 +663,21 @@ function insertNode(tree: ReportSection[], path: number[], position: DropPositio
   });
 }
 
+function getChildrenAtPath(tree: ReportSection[], path: number[]): ReportSection[] {
+  let current = tree;
+  for (const index of path) {
+    if (!current[index]) return [];
+    current = current[index].children;
+  }
+  return current;
+}
+
+function moveNode(tree: ReportSection[], fromPath: number[], toPath: number[], position: DropPosition): ReportSection[] {
+  const { tree: treeWithoutNode, node } = removeNode(tree, fromPath);
+  if (!node) return tree;
+  return insertNode(treeWithoutNode, toPath, position, node);
+}
+
 function moveSibling(tree: ReportSection[], path: number[], targetIndex: number): ReportSection[] {
   const parentPath = path.slice(0, -1);
   const siblings = getChildrenAtPath(tree, parentPath);

@@ -120,9 +120,27 @@ export default function JurySimulation() {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [startedAt, setStartedAt] = useState<number | null>(null);
 
+  // Live Defense Staging State
+  const [isRecording, setIsRecording] = useState(false);
+  const [countdown, setCountdown] = useState<number | null>(null);
+
+  // Live Hardware Testing State
+  const [isTestingMic, setIsTestingMic] = useState(false);
+  const [micVolume, setMicVolume] = useState(0);
+  const [isTestingCam, setIsTestingCam] = useState(false);
+  const [camStatus, setCamStatus] = useState<"off" | "checking" | "ready" | "denied" | "unavailable">("off");
+  const [isMirrored, setIsMirrored] = useState(true);
+
   const streamRef = useRef<MediaStream | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
+
+  // Hardware test refs
+  const micStreamRef = useRef<MediaStream | null>(null);
+  const micAudioContextRef = useRef<AudioContext | null>(null);
+  const micAnimFrameRef = useRef<number | null>(null);
+  const camStreamRef = useRef<MediaStream | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
 
   const slides = presentation.slides;
   const alignedPitchSlides = useMemo(() => alignPitchToPresentation(pitch, slides), [pitch, slides]);
@@ -152,8 +170,8 @@ export default function JurySimulation() {
       ]);
 
       setProject(projectData);
-      setPresentation(normalizePresentation(presentationData.presentation || {}));
-      setPitch(normalizePitch(pitchData.pitch || {}));
+      setPresentation(normalizePresentation(presentationData.presentation || {}, projectData));
+      setPitch(normalizePitch(pitchData.pitch || {}, projectData));
       setAttempts(Array.isArray(juryData.attempts) ? juryData.attempts : []);
       setCurrentAttempt(null);
       setActiveSlideIndex(0);
@@ -170,16 +188,10 @@ export default function JurySimulation() {
 
   useEffect(() => {
     const checkPermission = async () => {
-      if (!navigator.mediaDevices?.getUserMedia) {
-        setMicStatus("unavailable");
-        return;
-      }
-
       try {
-        const permission = await navigator.permissions?.query({ name: "microphone" as PermissionName });
-        if (permission?.state === "granted") setMicStatus("ready");
-        if (permission?.state === "denied") setMicStatus("denied");
-        if (permission) {
+        if (navigator.permissions?.query) {
+          const permission = await navigator.permissions.query({ name: "microphone" as PermissionName });
+          setMicStatus(permission.state === "granted" ? "ready" : permission.state === "denied" ? "denied" : "unknown");
           permission.onchange = () => {
             if (permission.state === "granted") setMicStatus("ready");
             if (permission.state === "denied") setMicStatus("denied");
@@ -195,28 +207,178 @@ export default function JurySimulation() {
   }, []);
 
   useEffect(() => {
-    if (stage !== "presenting" || !startedAt) return;
+    if (stage !== "presenting" || !startedAt || !isRecording) return;
     const interval = window.setInterval(() => {
       setElapsedSeconds(normalizeSeconds((Date.now() - startedAt) / 1000));
     }, 500);
     return () => window.clearInterval(interval);
-  }, [stage, startedAt]);
+  }, [stage, startedAt, isRecording]);
 
   useEffect(() => {
     const warnBeforeUnload = (event: BeforeUnloadEvent) => {
-      if (stage !== "presenting") return;
+      if (stage !== "presenting" || !isRecording) return;
       event.preventDefault();
       event.returnValue = "";
     };
 
     window.addEventListener("beforeunload", warnBeforeUnload);
     return () => window.removeEventListener("beforeunload", warnBeforeUnload);
-  }, [stage]);
+  }, [stage, isRecording]);
 
-  useEffect(() => () => {
-    if (recorderRef.current?.state === "recording") recorderRef.current.stop();
-    streamRef.current?.getTracks().forEach((track) => track.stop());
+  // Clean up all hardware testing resources on unmount
+  useEffect(() => {
+    return () => {
+      if (recorderRef.current?.state === "recording") recorderRef.current.stop();
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+
+      if (micAnimFrameRef.current) cancelAnimationFrame(micAnimFrameRef.current);
+      if (micAudioContextRef.current) {
+        micAudioContextRef.current.close().catch(() => {});
+      }
+      micStreamRef.current?.getTracks().forEach((track) => track.stop());
+
+      camStreamRef.current?.getTracks().forEach((track) => track.stop());
+    };
   }, []);
+
+  // Live Mic Test Controller
+  const startMicTest = async () => {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setMicStatus("unavailable");
+      setError("Microphone access is not supported in this browser.");
+      return;
+    }
+
+    setMicStatus("checking");
+    setError("");
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      });
+
+      micStreamRef.current = stream;
+      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      micAudioContextRef.current = audioCtx;
+      const analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 64;
+      const source = audioCtx.createMediaStreamSource(stream);
+      source.connect(analyser);
+
+      const bufferLength = analyser.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+
+      const updateVolume = () => {
+        analyser.getByteFrequencyData(dataArray);
+        let sum = 0;
+        for (let i = 0; i < bufferLength; i++) {
+          sum += dataArray[i];
+        }
+        const avg = sum / bufferLength;
+        const normalized = Math.min(100, Math.round((avg / 128) * 100));
+        setMicVolume(normalized);
+        micAnimFrameRef.current = requestAnimationFrame(updateVolume);
+      };
+
+      updateVolume();
+      setMicStatus("ready");
+      setIsTestingMic(true);
+    } catch (err: any) {
+      const denied = err?.name === "NotAllowedError" || err?.name === "PermissionDeniedError";
+      setMicStatus(denied ? "denied" : "unavailable");
+      setIsTestingMic(false);
+      setError(
+        denied
+          ? "Microphone access was denied. Please allow microphone permission in your browser settings."
+          : "Could not start microphone test. Please verify your microphone connection."
+      );
+    }
+  };
+
+  const stopMicTest = () => {
+    if (micAnimFrameRef.current) {
+      cancelAnimationFrame(micAnimFrameRef.current);
+      micAnimFrameRef.current = null;
+    }
+    if (micAudioContextRef.current) {
+      micAudioContextRef.current.close().catch(() => {});
+      micAudioContextRef.current = null;
+    }
+    if (micStreamRef.current) {
+      micStreamRef.current.getTracks().forEach((track) => track.stop());
+      micStreamRef.current = null;
+    }
+    setIsTestingMic(false);
+    setMicVolume(0);
+  };
+
+  const toggleMicTest = () => {
+    if (isTestingMic) {
+      stopMicTest();
+    } else {
+      startMicTest();
+    }
+  };
+
+  // Live Camera Test Controller
+  const startCamTest = async () => {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setCamStatus("unavailable");
+      setError("Camera access is not supported in this browser.");
+      return;
+    }
+
+    setCamStatus("checking");
+    setError("");
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: false,
+      });
+
+      camStreamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play().catch(() => {});
+      }
+      setCamStatus("ready");
+      setIsTestingCam(true);
+    } catch (err: any) {
+      const denied = err?.name === "NotAllowedError" || err?.name === "PermissionDeniedError";
+      setCamStatus(denied ? "denied" : "unavailable");
+      setIsTestingCam(false);
+      setError(
+        denied
+          ? "Camera access was denied. Please allow camera permission in your browser settings."
+          : "Could not start camera preview. Please check your camera connection."
+      );
+    }
+  };
+
+  const stopCamTest = () => {
+    if (camStreamRef.current) {
+      camStreamRef.current.getTracks().forEach((track) => track.stop());
+      camStreamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+    setIsTestingCam(false);
+    setCamStatus("off");
+  };
+
+  const toggleCamTest = () => {
+    if (isTestingCam) {
+      stopCamTest();
+    } else {
+      startCamTest();
+    }
+  };
 
   const requestMicrophone = async () => {
     if (!navigator.mediaDevices?.getUserMedia) {
@@ -227,6 +389,7 @@ export default function JurySimulation() {
 
     setMicStatus("checking");
     setError("");
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
@@ -249,15 +412,46 @@ export default function JurySimulation() {
     }
   };
 
-  const checkMicrophone = async () => {
-    const stream = await requestMicrophone();
-    stream?.getTracks().forEach((track) => track.stop());
+  // Step 1: Transition smoothly from Studio into the Podium Lobby (NO instant recording)
+  const enterPodium = () => {
+    if (!hasPresentation || !hasPitch) return;
+
+    // Stop all preview hardware tests
+    stopMicTest();
+    stopCamTest();
+
+    setElapsedSeconds(0);
+    setActiveSlideIndex(0);
+    setIsRecording(false);
+    setCountdown(null);
+    setCurrentAttempt(null);
+    setError("");
+    setStage("presenting");
   };
 
-  const startSimulation = async () => {
-    if (!hasPresentation || !hasPitch) return;
+  // Step 2: Triggered by the student when ready to speak
+  const beginDefenseRecording = async () => {
+    setError("");
+    setCountdown(3);
+
+    const timer = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev === null || prev <= 1) {
+          clearInterval(timer);
+          executeActualStart();
+          return null;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  const executeActualStart = async () => {
     const stream = await requestMicrophone();
-    if (!stream) return;
+    if (!stream) {
+      setCountdown(null);
+      return;
+    }
 
     try {
       const mimeType = supportedRecordingType();
@@ -270,20 +464,58 @@ export default function JurySimulation() {
       };
       recorder.onerror = () => setError("Recording failed. Please stop and retry the simulation.");
       recorder.start();
+
+      // Start live audio visualizer for active recording feedback
+      try {
+        const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        micAudioContextRef.current = audioCtx;
+        const analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 64;
+        const source = audioCtx.createMediaStreamSource(stream);
+        source.connect(analyser);
+
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+
+        const updateVolume = () => {
+          analyser.getByteFrequencyData(dataArray);
+          let sum = 0;
+          for (let i = 0; i < bufferLength; i++) {
+            sum += dataArray[i];
+          }
+          const avg = sum / bufferLength;
+          const normalized = Math.min(100, Math.round((avg / 128) * 100));
+          setMicVolume(normalized);
+          micAnimFrameRef.current = requestAnimationFrame(updateVolume);
+        };
+
+        updateVolume();
+      } catch {}
+
       setElapsedSeconds(0);
       setStartedAt(Date.now());
-      setActiveSlideIndex(0);
-      setCurrentAttempt(null);
-      setStage("presenting");
+      setIsRecording(true);
+      setCountdown(null);
     } catch {
       stream.getTracks().forEach((track) => track.stop());
       setMicStatus("unavailable");
-      setError("Recording could not start in this browser. Please try again with another supported browser.");
+      setIsRecording(false);
+      setCountdown(null);
+      setError("Recording could not start in this browser. Please try again with Chrome or Edge.");
     }
   };
 
   const stopRecording = () =>
     new Promise<Blob>((resolve, reject) => {
+      if (micAnimFrameRef.current) {
+        cancelAnimationFrame(micAnimFrameRef.current);
+        micAnimFrameRef.current = null;
+      }
+      if (micAudioContextRef.current) {
+        micAudioContextRef.current.close().catch(() => {});
+        micAudioContextRef.current = null;
+      }
+
       const recorder = recorderRef.current;
       const stream = streamRef.current;
       if (!recorder || recorder.state === "inactive") {
@@ -300,8 +532,67 @@ export default function JurySimulation() {
       recorder.stop();
     });
 
+  const cancelSimulation = () => {
+    if (micAnimFrameRef.current) {
+      cancelAnimationFrame(micAnimFrameRef.current);
+      micAnimFrameRef.current = null;
+    }
+    if (micAudioContextRef.current) {
+      micAudioContextRef.current.close().catch(() => {});
+      micAudioContextRef.current = null;
+    }
+    if (recorderRef.current && recorderRef.current.state === "recording") {
+      try {
+        recorderRef.current.stop();
+      } catch {}
+    }
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
+    recorderRef.current = null;
+    chunksRef.current = [];
+    setStartedAt(null);
+    setElapsedSeconds(0);
+    setActiveSlideIndex(0);
+    setIsRecording(false);
+    setCountdown(null);
+    setMicVolume(0);
+    setError("");
+    setStage("prepare");
+  };
+
   const finishDefense = async () => {
     if (stage !== "presenting") return;
+
+    // Strict 2-minute minimum requirement check (120 seconds)
+    if (elapsedSeconds < 120) {
+      if (micAnimFrameRef.current) {
+        cancelAnimationFrame(micAnimFrameRef.current);
+        micAnimFrameRef.current = null;
+      }
+      if (micAudioContextRef.current) {
+        micAudioContextRef.current.close().catch(() => {});
+        micAudioContextRef.current = null;
+      }
+      if (recorderRef.current && recorderRef.current.state === "recording") {
+        try {
+          recorderRef.current.stop();
+        } catch {}
+      }
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+      recorderRef.current = null;
+      chunksRef.current = [];
+      setStartedAt(null);
+      setElapsedSeconds(0);
+      setActiveSlideIndex(0);
+      setIsRecording(false);
+      setCountdown(null);
+      setMicVolume(0);
+      setError("The defense rehearsal must be at least 2 minutes (120 seconds) for the AI jury to assess your presentation.");
+      setStage("prepare");
+      return;
+    }
+
     setStage("analyzing");
     setError("");
 
@@ -310,17 +601,25 @@ export default function JurySimulation() {
       const projectData = project || (await fetchApi("/projects/my-project"));
       const formData = new FormData();
       const ext = audioBlob.type.includes("ogg") ? "ogg" : audioBlob.type.includes("mp4") ? "m4a" : "webm";
+      formData.append("projectId", projectData._id);
       formData.append("audio", audioBlob, `jury-attempt.${ext}`);
-      formData.append("targetSeconds", String(targetSeconds));
       formData.append("actualSeconds", String(elapsedSeconds));
+      formData.append("presentation", JSON.stringify(presentation));
+      formData.append("pitch", JSON.stringify(pitch));
 
-      const response = await fetch(`${API_BASE_URL}/projects/${projectData._id}/jury-simulation/evaluate`, {
+      const response = await fetch(`${API_BASE_URL}/ai/jury-simulation/analyze`, {
         method: "POST",
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         body: formData,
       });
 
-      const data = await response.json();
+      let data: any = {};
+      try {
+        data = await response.json();
+      } catch {
+        throw new Error("Invalid response received from the jury evaluation service. Please retry.");
+      }
+
       if (!response.ok) {
         throw new Error(data.message || "Failed to analyze the jury simulation.");
       }
@@ -338,6 +637,9 @@ export default function JurySimulation() {
       setStartedAt(null);
       recorderRef.current = null;
       chunksRef.current = [];
+      setIsRecording(false);
+      setCountdown(null);
+      setMicVolume(0);
     }
   };
 
@@ -345,6 +647,9 @@ export default function JurySimulation() {
     setCurrentAttempt(null);
     setActiveSlideIndex(0);
     setElapsedSeconds(0);
+    setIsRecording(false);
+    setCountdown(null);
+    setMicVolume(0);
     setError("");
     setStage("prepare");
   };
@@ -367,8 +672,13 @@ export default function JurySimulation() {
         totalSlides={slides.length}
         elapsedSeconds={elapsedSeconds}
         targetSeconds={targetSeconds}
+        isRecording={isRecording}
+        countdown={countdown}
+        liveVolume={micVolume}
+        onStartRecording={beginDefenseRecording}
         onPrevious={() => setActiveSlideIndex((index) => Math.max(0, index - 1))}
         onNext={() => setActiveSlideIndex((index) => Math.min(slides.length - 1, index + 1))}
+        onCancel={cancelSimulation}
         onFinish={finishDefense}
       />
     );
@@ -398,177 +708,367 @@ export default function JurySimulation() {
   }
 
   return (
-    <div className="mx-auto flex max-w-[1440px] flex-col h-full pb-32">
-      {/* Header */}
-      <div className="mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+    <div className="w-full flex flex-col h-full pb-24 px-1 sm:px-2">
+      {/* Top Header & Immediate Action Bar */}
+      <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-outline-variant/70">
         <div>
-          <div className="flex items-center gap-1.5 mb-1.5">
-            <span className="text-xs font-bold uppercase tracking-wider text-primary">Live Rehearsal</span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-on-surface flex items-center">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-on-surface flex items-center">
             Jury Simulation
             <InfoTooltip
               label="Defense Rehearsal"
-              tooltip="Simulate your live defense presentation with audio recording and instant AI jury feedback."
+              tooltip="Rehearse your graduation defense with slide projection, teleprompter, and instant AI jury evaluation."
             />
           </h1>
-          <p className="text-sm text-on-surface-variant max-w-2xl mt-1.5 leading-relaxed">
-            Practice your PFE defense in realistic conditions using your slides, pitch speech, and live voice recording.
+          <p className="text-sm sm:text-base text-on-surface-variant font-medium mt-1">
+            Test your mic and camera framing, verify your speech scripts, and enter the defense podium.
           </p>
         </div>
 
-        {latestCurrentAttempt && (
+        {/* Action Controls in Header (Immediate & accessible without scrolling) */}
+        <div className="flex items-center gap-3 shrink-0 flex-wrap">
+          {latestCurrentAttempt && (
+            <button
+              type="button"
+              onClick={() => {
+                setCurrentAttempt(latestCurrentAttempt);
+                setStage("results");
+              }}
+              className="h-11 sm:h-12 px-5 rounded-xl border border-outline-variant/80 bg-surface hover:bg-surface-container text-xs sm:text-sm font-bold text-on-surface flex items-center gap-2 transition-all shadow-2xs cursor-pointer"
+            >
+              <HugeiconsIcon icon="analytics" size={16} strokeWidth={2} className="text-primary" />
+              <span>Latest Score: {latestCurrentAttempt.analysis.overallScore}/100</span>
+            </button>
+          )}
+
           <button
             type="button"
-            onClick={() => {
-              setCurrentAttempt(latestCurrentAttempt);
-              setStage("results");
-            }}
-            className="inline-flex items-center gap-2 h-9 px-4 rounded-lg border border-outline-variant/80 bg-surface text-xs font-bold text-on-surface hover:bg-surface-container transition-all shadow-2xs cursor-pointer"
+            onClick={enterPodium}
+            disabled={!canStart}
+            className="h-11 sm:h-12 px-6 sm:px-7 rounded-xl bg-primary text-on-primary text-xs sm:text-sm font-bold shadow-md hover:bg-primary/90 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2.5"
           >
-            <HugeiconsIcon icon="analytics" size={16} strokeWidth={1.8} className="text-primary" />
-            <span>Latest Assessment ({latestCurrentAttempt.analysis.overallScore}/100)</span>
+            <HugeiconsIcon icon="play-circle" size={20} strokeWidth={2} />
+            <span>Enter Defense Podium</span>
           </button>
-        )}
+        </div>
       </div>
 
       {error && (
-        <div className="mb-6 p-3.5 rounded-xl bg-error-container text-on-error-container border border-error/20 flex items-center justify-between gap-3 shadow-2xs">
-          <p className="text-sm font-medium">{error}</p>
-          <button onClick={() => setError("")} className="shrink-0 text-xs font-semibold underline hover:no-underline">
+        <div className="mb-6 p-4 rounded-xl bg-error-container text-on-error-container border border-error/20 flex items-center justify-between gap-3 shadow-2xs">
+          <p className="text-sm font-semibold">{error}</p>
+          <button onClick={() => setError("")} className="shrink-0 text-xs font-bold underline hover:no-underline cursor-pointer">
             Dismiss
           </button>
         </div>
       )}
 
       {olderAttemptsExist && (
-        <div className="mb-6 p-3.5 rounded-xl border border-outline-variant/80 bg-surface-container-low text-xs text-on-surface-variant flex items-center gap-2.5">
-          <HugeiconsIcon icon="clock" size={16} strokeWidth={1.8} className="text-primary shrink-0" />
-          <span>Your earlier defense attempts were recorded on a previous version of the presentation.</span>
+        <div className="mb-6 p-4 rounded-xl border border-outline-variant/80 bg-surface-container-low text-xs sm:text-sm text-on-surface font-medium flex items-center gap-3">
+          <HugeiconsIcon icon="clock" size={18} strokeWidth={2} className="text-primary shrink-0" />
+          <span>Past rehearsal attempts were recorded on an earlier version of this presentation.</span>
         </div>
       )}
 
-      <section className="grid gap-6 md:grid-cols-[1fr_360px]">
-        {/* Preparation Check Card */}
-        <div className="rounded-2xl border border-outline-variant/80 bg-surface-container-lowest p-6 sm:p-7 shadow-2xs flex flex-col justify-between">
-          <div>
-            <h2 className="text-sm font-bold uppercase tracking-wider text-outline-variant mb-4">Readiness Checklist</h2>
-            <div className="grid gap-3">
-              <ReadinessRow
-                icon="presentation"
-                label="Presentation Deck"
-                value={hasPresentation ? `${slides.length} slides ready` : "Missing slides"}
-                ready={hasPresentation}
-                action={!hasPresentation ? <Link to="/workspace/presentation" className="text-xs font-bold text-primary hover:underline">Create</Link> : null}
-              />
-              <ReadinessRow
-                icon="book-open"
-                label="Pitch Speech"
-                value={hasPitch ? `${alignedPitchSlides.filter((slide) => getPitchSpeech(slide)).length} slide speeches ready` : "Missing speech"}
-                ready={hasPitch}
-                action={!hasPitch ? <Link to="/workspace/pitch" className="text-xs font-bold text-primary hover:underline">Draft</Link> : null}
-              />
-              <ReadinessRow
-                icon="clock"
-                label="Target Duration"
-                value={formatDuration(targetSeconds)}
-                ready
-              />
-              <ReadinessRow
-                icon="mic"
-                label="Microphone Audio"
-                value={micLabel(micStatus)}
-                ready={micStatus === "ready"}
-                action={
-                  <button
-                    type="button"
-                    onClick={checkMicrophone}
-                    className="text-xs font-bold text-primary hover:underline cursor-pointer disabled:opacity-40"
-                    disabled={micStatus === "checking"}
-                  >
-                    {micStatus === "checking" ? "Checking..." : "Test Mic"}
-                  </button>
-                }
-              />
-            </div>
-            <div className="mt-5 rounded-xl border border-outline-variant/60 bg-surface-container-low/40 p-3.5 text-xs text-on-surface-variant/80 leading-relaxed">
-              Your voice recording will be securely processed by AI to generate a detailed jury review, timing breakdown, and slide-by-slide feedback.
+      {/* Main 2-Column Full-Width Grid */}
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_360px] 2xl:grid-cols-[minmax(0,1fr)_400px] gap-6 lg:gap-8 items-start">
+        
+        {/* Left Column: Device Check Console + Readiness Matrix */}
+        <div className="flex flex-col gap-6 lg:gap-8 min-w-0">
+          
+          {/* 1. Hardware Check Studio Pod (Sleek Compact Height) */}
+          <div className="rounded-2xl border border-outline-variant/80 bg-surface p-5 shadow-2xs">
+            <div className="flex items-center justify-between gap-3 mb-4 pb-3 border-b border-outline-variant/60">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary border border-primary/20 flex items-center justify-center">
+                  <HugeiconsIcon icon="tune" size={16} strokeWidth={2} />
+                </div>
+                <div>
+                  <h2 className="text-sm font-bold text-on-surface">Hardware Pre-Flight Check</h2>
+                  <p className="text-xs text-on-surface-variant font-medium">Verify camera framing and microphone levels</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={cn(
+                  "px-2.5 py-0.5 rounded-md text-xs font-bold border",
+                  micStatus === "ready"
+                    ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
+                    : micStatus === "denied"
+                      ? "bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/30"
+                      : "bg-surface-container text-on-surface border-outline-variant/60"
+                )}>
+                  Mic: {micStatus === "ready" ? "Ready" : micStatus === "checking" ? "Checking" : micStatus === "denied" ? "Denied" : "Idle"}
+                </span>
+                <span className={cn(
+                  "px-2.5 py-0.5 rounded-md text-xs font-bold border",
+                  camStatus === "ready"
+                    ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
+                    : camStatus === "denied"
+                      ? "bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/30"
+                      : "bg-surface-container text-on-surface border-outline-variant/60"
+                )}>
+                  Cam: {camStatus === "ready" ? "Live" : camStatus === "checking" ? "Starting" : "Off"}
+                </span>
+              </div>
             </div>
 
-            <div className="mt-6 flex flex-col sm:flex-row gap-3">
-              <button
-                type="button"
-                onClick={startSimulation}
-                disabled={!canStart}
-                className="inline-flex items-center justify-center gap-2 h-10 px-6 rounded-lg bg-primary text-on-primary text-xs font-bold shadow-2xs hover:bg-primary/90 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                <HugeiconsIcon icon="play-circle" size={17} strokeWidth={2} />
-                <span>Start Live Simulation</span>
-              </button>
-              <button
-                type="button"
-                onClick={loadSimulation}
-                className="inline-flex items-center justify-center gap-1.5 h-10 px-4 rounded-lg border border-outline-variant/80 bg-surface text-xs font-semibold text-on-surface hover:bg-surface-container transition-all cursor-pointer"
-              >
-                <HugeiconsIcon icon="refresh" size={15} strokeWidth={1.8} />
-                <span>Refresh Status</span>
-              </button>
+            {/* Camera & Mic Sleek Viewports */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              
+              {/* Camera Preview Pod */}
+              <div className="flex flex-col rounded-xl border border-outline-variant/70 bg-surface-container-lowest p-3.5 shadow-2xs justify-between">
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-bold text-on-surface flex items-center gap-1.5">
+                      <HugeiconsIcon icon="camera" size={15} strokeWidth={2} className="text-primary" />
+                      Camera Preview
+                    </span>
+                    {isTestingCam && (
+                      <button
+                        type="button"
+                        onClick={() => setIsMirrored(!isMirrored)}
+                        className="text-xs font-semibold text-primary hover:underline cursor-pointer"
+                      >
+                        {isMirrored ? "Mirror: On" : "Mirror: Off"}
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Sleek Viewport Frame */}
+                  <div className="relative h-40 sm:h-44 w-full rounded-lg overflow-hidden bg-neutral-950 border border-neutral-800 flex items-center justify-center shadow-inner">
+                    {isTestingCam ? (
+                      <>
+                        <video
+                          ref={videoRef}
+                          autoPlay
+                          playsInline
+                          muted
+                          className={cn("w-full h-full object-cover", isMirrored && "scale-x-[-1]")}
+                        />
+                        {/* Framing markers */}
+                        <div className="absolute top-2.5 left-2.5 w-3 h-3 border-t-2 border-l-2 border-white pointer-events-none" />
+                        <div className="absolute top-2.5 right-2.5 w-3 h-3 border-t-2 border-r-2 border-white pointer-events-none" />
+                        <div className="absolute bottom-2.5 left-2.5 w-3 h-3 border-b-2 border-l-2 border-white pointer-events-none" />
+                        <div className="absolute bottom-2.5 right-2.5 w-3 h-3 border-b-2 border-r-2 border-white pointer-events-none" />
+                        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-xs text-white text-[10px] font-mono">
+                          HD Stream Live
+                        </div>
+                      </>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center p-3 text-center text-neutral-300">
+                        <div className="w-9 h-9 rounded-xl bg-neutral-900 border border-neutral-800 flex items-center justify-center mb-1.5 text-neutral-400">
+                          <HugeiconsIcon icon="video" size={20} strokeWidth={1.8} />
+                        </div>
+                        <p className="text-xs font-semibold text-neutral-200">Camera preview is off</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="mt-3 pt-2.5 border-t border-outline-variant/60 flex items-center justify-between gap-2">
+                  <span className="text-xs font-medium text-on-surface">
+                    {isTestingCam ? "Camera is streaming" : "Ensure you are centered"}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={toggleCamTest}
+                    className={cn(
+                      "h-8 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer shadow-2xs flex items-center gap-1.5 shrink-0",
+                      isTestingCam
+                        ? "bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30 hover:bg-rose-500/25"
+                        : "bg-primary text-on-primary hover:bg-primary/90"
+                    )}
+                  >
+                    <HugeiconsIcon icon={isTestingCam ? "video-off" : "video"} size={13} strokeWidth={2} />
+                    <span>{isTestingCam ? "Turn Off" : "Test Camera"}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Microphone Level Pod */}
+              <div className="flex flex-col rounded-xl border border-outline-variant/70 bg-surface-container-lowest p-3.5 shadow-2xs justify-between">
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-bold text-on-surface flex items-center gap-1.5">
+                      <HugeiconsIcon icon="mic" size={15} strokeWidth={2} className="text-primary" />
+                      Microphone Audio
+                    </span>
+                    <span className={cn(
+                      "text-xs font-bold uppercase tracking-wider",
+                      isTestingMic && micVolume > 15 ? "text-emerald-600 dark:text-emerald-400" : "text-on-surface-variant"
+                    )}>
+                      {isTestingMic ? (micVolume > 65 ? "High Input" : micVolume > 15 ? "Optimal" : "Listening...") : "Idle"}
+                    </span>
+                  </div>
+
+                  {/* Compact VU Visualizer Viewport */}
+                  <div className="relative h-40 sm:h-44 w-full rounded-lg overflow-hidden bg-surface-container-low border border-outline-variant/60 flex flex-col items-center justify-center p-3">
+                    {isTestingMic ? (
+                      <div className="w-full flex flex-col items-center justify-center gap-2.5">
+                        {/* Dynamic Equalizer Bars */}
+                        <div className="flex items-end justify-center gap-1 sm:gap-1.5 h-16 sm:h-20 w-full max-w-xs px-2">
+                          {[12, 22, 35, 50, 70, 85, 100, 80, 60, 45, 65, 90, 100, 75, 55, 40, 60, 80, 95, 70, 45, 30, 20, 15].map((factor, i) => {
+                            const dynamicHeight = Math.max(8, Math.min(100, (micVolume * factor) / 50));
+                            return (
+                              <div
+                                key={i}
+                                className={cn(
+                                  "w-1.5 rounded-full transition-all duration-75",
+                                  micVolume > 65
+                                    ? "bg-amber-500"
+                                    : micVolume > 15
+                                      ? "bg-emerald-500"
+                                      : "bg-primary"
+                                )}
+                                style={{ height: `${dynamicHeight}%` }}
+                              />
+                            );
+                          })}
+                        </div>
+                        <div className="px-2.5 py-0.5 rounded-full bg-surface border border-outline-variant/70 shadow-2xs">
+                          <p className="text-xs font-bold text-on-surface font-mono">
+                            Input Level: {micVolume}%
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center text-center">
+                        <div className="w-9 h-9 rounded-xl bg-surface border border-outline-variant/80 flex items-center justify-center mb-1.5 text-primary shadow-2xs">
+                          <HugeiconsIcon icon="mic" size={20} strokeWidth={1.8} />
+                        </div>
+                        <p className="text-xs font-semibold text-on-surface">Microphone is idle</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="mt-3 pt-2.5 border-t border-outline-variant/60 flex items-center justify-between gap-2">
+                  <span className="text-xs font-semibold text-on-surface">
+                    {isTestingMic ? "Speaking level active" : "Speak to test audio"}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={toggleMicTest}
+                    className={cn(
+                      "h-8 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer shadow-2xs flex items-center gap-1.5 shrink-0",
+                      isTestingMic
+                        ? "bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30 hover:bg-rose-500/25"
+                        : "bg-primary text-on-primary hover:bg-primary/90"
+                    )}
+                  >
+                    <HugeiconsIcon icon={isTestingMic ? "mic-off" : "mic"} size={13} strokeWidth={2} />
+                    <span>{isTestingMic ? "Stop Mic" : "Test Mic"}</span>
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          {/* 2. Spacious Readiness Matrix */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+            
+            {/* Card 1: Deck */}
+            <div className="rounded-2xl border border-outline-variant/80 bg-surface p-5 sm:p-6 shadow-2xs flex flex-col justify-between">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-bold uppercase tracking-wider text-on-surface">Presentation Deck</span>
+                <div className={cn(
+                  "w-7 h-7 rounded-lg flex items-center justify-center border",
+                  hasPresentation ? "bg-emerald-500/15 text-emerald-600 border-emerald-500/30" : "bg-amber-500/15 text-amber-600 border-amber-500/30"
+                )}>
+                  <HugeiconsIcon icon={hasPresentation ? "checkmark-circle-02" : "alert-circle"} size={16} strokeWidth={2} />
+                </div>
+              </div>
+              <h3 className="text-xl sm:text-2xl font-bold text-on-surface font-mono">
+                {hasPresentation ? `${slides.length} Slides Ready` : "No Slides"}
+              </h3>
+              <div className="mt-4 pt-3 border-t border-outline-variant/60 flex items-center justify-between">
+                <Link to="/workspace/presentation" className="text-xs font-bold text-primary hover:underline flex items-center gap-1.5">
+                  <span>{hasPresentation ? "Review Slides" : "Create Slides"}</span>
+                  <HugeiconsIcon icon="arrow-right" size={13} strokeWidth={2} />
+                </Link>
+              </div>
+            </div>
+
+            {/* Card 2: Pitch */}
+            <div className="rounded-2xl border border-outline-variant/80 bg-surface p-5 sm:p-6 shadow-2xs flex flex-col justify-between">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-bold uppercase tracking-wider text-on-surface">Pitch Script</span>
+                <div className={cn(
+                  "w-7 h-7 rounded-lg flex items-center justify-center border",
+                  hasPitch ? "bg-emerald-500/15 text-emerald-600 border-emerald-500/30" : "bg-amber-500/15 text-amber-600 border-amber-500/30"
+                )}>
+                  <HugeiconsIcon icon={hasPitch ? "checkmark-circle-02" : "alert-circle"} size={16} strokeWidth={2} />
+                </div>
+              </div>
+              <h3 className="text-xl sm:text-2xl font-bold text-on-surface font-mono">
+                {alignedPitchSlides.filter((s) => getPitchSpeech(s)).length} / {slides.length} Scripted
+              </h3>
+              <div className="mt-4 pt-3 border-t border-outline-variant/60 flex items-center justify-between">
+                <Link to="/workspace/pitch" className="text-xs font-bold text-primary hover:underline flex items-center gap-1.5">
+                  <span>{hasPitch ? "Review Script" : "Draft Pitch"}</span>
+                  <HugeiconsIcon icon="arrow-right" size={13} strokeWidth={2} />
+                </Link>
+              </div>
+            </div>
+
+            {/* Card 3: Target Timing & Minimum Window */}
+            <div className="rounded-2xl border border-outline-variant/80 bg-surface p-5 sm:p-6 shadow-2xs flex flex-col justify-between">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-bold uppercase tracking-wider text-on-surface">Target Duration</span>
+                <div className="w-7 h-7 rounded-lg bg-blue-500/15 text-blue-600 border border-blue-500/30 flex items-center justify-center">
+                  <HugeiconsIcon icon="clock" size={16} strokeWidth={2} />
+                </div>
+              </div>
+              <h3 className="text-xl sm:text-2xl font-bold text-on-surface font-mono">
+                {formatDuration(targetSeconds)}
+              </h3>
+              <div className="mt-4 pt-3 border-t border-outline-variant/60 flex items-center justify-between">
+                <span className="text-xs font-semibold text-primary">Min 2m Rehearsal</span>
+                <span className="text-xs font-bold text-on-surface-variant font-mono">~{slides.length ? Math.round((targetSeconds / slides.length / 60) * 10) / 10 : 1.5}m/slide</span>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+        {/* Right Column: Attempt History & Criteria Guide */}
+        <div className="flex flex-col gap-6">
+          <AttemptHistory
+            attempts={attempts}
+            onSelectAttempt={(attempt) => {
+              setCurrentAttempt(attempt);
+              setStage("results");
+            }}
+          />
+
+          {/* Jury Criteria Card */}
+          <div className="rounded-2xl border border-outline-variant/80 bg-surface-container-lowest p-5 sm:p-6 shadow-2xs">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-on-surface mb-3.5">AI Evaluation Metrics</h3>
+            <div className="space-y-2.5">
+              {[
+                { label: "Delivery", desc: "Fluency, vocal confidence & minimal filler words" },
+                { label: "Content", desc: "Technical accuracy, depth & methodology" },
+                { label: "Clarity", desc: "Clear articulation of project concepts & results" },
+                { label: "Timing", desc: "Pacing aligned with allocated target duration" },
+                { label: "Structure", desc: "Logical narrative & smooth slide transitions" },
+              ].map((dim) => (
+                <div key={dim.label} className="p-3 rounded-xl border border-outline-variant/60 bg-surface">
+                  <div className="flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                    <h4 className="text-xs font-bold text-on-surface">{dim.label}</h4>
+                  </div>
+                  <p className="text-xs text-on-surface-variant mt-0.5 pl-3.5">{dim.desc}</p>
+                </div>
+              ))}
             </div>
           </div>
         </div>
-
-        <AttemptHistory
-          attempts={attempts}
-          onSelectAttempt={(attempt) => {
-            setCurrentAttempt(attempt);
-            setStage("results");
-          }}
-        />
-      </section>
+      </div>
     </div>
   );
 }
 
-function micLabel(status: MicStatus) {
-  if (status === "ready") return "Ready to record";
-  if (status === "denied") return "Permission denied";
-  if (status === "unavailable") return "Not detected";
-  if (status === "checking") return "Testing...";
-  return "Permission required";
-}
 
-function ReadinessRow({
-  icon,
-  label,
-  value,
-  ready,
-  action,
-}: {
-  icon: string;
-  label: string;
-  value: string;
-  ready: boolean;
-  action?: React.ReactNode;
-}) {
-  return (
-    <div className="flex items-center gap-3 rounded-xl border border-outline-variant/70 bg-surface p-3.5 transition-all">
-      <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 border border-primary/20">
-        <HugeiconsIcon icon={icon} size={16} strokeWidth={1.8} />
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="text-xs font-bold text-on-surface">{label}</p>
-        <p className="truncate text-xs text-on-surface-variant/80 mt-0.5">{value}</p>
-      </div>
-      {action}
-      <HugeiconsIcon
-        icon={ready ? "check-circle" : "alert-circle"}
-        size={18}
-        strokeWidth={1.8}
-        className={ready ? "text-secondary" : "text-outline-variant"}
-      />
-    </div>
-  );
-}
 
 function SimulationMode({
   slide,
@@ -577,8 +1077,13 @@ function SimulationMode({
   totalSlides,
   elapsedSeconds,
   targetSeconds,
+  isRecording,
+  countdown,
+  liveVolume = 0,
+  onStartRecording,
   onPrevious,
   onNext,
+  onCancel,
   onFinish,
 }: {
   slide?: PresentationSlide;
@@ -587,37 +1092,237 @@ function SimulationMode({
   totalSlides: number;
   elapsedSeconds: number;
   targetSeconds: number;
+  isRecording: boolean;
+  countdown: number | null;
+  liveVolume?: number;
+  onStartRecording: () => void;
   onPrevious: () => void;
   onNext: () => void;
+  onCancel: () => void;
   onFinish: () => void;
 }) {
+  const MIN_REQUIRED_SECONDS = 120;
+  const isMinMet = elapsedSeconds >= MIN_REQUIRED_SECONDS;
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, []);
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      if (containerRef.current?.requestFullscreen) {
+        containerRef.current.requestFullscreen().catch(() => {});
+      } else {
+        document.documentElement.requestFullscreen().catch(() => {});
+      }
+    } else {
+      document.exitFullscreen().catch(() => {});
+    }
+  };
+
+  // Keyboard navigation support
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "ArrowRight") onNext();
+      if (e.key === "ArrowLeft") onPrevious();
+      if (e.key === "Escape" && !document.fullscreenElement) onCancel();
+      if (e.key === "f" || e.key === "F") toggleFullscreen();
+      if (e.key === " " && !isRecording && countdown === null) {
+        e.preventDefault();
+        onStartRecording();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onNext, onPrevious, onCancel, onStartRecording, isRecording, countdown]);
+
   return (
-    <div className="min-h-[calc(100dvh-150px)] rounded-2xl border border-outline-variant/80 bg-surface text-on-surface overflow-hidden shadow-2xs">
-      <div className="flex min-h-[calc(100dvh-150px)] flex-col">
-        <header className="flex flex-col gap-3 border-b border-outline-variant/70 p-4 bg-surface-container-low/40 sm:flex-row sm:items-center sm:justify-between">
+    <div
+      ref={containerRef}
+      className={cn(
+        "relative rounded-2xl border border-outline-variant/80 bg-surface text-on-surface overflow-hidden shadow-2xs transition-all",
+        isFullscreen ? "min-h-screen h-screen rounded-none border-none p-2 sm:p-4" : "min-h-[calc(100dvh-150px)]"
+      )}
+    >
+      {/* Sleek Minimalist 3-2-1 Countdown (No spinning circles) */}
+      {countdown !== null && (
+        <div className="absolute inset-0 z-50 bg-surface/95 backdrop-blur-md flex flex-col items-center justify-center text-center p-6 animate-fade-in">
+          <div className="flex flex-col items-center">
+            <span className="text-7xl sm:text-9xl font-black text-primary font-mono tracking-tighter leading-none select-none transition-all duration-300 transform scale-110">
+              {countdown}
+            </span>
+            <h2 className="text-xl sm:text-2xl font-bold text-on-surface mt-4">Take a deep breath...</h2>
+            <p className="text-sm text-on-surface-variant mt-1">Starting live recording in {countdown}s</p>
+          </div>
+        </div>
+      )}
+
+      <div className="flex min-h-full flex-col h-full">
+        
+        {/* Header Bar */}
+        <header className="flex flex-col gap-3 border-b border-outline-variant/70 p-4 bg-surface-container-low/40 sm:flex-row sm:items-center sm:justify-between shrink-0">
           <div className="flex items-center gap-3">
-            <span className="flex h-3 w-3 rounded-full bg-error animate-pulse" />
+            {isRecording ? (
+              <span className="flex h-3 w-3 rounded-full bg-error animate-pulse" />
+            ) : (
+              <span className="flex h-3 w-3 rounded-full bg-primary" />
+            )}
             <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-error">Recording In Progress</p>
+              <p className={cn(
+                "text-xs font-bold uppercase tracking-wider",
+                isRecording ? "text-error" : "text-primary"
+              )}>
+                {isRecording ? "Recording In Progress" : "Defense Podium Standby"}
+              </p>
               <p className="text-xs font-semibold text-on-surface">Slide {slideIndex + 1} of {totalSlides}</p>
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <TimerPill label="Elapsed" value={formatDuration(elapsedSeconds)} />
-            <TimerPill label="Target" value={formatDuration(targetSeconds)} />
-            <button
-              type="button"
-              onClick={onFinish}
-              className="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-error px-4 text-xs font-bold text-white shadow-2xs hover:bg-error/90 transition-all cursor-pointer"
-            >
-              <HugeiconsIcon icon="stop-circle" size={16} strokeWidth={2} />
-              <span>Finish Defense</span>
-            </button>
+
+          <div className="flex flex-wrap items-center gap-2.5">
+            {isRecording ? (
+              <>
+                {/* Live Reassuring Microphone Visualizer Pill */}
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-outline-variant/80 bg-surface shadow-2xs">
+                  <HugeiconsIcon
+                    icon="mic"
+                    size={14}
+                    strokeWidth={2}
+                    className={cn(
+                      "transition-colors",
+                      liveVolume > 15 ? "text-emerald-500 animate-pulse" : "text-on-surface-variant"
+                    )}
+                  />
+                  <div className="flex items-end gap-0.5 h-3.5 w-10">
+                    {[20, 45, 75, 100, 70, 40].map((factor, idx) => {
+                      const height = Math.max(3, Math.min(14, (liveVolume * factor) / 60));
+                      return (
+                        <div
+                          key={idx}
+                          className={cn(
+                            "w-1 rounded-full transition-all duration-75",
+                            liveVolume > 65 ? "bg-amber-500" : liveVolume > 15 ? "bg-emerald-500" : "bg-primary/40"
+                          )}
+                          style={{ height: `${height}px` }}
+                        />
+                      );
+                    })}
+                  </div>
+                  <span className="text-[10px] font-mono font-bold text-on-surface">{liveVolume}%</span>
+                </div>
+
+                <TimerPill label="Elapsed" value={formatDuration(elapsedSeconds)} />
+                <TimerPill label="Target" value={formatDuration(targetSeconds)} />
+
+                {/* 2-Minute Progress Pill */}
+                <div className={cn(
+                  "px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 border shadow-2xs font-mono",
+                  isMinMet
+                    ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
+                    : "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30"
+                )}>
+                  <HugeiconsIcon icon={isMinMet ? "checkmark-circle-02" : "lock"} size={13} strokeWidth={2} />
+                  <span>{isMinMet ? "2m Met (Ready)" : `${formatDuration(elapsedSeconds)} / 2:00`}</span>
+                </div>
+
+                {/* Fullscreen Toggle Button */}
+                <button
+                  type="button"
+                  onClick={toggleFullscreen}
+                  className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-outline-variant/80 bg-surface px-3 text-xs font-bold text-on-surface shadow-2xs hover:bg-surface-container transition-all cursor-pointer"
+                  title={isFullscreen ? "Exit Fullscreen (F)" : "Enter Fullscreen (F)"}
+                >
+                  <HugeiconsIcon icon={isFullscreen ? "fullscreen-exit" : "fullscreen"} size={14} strokeWidth={2} />
+                  <span className="hidden sm:inline">{isFullscreen ? "Exit Fullscreen" : "Fullscreen"}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={onCancel}
+                  className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-outline-variant/80 bg-surface px-3.5 text-xs font-bold text-on-surface shadow-2xs hover:bg-surface-container transition-all cursor-pointer"
+                  title="Cancel rehearsal and return without evaluating"
+                >
+                  <HugeiconsIcon icon="close" size={14} strokeWidth={2} />
+                  <span>Cancel</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={onFinish}
+                  disabled={!isMinMet}
+                  title={isMinMet ? "Finish defense and get AI Jury Evaluation" : "Minimum 2 minutes required before finishing"}
+                  className={cn(
+                    "inline-flex h-9 items-center justify-center gap-2 rounded-lg px-4 text-xs font-bold transition-all shadow-2xs",
+                    isMinMet
+                      ? "bg-error text-white hover:bg-error/90 cursor-pointer shadow-md"
+                      : "bg-surface-container text-on-surface-variant border border-outline-variant/70 opacity-50 cursor-not-allowed"
+                  )}
+                >
+                  <HugeiconsIcon icon={isMinMet ? "stop-circle" : "lock"} size={15} strokeWidth={2} />
+                  <span>{isMinMet ? "Finish Defense" : "Min 2m Required"}</span>
+                </button>
+              </>
+            ) : (
+              <>
+                <TimerPill label="Target Time" value={formatDuration(targetSeconds)} />
+                <div className="px-3 py-1.5 rounded-lg border border-outline-variant/80 bg-surface text-xs font-bold text-on-surface font-mono">
+                  Min. 2m Required
+                </div>
+
+                {/* Fullscreen Toggle Button */}
+                <button
+                  type="button"
+                  onClick={toggleFullscreen}
+                  className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-outline-variant/80 bg-surface px-3 text-xs font-bold text-on-surface shadow-2xs hover:bg-surface-container transition-all cursor-pointer"
+                  title={isFullscreen ? "Exit Fullscreen (F)" : "Enter Fullscreen (F)"}
+                >
+                  <HugeiconsIcon icon={isFullscreen ? "fullscreen-exit" : "fullscreen"} size={14} strokeWidth={2} />
+                  <span className="hidden sm:inline">{isFullscreen ? "Exit Fullscreen" : "Fullscreen"}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={onCancel}
+                  className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-outline-variant/80 bg-surface px-3.5 text-xs font-bold text-on-surface shadow-2xs hover:bg-surface-container transition-all cursor-pointer"
+                >
+                  <HugeiconsIcon icon="close" size={14} strokeWidth={2} />
+                  <span>Exit Podium</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={onStartRecording}
+                  className="inline-flex h-9 sm:h-10 items-center justify-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white px-5 text-xs sm:text-sm font-bold shadow-md transition-all cursor-pointer"
+                >
+                  <HugeiconsIcon icon="mic" size={16} strokeWidth={2} />
+                  <span>Begin Speaking & Record</span>
+                </button>
+              </>
+            )}
           </div>
         </header>
 
-        <main className="grid flex-1 gap-5 p-5 sm:p-6 lg:grid-cols-[minmax(0,1fr)_380px] bg-surface-container-lowest">
-          <section className="flex min-h-[420px] flex-col rounded-2xl border border-outline-variant/80 bg-surface p-6 sm:p-8 shadow-2xs justify-between">
+        {/* Breathing / Standby Banner when not recording */}
+        {!isRecording && (
+          <div className="bg-primary/10 border-b border-primary/20 px-5 py-3 flex items-center justify-between gap-4 text-xs sm:text-sm text-on-surface shrink-0">
+            <div className="flex items-center gap-2.5">
+              <HugeiconsIcon icon="mic" size={17} strokeWidth={2} className="text-primary shrink-0" />
+              <span>
+                <strong>Podium Ready:</strong> Take a breath and review your opening slide. When you are ready to speak, click <strong>Begin Speaking & Record</strong> (or press Space).
+              </span>
+            </div>
+            <span className="text-xs font-bold text-primary shrink-0 hidden md:inline font-mono">2 min minimum rehearsal</span>
+          </div>
+        )}
+
+        <main className="grid flex-1 gap-5 p-5 sm:p-6 lg:grid-cols-[minmax(0,1fr)_380px] bg-surface-container-lowest overflow-hidden">
+          <section className="flex min-h-[420px] flex-col rounded-2xl border border-outline-variant/80 bg-surface p-6 sm:p-8 shadow-2xs justify-between overflow-y-auto">
             <div>
               <div className="mb-4 flex items-center justify-between gap-3 pb-3 border-b border-outline-variant/60">
                 <span className="text-xs font-bold uppercase tracking-wider text-primary">Live Slide View</span>
@@ -627,7 +1332,7 @@ function SimulationMode({
                     onClick={onPrevious}
                     disabled={slideIndex === 0}
                     className="w-8 h-8 rounded-lg border border-outline-variant/80 bg-surface flex items-center justify-center text-on-surface hover:bg-surface-container disabled:opacity-30 cursor-pointer"
-                    title="Previous slide"
+                    title="Previous slide (Left Arrow)"
                   >
                     <HugeiconsIcon icon="arrow-right" size={14} strokeWidth={2} className="rotate-180" />
                   </button>
@@ -636,7 +1341,7 @@ function SimulationMode({
                     onClick={onNext}
                     disabled={slideIndex >= totalSlides - 1}
                     className="w-8 h-8 rounded-lg border border-outline-variant/80 bg-surface flex items-center justify-center text-on-surface hover:bg-surface-container disabled:opacity-30 cursor-pointer"
-                    title="Next slide"
+                    title="Next slide (Right Arrow)"
                   >
                     <HugeiconsIcon icon="arrow-right" size={14} strokeWidth={2} />
                   </button>
@@ -662,7 +1367,7 @@ function SimulationMode({
             )}
           </section>
 
-          <aside className="rounded-2xl border border-outline-variant/80 bg-surface p-6 shadow-2xs flex flex-col">
+          <aside className="rounded-2xl border border-outline-variant/80 bg-surface p-6 shadow-2xs flex flex-col overflow-hidden">
             <span className="text-xs font-bold uppercase tracking-wider text-primary mb-2">Speech Reference Script</span>
             <h2 className="text-sm font-bold text-on-surface pb-3 border-b border-outline-variant/60">{pitch?.title || slide?.title || "Current slide"}</h2>
             <div className="mt-4 flex-1 overflow-y-auto pr-1 text-xs sm:text-sm leading-relaxed text-on-surface-variant font-sans">
@@ -683,6 +1388,10 @@ function TimerPill({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
+
+
+
+
 
 function ResultsView({
   attempt,
@@ -836,16 +1545,16 @@ function MiniList({ title, items }: { title: string; items: string[] }) {
 
 function AttemptHistory({ attempts, onSelectAttempt, selectedId }: { attempts: JuryAttempt[]; onSelectAttempt: (attempt: JuryAttempt) => void; selectedId?: string }) {
   return (
-    <aside className="rounded-2xl border border-outline-variant/80 bg-surface-container-lowest p-5 sm:p-6 shadow-2xs h-fit">
-      <h2 className="text-xs font-bold uppercase tracking-wider text-outline-variant mb-4">Attempt History</h2>
-      <div className="space-y-2.5">
+    <aside className="rounded-2xl border border-outline-variant/80 bg-surface-container-lowest p-4 sm:p-5 shadow-2xs h-fit">
+      <h2 className="text-xs font-bold uppercase tracking-wider text-on-surface mb-3">Attempt History</h2>
+      <div className="space-y-2">
         {attempts.length ? attempts.map((attempt) => (
           <button
             key={attempt._id || attempt.attemptNumber}
             type="button"
             onClick={() => onSelectAttempt(attempt)}
             className={cn(
-              "w-full rounded-xl border p-3.5 text-left transition-all duration-150 cursor-pointer shadow-2xs",
+              "w-full rounded-xl border p-3 text-left transition-all duration-150 cursor-pointer shadow-2xs",
               selectedId === attempt._id
                 ? "border-primary bg-primary/10"
                 : "border-outline-variant/70 bg-surface hover:bg-surface-container"
@@ -855,13 +1564,13 @@ function AttemptHistory({ attempts, onSelectAttempt, selectedId }: { attempts: J
               <span className="text-xs font-bold text-on-surface">Attempt #{attempt.attemptNumber}</span>
               <span className="text-sm font-bold font-mono text-primary">{attempt.analysis?.overallScore ?? 0}</span>
             </div>
-            <p className={cn("mt-1 text-[11px] font-semibold", attempt.isCurrent ? "text-secondary" : "text-on-surface-variant/70")}>
+            <p className={cn("mt-1 text-xs font-semibold", attempt.isCurrent ? "text-secondary" : "text-on-surface-variant")}>
               {attemptVersionLabel(attempt)}
             </p>
-            <p className="mt-0.5 text-[11px] text-on-surface-variant font-mono">{formatDuration(attempt.actualSeconds)} recorded</p>
+            <p className="mt-0.5 text-xs text-on-surface font-mono">{formatDuration(attempt.actualSeconds)} recorded</p>
           </button>
         )) : (
-          <p className="rounded-xl border border-dashed border-outline-variant/80 p-4 text-xs text-on-surface-variant text-center">
+          <p className="rounded-xl border border-dashed border-outline-variant/80 p-4 text-xs text-on-surface-variant text-center font-medium">
             No previous attempts recorded.
           </p>
         )}

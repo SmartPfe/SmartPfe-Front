@@ -36,6 +36,8 @@ export type FlatReportSection = {
   section: ReportSection;
   number: string;
   level: number;
+  parentId?: string | null;
+  ancestorIds?: string[];
 };
 
 export const AI_ACTIONS = [
@@ -150,12 +152,31 @@ export const normalizeChapter = (chapter: Partial<ReportChapter> = {}): ReportCh
   };
 };
 
-export const flattenReportStructure = (sections: ReportSection[] = [], prefix = "", level = 1): FlatReportSection[] =>
+export const flattenReportStructure = (
+  sections: ReportSection[] = [],
+  prefix = "",
+  level = 1,
+  parentId: string | null = null,
+  ancestorIds: string[] = []
+): FlatReportSection[] =>
   sections.flatMap((section, index) => {
     const number = prefix ? `${prefix}.${index + 1}` : `${index + 1}`;
+    const currentAncestors = [...ancestorIds];
     return [
-      { section, number, level },
-      ...flattenReportStructure(section.children || [], number, level + 1),
+      {
+        section,
+        number,
+        level,
+        parentId,
+        ancestorIds: currentAncestors,
+      },
+      ...flattenReportStructure(
+        section.children || [],
+        number,
+        level + 1,
+        section.id,
+        [...currentAncestors, section.id]
+      ),
     ];
   });
 

@@ -19,11 +19,10 @@ import {
 } from "./hooks/useReportStudio";
 import { ReportSection } from "../ReportStructure/hooks/useReportStructure";
 import HugeiconsIcon from "@/components/ui/HugeiconsIcon";
+import SaveStatusHeader from "@/components/ui/SaveStatusHeader";
+import AiActionToolbar from "@/components/ai/AiActionToolbar";
 
 type StudioTab = "rich" | "markdown" | "latex";
-
-const aiButtonClass =
-  "px-5 py-2 rounded-md border border-primary/20 bg-gradient-to-r from-primary/5 to-secondary/5 text-primary text-label-md font-semibold hover:from-primary/10 hover:to-secondary/10 transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed disabled:grayscale";
 
 const detailLabels: Record<DetailLevel, string> = {
   summary: "Summary",
@@ -37,28 +36,27 @@ export interface ToolConfig {
   shortLabel: string;
   icon: string;
   desc: string;
+  iconColor: string;
 }
 
 export const ALL_AI_TOOLS: ToolConfig[] = [
-  { id: "Rewrite Selection", label: "Rephrase", shortLabel: "Rephrase", icon: "sync_alt", desc: "Rephrase and polish this text with alternative wording" },
-  { id: "Expand", label: "Expand", shortLabel: "Expand", icon: "format_align_left", desc: "Add more depth and technical detail" },
-  { id: "Shorten", label: "Shorten", shortLabel: "Shorten", icon: "format_align_center", desc: "Make more concise and clear" },
-  { id: "Make More Technical", label: "More Technical", shortLabel: "Technical", icon: "terminal", desc: "Incorporate deeper technical phrasing" },
-  { id: "Simplify", label: "Simplify", shortLabel: "Simplify", icon: "auto_fix_high", desc: "Clarify complex or convoluted points" },
-  { id: "Improve Grammar", label: "Fix Grammar", shortLabel: "Grammar", icon: "spellcheck", desc: "Fix grammar, spelling, and flow" },
-  { id: "Explain Better", label: "Explain Better", shortLabel: "Explain", icon: "psychology", desc: "Elaborate with intuitive clarity" },
-  { id: "Continue Writing", label: "Continue Writing", shortLabel: "Continue", icon: "arrow_forward", desc: "Continue generating the next section" },
-  { id: "Improve Academic Style", label: "Academic Style", shortLabel: "Academic", icon: "school", desc: "Refine tone into formal academic standard" },
+  { id: "Rewrite Selection", label: "Rephrase", shortLabel: "Rephrase", icon: "sync-alt", desc: "Rephrase and polish with fresh wording", iconColor: "text-sky-600 dark:text-sky-400" },
+  { id: "Expand", label: "Expand", shortLabel: "Expand", icon: "format-align-left", desc: "Add more depth and technical detail", iconColor: "text-emerald-600 dark:text-emerald-400" },
+  { id: "Shorten", label: "Shorten", shortLabel: "Shorten", icon: "format-align-center", desc: "Make more concise and punchy", iconColor: "text-amber-600 dark:text-amber-400" },
+  { id: "Make More Technical", label: "More Technical", shortLabel: "Technical", icon: "terminal", desc: "Incorporate engineering vocabulary", iconColor: "text-purple-600 dark:text-purple-400" },
+  { id: "Simplify", label: "Simplify", shortLabel: "Simplify", icon: "tune", desc: "Clarify complex or convoluted points", iconColor: "text-blue-600 dark:text-blue-400" },
+  { id: "Improve Grammar", label: "Fix Grammar", shortLabel: "Grammar", icon: "spellcheck", desc: "Fix grammar, spelling, and academic flow", iconColor: "text-teal-600 dark:text-teal-400" },
+  { id: "Explain Better", label: "Explain Better", shortLabel: "Explain", icon: "psychology", desc: "Elaborate with intuitive clarity", iconColor: "text-rose-600 dark:text-rose-400" },
+  { id: "Continue Writing", label: "Continue Writing", shortLabel: "Continue", icon: "arrow-forward", desc: "Continue generating the next section", iconColor: "text-indigo-600 dark:text-indigo-400" },
+  { id: "Improve Academic Style", label: "Academic Style", shortLabel: "Academic", icon: "school", desc: "Refine tone into formal thesis standard", iconColor: "text-violet-600 dark:text-violet-400" },
 ];
 
-const DEFAULT_PINNED_TOOLS: AiAction[] = [
+export const DEFAULT_PINNED_TOOLS: AiAction[] = [
   "Rewrite Selection",
   "Expand",
   "Shorten",
   "Make More Technical",
 ];
-
-const actionConfigMap = new Map(ALL_AI_TOOLS.map((tool) => [tool.id, tool]));
 
 export default function ReportBuilder() {
   const {
@@ -93,14 +91,57 @@ export default function ReportBuilder() {
   const [activeTab, setActiveTab] = useState<StudioTab>("rich");
   const [selectedText, setSelectedText] = useState("");
   const [copied, setCopied] = useState<StudioTab | "final" | null>(null);
-  const [refineOpen, setRefineOpen] = useState(false);
-  const [refineInstructions, setRefineInstructions] = useState("");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const refinePopoverRef = useRef<HTMLDivElement>(null);
+  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
+
+  const toggleSectionCollapse = (sectionId: string) => {
+    setCollapsedSections((prev) => ({
+      ...prev,
+      [sectionId]: !prev[sectionId],
+    }));
+  };
+
+  const expandAllSections = () => {
+    setCollapsedSections({});
+  };
+
+  const collapseAllSections = () => {
+    const all: Record<string, boolean> = {};
+    flatSections.forEach((item) => {
+      if (!isLeafSection(item)) {
+        all[item.section.id] = true;
+      }
+    });
+    setCollapsedSections(all);
+  };
+
+  const hasAnyCollapsed = useMemo(
+    () => Object.values(collapsedSections).some(Boolean),
+    [collapsedSections]
+  );
 
   const leafSections = useMemo(() => flatSections.filter((item) => isLeafSection(item)), [flatSections]);
 
-  // Synchronize global route & section tracking
+  // Automatically expand ancestors of active section when selected
+  useEffect(() => {
+    if (activeSectionId && activeSectionId !== "overview") {
+      const activeSection = flatSections.find((item) => item.section.id === activeSectionId);
+      if (activeSection?.ancestorIds && activeSection.ancestorIds.length > 0) {
+        setCollapsedSections((prev) => {
+          let hasChange = false;
+          const next = { ...prev };
+          for (const ancestorId of activeSection.ancestorIds!) {
+            if (next[ancestorId]) {
+              next[ancestorId] = false;
+              hasChange = true;
+            }
+          }
+          return hasChange ? next : prev;
+        });
+      }
+    }
+  }, [activeSectionId, flatSections]);
+
   useEffect(() => {
     setActiveRouteState({
       pathname: location.pathname,
@@ -108,20 +149,11 @@ export default function ReportBuilder() {
     });
   }, [location.pathname, activeSectionId, setActiveRouteState]);
 
-  // Handle deep-linking from floating dock / navigation state
   useEffect(() => {
     if (location.state?.activeSectionId) {
       setActiveSectionId(location.state.activeSectionId);
     }
-  }, [location.state?.activeSectionId, (location.state as any)?._navTimestamp]);
-
-  useEffect(() => {
-    if (activeSectionId === "overview") return;
-    const isCurrentActiveLeaf = activeSectionId && leafSections.some((item) => item.section.id === activeSectionId);
-    if (!isCurrentActiveLeaf && leafSections.length > 0) {
-      setActiveSectionId("overview");
-    }
-  }, [activeSectionId, leafSections]);
+  }, [location.state?.activeSectionId]);
 
   const totalWords = useMemo(
     () => reportChapters.reduce((acc, chapter) => acc + countWords(chapter.contentHtml || ""), 0),
@@ -144,10 +176,12 @@ export default function ReportBuilder() {
     sourceFingerprint &&
     activeChapter.sourceFingerprint !== sourceFingerprint
   );
+  
   const currentSectionAiState = activeFlatSection ? getSectionAiState(activeFlatSection.section.id) : "idle";
-  const isAiIdle = currentSectionAiState === "idle";
-  const reportStructureLanguage = normalizeLanguage((project as any)?.reportStructureLanguage);
-  const activeChapterLanguage = normalizeLanguage(activeChapter?.language || reportStructureLanguage);
+  const isAiIdle = currentSectionAiState === "idle" && aiState === "idle";
+  
+  const projectLanguageNormalized = normalizeLanguage((project as any)?.reportStructureLanguage);
+  const activeChapterLanguage = normalizeLanguage(activeChapter?.language || projectLanguageNormalized);
   const shouldShowTranslate = Boolean(
     activeIsLeaf &&
     activeChapter &&
@@ -166,41 +200,8 @@ export default function ReportBuilder() {
     [activeChapter, currentMarkdown]
   );
 
-  useEffect(() => {
-    const handlePointerDown = (event: MouseEvent) => {
-      if (refinePopoverRef.current && !refinePopoverRef.current.contains(event.target as Node)) {
-        setRefineOpen(false);
-      }
-    };
-
-    if (refineOpen) {
-      document.addEventListener("mousedown", handlePointerDown);
-    }
-
-    return () => document.removeEventListener("mousedown", handlePointerDown);
-  }, [refineOpen]);
-
-  useEffect(() => {
-    if (aiState !== "idle" || !activeChapter || !hasContent(activeChapter)) {
-      setRefineOpen(false);
-    }
-  }, [activeChapter, aiState]);
-
-  const handleRefineSubmit = async () => {
-    if (!activeChapter) return;
-    await runChapterAction(
-      activeChapter.sectionId,
-      "Improve Academic Style",
-      activeChapter.contentHtml,
-      selectedText,
-      refineInstructions
-    );
-    setRefineInstructions("");
-    setRefineOpen(false);
-  };
-
   const handleEditorChange = (html: string) => {
-    if (!activeFlatSection) return;
+    if (!activeFlatSection || !activeIsLeaf) return;
     const markdown = htmlToMarkdown(html);
     updateChapter(activeFlatSection.section.id, {
       title: activeFlatSection.section.title,
@@ -213,100 +214,89 @@ export default function ReportBuilder() {
   };
 
   const handleCopy = async (value: string, key: StudioTab | "final") => {
-    await navigator.clipboard.writeText(value);
-    setCopied(key);
-    window.setTimeout(() => setCopied(null), 1800);
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(key);
+      setTimeout(() => setCopied(null), 2000);
+    } catch {}
   };
 
   if (loading) {
     return (
       <div className="flex flex-col min-h-[50vh] items-center justify-center">
-        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
-        <p className="text-on-surface-variant font-medium">Loading AI Report Studio...</p>
+        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4" />
+        <p className="text-on-surface-variant font-medium text-sm">Loading AI Report Studio...</p>
       </div>
     );
   }
 
   return (
-    <div className="w-full mx-auto flex flex-col h-full pb-24">
-      <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-4 mb-8 shrink-0">
+    <div className="max-w-[1440px] w-full mx-auto pb-32">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-display text-on-surface mb-2 flex items-center">
-            AI Report Studio
-            <InfoTooltip label="Report" tooltip="Generate and edit your final PFE report chapter by chapter from the approved report structure." />
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <span className="text-xs font-bold uppercase tracking-wider text-primary">Academic Delivery & Manuscript</span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-on-surface flex items-center">
+            Academic Report Builder
+            <InfoTooltip label="Report Builder" tooltip="Write, generate, refine, and compile your full graduation thesis with chapter-by-chapter AI assistance." />
           </h1>
-          <p className="text-body-lg text-on-surface-variant max-w-[48rem]">
-            Transform your structured project work into academic report chapters while keeping full control over every paragraph.
+          <p className="text-sm text-on-surface-variant max-w-[42rem] mt-1 leading-relaxed">
+            Generate and refine rich academic thesis chapters powered by your complete project methodology context.
           </p>
         </div>
-        <div className="flex flex-wrap items-center justify-end gap-3">
-          <span className={`text-label-sm transition-colors ${saveStatus === "saving" ? "text-on-surface-variant" :
-              saveStatus === "saved" ? "text-secondary" :
-                "text-error"
-            }`}>
-            {saveStatus === "saving" ? "Autosaving..." : saveStatus === "saved" ? "All changes saved" : "Unsaved changes"}
-          </span>
-          <style>{`
-            @keyframes report-builder-popover-in {
-              from { opacity: 0; transform: translateY(-4px) scale(0.98); }
-              to { opacity: 1; transform: translateY(0) scale(1); }
-            }
-            @keyframes report-builder-expand-down {
-              from {
-                opacity: 0;
-                transform: translateY(-8px);
-                max-height: 0;
-              }
-              to {
-                opacity: 1;
-                transform: translateY(0);
-                max-height: 220px;
-              }
-            }
-            @keyframes report-studio-indeterminate {
-              0% { transform: translateX(-100%); }
-              50% { transform: translateX(120%); }
-              100% { transform: translateX(250%); }
-            }
-          `}</style>
-          <button onClick={() => saveReportChapters(reportChapters, true)} disabled={saveStatus === "saving" || aiState !== "idle"} className="px-4 py-2 rounded-md bg-primary text-on-primary text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50">
-            Save now
-          </button>
-        </div>
+        
+        <SaveStatusHeader
+          status={saveStatus}
+          onSave={() => saveReportChapters(reportChapters, true)}
+          isBusy={!isAiIdle}
+        />
       </div>
 
       {error && (
-        <div className="mb-6 p-3 rounded-lg bg-error-container text-on-error-container border border-error/20 flex items-center justify-between gap-3">
-          <p className="text-body-md">{error}</p>
-          <button onClick={dismissError} className="shrink-0 text-label-sm underline hover:no-underline">Dismiss</button>
+        <div className="mb-6 p-4 rounded-xl bg-error-container text-on-error-container border border-error/20 flex items-center justify-between gap-3 shadow-2xs">
+          <p className="text-xs font-semibold">{error}</p>
+          <button onClick={dismissError} className="shrink-0 text-xs font-bold underline cursor-pointer">Dismiss</button>
         </div>
       )}
 
       {flatSections.length === 0 ? (
-        <div className="rounded-xl border-2 border-dashed border-outline-variant bg-surface py-16 px-6 text-center">
-          <span className="material-symbols-outlined text-[42px] text-primary mb-4">account_tree</span>
-          <h2 className="text-headline-md text-on-surface mb-2">Report structure required</h2>
-          <p className="text-body-md text-on-surface-variant max-w-xl mx-auto">
-            Create or generate the Report Structure first. The Studio writes chapters from that table of contents so the final report stays coherent.
+        <div className="rounded-2xl border-2 border-dashed border-outline-variant/80 bg-surface py-16 px-6 text-center shadow-2xs">
+          <div className="w-16 h-16 rounded-2xl bg-surface-container flex items-center justify-center mx-auto mb-4 text-primary">
+            <HugeiconsIcon icon="layers" size={32} strokeWidth={1.8} />
+          </div>
+          <h2 className="text-lg font-bold text-on-surface mb-1">Report Structure Required</h2>
+          <p className="text-xs text-on-surface-variant max-w-md mx-auto">
+            Create or generate your Report Structure first. The Studio drafts chapters based on that table of contents.
           </p>
         </div>
       ) : (
         <div className={cn(
-          "w-full grid gap-md min-h-[calc(100dvh-250px)] min-w-0 transition-all duration-300 ease-in-out",
+          "w-full grid gap-4 min-h-[calc(100dvh-220px)] min-w-0 transition-all duration-300 ease-in-out",
           sidebarCollapsed
             ? "grid-cols-1 xl:grid-cols-[68px_minmax(0,1fr)]"
-            : "grid-cols-1 xl:grid-cols-[340px_minmax(0,1fr)]"
+            : "grid-cols-1 xl:grid-cols-[330px_minmax(0,1fr)]"
         )}>
           <aside className={cn(
-            "rounded-xl border border-outline-variant bg-surface overflow-hidden flex flex-col min-h-[420px] xl:min-h-0 min-w-0 transition-all duration-300",
+            "rounded-2xl border border-outline-variant/80 bg-surface overflow-hidden flex flex-col min-h-[420px] xl:min-h-0 min-w-0 transition-all duration-300 shadow-2xs",
             sidebarCollapsed && "items-center"
           )}>
             <div className={cn(
-              "p-3.5 border-b border-outline-variant bg-surface-container-lowest flex items-center justify-between gap-2 w-full",
+              "p-3.5 border-b border-outline-variant/80 bg-surface flex items-center justify-between gap-2 w-full",
               sidebarCollapsed ? "justify-center px-2" : "justify-between"
             )}>
               {!sidebarCollapsed && (
-                <h2 className="font-headline-sm text-headline-sm text-on-surface truncate">Report Structure</h2>
+                <div className="flex items-center justify-between flex-1 min-w-0 mr-1">
+                  <span className="text-xs font-bold uppercase tracking-wider text-on-surface truncate">Table of Contents</span>
+                  <button
+                    type="button"
+                    onClick={hasAnyCollapsed ? expandAllSections : collapseAllSections}
+                    className="text-[11px] text-primary hover:text-primary/80 font-bold px-1.5 py-0.5 rounded hover:bg-primary/10 transition-colors cursor-pointer shrink-0"
+                    title={hasAnyCollapsed ? "Expand all sections" : "Collapse all sections"}
+                  >
+                    {hasAnyCollapsed ? "Expand All" : "Collapse All"}
+                  </button>
+                </div>
               )}
               <button
                 type="button"
@@ -314,31 +304,28 @@ export default function ReportBuilder() {
                 className="w-8 h-8 rounded-lg flex items-center justify-center text-on-surface-variant hover:text-primary hover:bg-surface-container transition-colors cursor-pointer shrink-0"
                 title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
               >
-                <span className="material-symbols-outlined text-[20px]">
-                  {sidebarCollapsed ? "dock_to_right" : "dock_to_left"}
-                </span>
+                <HugeiconsIcon icon={sidebarCollapsed ? "chevron-right" : "chevron-left"} size={16} strokeWidth={2} />
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-2 w-full">
+            <div className="flex-1 overflow-y-auto p-2 w-full space-y-1">
               <button
                 onClick={() => setActiveSectionId("overview")}
                 className={cn(
-                  "w-full flex items-center rounded-lg transition-colors border mb-2 cursor-pointer",
-                  sidebarCollapsed ? "justify-center p-2" : "gap-2.5 px-3 py-2.5 text-left",
+                  "w-full flex items-center rounded-xl transition-all border mb-2 cursor-pointer shadow-2xs",
+                  sidebarCollapsed ? "justify-center p-2.5" : "gap-2.5 px-3 py-2.5 text-left",
                   activeSectionId === "overview"
-                    ? "bg-primary-container/80 text-primary font-bold border-primary/30 shadow-sm"
-                    : "bg-surface-container-low text-on-surface hover:bg-surface-container hover:text-on-surface border-outline-variant/60"
+                    ? "bg-primary text-on-primary font-bold border-primary shadow-xs"
+                    : "bg-surface-container-lowest text-on-surface hover:bg-surface-container hover:text-on-surface border-outline-variant/60"
                 )}
-                title={sidebarCollapsed ? `Report Overview (${progressPercent}%)` : undefined}
               >
-                <span className="material-symbols-outlined text-[20px] shrink-0 text-primary">space_dashboard</span>
+                <HugeiconsIcon icon="dashboard" size={17} strokeWidth={1.8} className={activeSectionId === "overview" ? "text-on-primary" : "text-primary"} />
                 {!sidebarCollapsed && (
                   <>
-                    <span className="text-body-sm font-semibold truncate flex-1">Report Overview</span>
+                    <span className="text-xs font-bold truncate flex-1">Overview Hub</span>
                     <span className={cn(
-                      "px-2 py-0.5 rounded-full text-[11px] font-bold",
-                      activeSectionId === "overview" ? "bg-primary text-on-primary" : "bg-surface-container-high text-on-surface-variant"
+                      "px-2 py-0.5 rounded-md text-[10px] font-mono font-bold",
+                      activeSectionId === "overview" ? "bg-on-primary/20 text-on-primary" : "bg-surface text-on-surface"
                     )}>
                       {progressPercent}%
                     </span>
@@ -347,7 +334,7 @@ export default function ReportBuilder() {
               </button>
 
               {!sidebarCollapsed && (
-                <div className="px-2 pt-2 pb-1 text-[11px] font-bold tracking-wider text-on-surface-variant uppercase">
+                <div className="px-2 pt-2 pb-1 text-[10px] font-bold tracking-wider text-on-surface/80 uppercase">
                   Chapters & Sections
                 </div>
               )}
@@ -355,6 +342,144 @@ export default function ReportBuilder() {
               {flatSections.map((item) => {
                 const chapter = getChapter(item.section.id);
                 const generating = isSectionGenerating(item.section.id);
+                const isLeaf = isLeafSection(item);
+                
+                // If any ancestor is collapsed, hide this item when sidebar is expanded
+                if (!sidebarCollapsed && item.ancestorIds?.some((ancestorId) => collapsedSections[ancestorId])) {
+                  return null;
+                }
+
+                // If non-leaf container section (Chapter or Sub-chapter group)
+                if (!isLeaf) {
+                  const isCollapsed = Boolean(collapsedSections[item.section.id]);
+                  const childLeaves = leafSections.filter(
+                    (leaf) => leaf.ancestorIds?.includes(item.section.id) || leaf.section.id === item.section.id
+                  );
+                  const childGenerated = childLeaves.filter((leaf) => hasContent(getChapter(leaf.section.id))).length;
+                  const allChildrenDone = childLeaves.length > 0 && childLeaves.every((leaf) => getChapter(leaf.section.id)?.status === "completed");
+
+                  if (sidebarCollapsed) {
+                    if (item.level > 1) return null;
+                    return (
+                      <div
+                        key={item.section.id}
+                        className="w-full flex items-center justify-center py-2 text-primary my-1 cursor-pointer hover:bg-surface-container rounded-lg"
+                        title={`Chapter ${item.number}: ${item.section.title}`}
+                      >
+                        <div className={cn(
+                          "w-7 h-7 rounded-lg flex items-center justify-center border",
+                          allChildrenDone
+                            ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
+                            : "bg-primary/10 text-primary border-primary/20"
+                        )}>
+                          <HugeiconsIcon
+                            icon={allChildrenDone ? "checkmark-circle-02" : "menu-book"}
+                            size={16}
+                            strokeWidth={2}
+                          />
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  // Top level Chapter container (Level 1)
+                  if (item.level === 1) {
+                    return (
+                      <div
+                        key={item.section.id}
+                        onClick={() => toggleSectionCollapse(item.section.id)}
+                        className="w-full flex items-center justify-between rounded-xl p-2.5 text-left bg-surface-container-low hover:bg-surface-container text-on-surface select-none mt-3 mb-1 border border-outline-variant/80 cursor-pointer transition-all shadow-xs group"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                          <div
+                            className={cn(
+                              "w-7 h-7 rounded-lg flex items-center justify-center border shrink-0 transition-all shadow-2xs",
+                              allChildrenDone
+                                ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
+                                : childGenerated > 0
+                                  ? "bg-primary/15 text-primary border-primary/30"
+                                  : "bg-surface-container text-on-surface-variant/70 border-outline-variant/60"
+                            )}
+                          >
+                            <HugeiconsIcon
+                              icon={allChildrenDone ? "checkmark-circle-02" : "menu-book"}
+                              size={15}
+                              strokeWidth={2}
+                            />
+                          </div>
+
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5 mb-0.5">
+                              <span className="text-[10px] font-bold font-mono tracking-wider uppercase text-primary">
+                                Chapter {item.number}
+                              </span>
+                            </div>
+                            <h4 className="text-xs font-bold truncate text-on-surface group-hover:text-primary transition-colors leading-tight">
+                              {item.section.title}
+                            </h4>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                          <span
+                            className={cn(
+                              "px-2 py-0.5 rounded-full text-[10px] font-mono font-bold border",
+                              allChildrenDone
+                                ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
+                                : "bg-surface text-on-surface-variant border-outline-variant/60"
+                            )}
+                          >
+                            {childGenerated}/{childLeaves.length}
+                          </span>
+                          <HugeiconsIcon
+                            icon={isCollapsed ? "chevron-right" : "chevron-down"}
+                            size={14}
+                            strokeWidth={2}
+                            className="text-on-surface-variant group-hover:text-primary transition-transform"
+                          />
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  // Nested Sub-chapter Container (Level >= 2)
+                  return (
+                    <div
+                      key={item.section.id}
+                      className="relative ml-3 pl-2.5 border-l-2 border-primary/20 my-1"
+                    >
+                      <div
+                        onClick={() => toggleSectionCollapse(item.section.id)}
+                        className="w-full flex items-center justify-between rounded-lg px-2 py-1.5 text-left bg-surface-container-lowest hover:bg-surface-container-low text-on-surface select-none border border-outline-variant/50 cursor-pointer transition-all group shadow-2xs"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="w-5 h-5 rounded-md bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0">
+                            <HugeiconsIcon icon="layers" size={11} strokeWidth={2} />
+                          </div>
+                          <span className="font-mono text-[11px] font-bold text-primary shrink-0">
+                            {item.number}
+                          </span>
+                          <span className="text-xs font-semibold truncate text-on-surface group-hover:text-primary transition-colors">
+                            {item.section.title}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0 ml-1.5">
+                          <span className="text-[10px] font-mono text-on-surface-variant font-bold">
+                            {childGenerated}/{childLeaves.length}
+                          </span>
+                          <HugeiconsIcon
+                            icon={isCollapsed ? "chevron-right" : "chevron-down"}
+                            size={13}
+                            strokeWidth={2}
+                            className="text-on-surface-variant group-hover:text-on-surface transition-transform"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+
+                // Leaf Section (Draftable / Editable Section)
                 return (
                   <SectionNavItem
                     key={item.section.id}
@@ -362,7 +487,7 @@ export default function ReportBuilder() {
                     chapter={chapter}
                     active={item.section.id === activeSectionId}
                     outdated={Boolean(chapter?.sourceFingerprint && sourceFingerprint && chapter.sourceFingerprint !== sourceFingerprint)}
-                    isLeaf={isLeafSection(item)}
+                    isLeaf={isLeaf}
                     collapsed={sidebarCollapsed}
                     isGenerating={generating}
                     onClick={() => {
@@ -373,10 +498,27 @@ export default function ReportBuilder() {
                   />
                 );
               })}
+
+              {!sidebarCollapsed && flatSections.length > 0 && (
+                <div className="mt-4 pt-3 border-t border-outline-variant/60 px-2 flex items-center justify-between text-[10px] font-semibold text-on-surface-variant/80">
+                  <span className="flex items-center gap-1.5" title="Completed & Approved">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block shadow-2xs" /> Done
+                  </span>
+                  <span className="flex items-center gap-1.5" title="Draft in progress">
+                    <span className="w-2 h-2 rounded-full bg-blue-500 inline-block shadow-2xs" /> Drafted
+                  </span>
+                  <span className="flex items-center gap-1.5" title="Not started yet">
+                    <span className="w-2 h-2 rounded-full bg-slate-400 inline-block shadow-2xs" /> Empty
+                  </span>
+                  <span className="flex items-center gap-1.5" title="Earlier context updated">
+                    <span className="w-2 h-2 rounded-full bg-amber-500 inline-block shadow-2xs" /> Outdated
+                  </span>
+                </div>
+              )}
             </div>
           </aside>
 
-          <main className="w-full rounded-xl border border-outline-variant bg-surface relative z-10 flex flex-col min-h-[620px] min-w-0 overflow-hidden">
+          <main className="w-full rounded-2xl border border-outline-variant/80 bg-surface relative z-10 flex flex-col min-h-[620px] min-w-0 overflow-hidden shadow-2xs">
             {activeSectionId === "overview" ? (
               <ReportOverviewDashboard
                 flatSections={flatSections}
@@ -403,235 +545,139 @@ export default function ReportBuilder() {
               />
             ) : (
               <>
-                <div className="p-4 sm:p-5 border-b border-outline-variant bg-surface-container-lowest">
-                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <div className="p-4 sm:p-5 border-b border-outline-variant/80 bg-surface">
+                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-4">
                     <div className="min-w-0">
-                      <div className="flex items-center gap-2 text-label-sm text-on-surface-variant mb-1">
-                        <span>{activeFlatSection?.number}</span>
-                        <span>Editable section</span>
+                      <div className="flex items-center gap-2 text-xs font-bold text-on-surface mb-1">
+                        <span className="font-mono text-primary">{activeFlatSection?.number}</span>
+                        <span>•</span>
+                        <span>Editable Subsection</span>
                       </div>
-                      <h2 className="text-headline-md text-on-surface break-words">{activeFlatSection?.section.title}</h2>
+                      <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-on-surface break-words">
+                        {activeFlatSection?.section.title}
+                      </h2>
                     </div>
-                    <div className="flex items-center gap-3 shrink-0">
+                    <div className="flex items-center gap-2.5 shrink-0">
                       <ChapterStatusBadge chapter={activeChapter} outdated={activeIsOutdated} isLeaf={activeIsLeaf} />
                       {activeIsLeaf && activeChapter && (
                         <button
                           onClick={() => updateChapter(activeChapter.sectionId, { status: activeChapter.status === "completed" ? "in-progress" : "completed" })}
                           disabled={!isAiIdle}
                           className={cn(
-                            "px-4 py-2 rounded-lg text-label-md font-semibold flex items-center gap-1.5 shadow-sm transition-all border cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed",
+                            "h-9 px-3.5 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-all border cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed",
                             activeChapter.status === "completed"
-                              ? "bg-surface text-on-surface-variant border-outline-variant hover:bg-surface-container-low"
-                              : "bg-secondary text-on-secondary border-secondary/30 hover:opacity-90 ring-2 ring-secondary/20"
+                              ? "bg-surface text-on-surface border-outline-variant hover:bg-surface-container"
+                              : "bg-secondary text-on-secondary border-secondary hover:opacity-90"
                           )}
                         >
-                          <span className="material-symbols-outlined text-[18px]">
-                            {activeChapter.status === "completed" ? "undo" : "check_circle"}
-                          </span>
-                          {activeChapter.status === "completed" ? "Reopen Section" : "Mark Complete"}
+                          <HugeiconsIcon icon={activeChapter.status === "completed" ? "undo" : "checkmark-circle-02"} size={15} strokeWidth={2} />
+                          <span>{activeChapter.status === "completed" ? "Reopen Draft" : "Mark Complete"}</span>
                         </button>
                       )}
                     </div>
                   </div>
 
-                  <div className="mt-5 rounded-lg border border-outline-variant bg-surface p-3">
-                    <div className="flex flex-col 2xl:flex-row 2xl:items-center justify-between gap-3">
-                      {activeIsLeaf && (
-                        <div className="flex bg-surface-container-lowest rounded-lg p-1 border border-outline-variant w-fit">
+                  {activeIsLeaf && (
+                    <AiActionToolbar
+                      onGenerate={() => activeFlatSection && generateChapter(activeFlatSection.section.id, detailLevel)}
+                      onRefine={(instructions) => activeFlatSection && runChapterAction(activeFlatSection.section.id, "Rewrite Selection", activeChapter?.contentHtml, undefined, instructions)}
+                      onTranslate={() => activeChapter && translateChapter(activeChapter.sectionId, activeChapter.contentHtml)}
+                      isGenerating={currentSectionAiState === "generating"}
+                      isRefining={currentSectionAiState === "refining"}
+                      isTranslating={currentSectionAiState === "translating"}
+                      isBusy={!isAiIdle}
+                      canGenerate={true}
+                      canRefine={hasContent(activeChapter)}
+                      generateLabel={hasContent(activeChapter) ? "Regenerate with AI" : "Generate with AI"}
+                      refineLabel="Refine with AI"
+                      refinePlaceholder="Tell AI what to improve (e.g., expand technical methodologies, clarify phrasing)..."
+                      showTranslate={shouldShowTranslate}
+                      translateLabel={`Translate to ${getLanguageLabel(projectLanguage)}`}
+                      className="mb-0 mt-2"
+                      primaryAction={
+                        <div className="flex bg-surface-container rounded-lg p-1 border border-outline-variant/80 w-fit">
                           {(Object.keys(detailLabels) as DetailLevel[]).map((level) => (
                             <button
                               key={level}
                               onClick={() => setDetailLevel(level)}
                               className={cn(
-                                "px-3 py-1.5 rounded-md text-label-sm font-semibold transition-colors",
-                                detailLevel === level ? "bg-primary-container text-primary" : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low"
+                                "px-3 py-1 rounded-md text-xs font-bold transition-all cursor-pointer",
+                                detailLevel === level ? "bg-primary text-on-primary shadow-2xs" : "text-on-surface hover:text-primary hover:bg-surface"
                               )}
                             >
                               {detailLabels[level]}
                             </button>
                           ))}
                         </div>
-                      )}
-                      {activeIsLeaf && (
-                        <div className="flex flex-wrap items-center gap-2">
-                          <button
-                            onClick={() => activeFlatSection && generateChapter(activeFlatSection.section.id, detailLevel)}
-                            disabled={!activeFlatSection || !isAiIdle}
-                            className={aiButtonClass}
-                          >
-                            {currentSectionAiState === "generating" ? (
-                              <span className="inline-flex items-center gap-2">
-                                <span className="w-3.5 h-3.5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                                Generating...
-                              </span>
-                            ) : hasContent(activeChapter) ? (
-                              "Regenerate with AI"
-                            ) : (
-                              "Generate with AI"
-                            )}
-                          </button>
-                          <div className="relative" ref={refinePopoverRef}>
-                            <button
-                              onClick={() => setRefineOpen(true)}
-                              disabled={!activeChapter || !hasContent(activeChapter) || !isAiIdle}
-                              className={aiButtonClass}
-                            >
-                              {currentSectionAiState === "refining" ? (
-                                <span className="inline-flex items-center gap-2">
-                                  <span className="w-3.5 h-3.5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                                  Refining...
-                                </span>
-                              ) : (
-                                "Refine with AI"
-                              )}
-                            </button>
+                      }
+                    />
+                  )}
 
-                            {refineOpen && (
-                              <div
-                                className="absolute left-0 sm:left-auto sm:right-0 top-full z-50 mt-2 w-[min(24rem,calc(100vw-3rem))] rounded-xl border border-outline-variant bg-surface-bright p-4 shadow-2xl"
-                                style={{ animation: "report-builder-popover-in 150ms ease-out" }}
-                              >
-                                <textarea
-                                  value={refineInstructions}
-                                  onChange={(event) => setRefineInstructions(event.target.value)}
-                                  placeholder="Tell AI what you'd like to improve (optional)..."
-                                  rows={4}
-                                  className="w-full resize-none rounded-md border border-outline-variant bg-surface px-3 py-2 text-body-md text-on-surface outline-none transition-colors placeholder:text-on-surface-variant focus:border-primary focus:ring-1 focus:ring-primary"
-                                  autoFocus
-                                />
-                                <div className="mt-3 flex items-center justify-end gap-2">
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setRefineInstructions("");
-                                      setRefineOpen(false);
-                                    }}
-                                    className="px-3 py-1.5 rounded-md border border-outline-variant bg-surface text-label-sm font-medium text-on-surface hover:bg-surface-container transition-colors"
-                                  >
-                                    Cancel
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={handleRefineSubmit}
-                                    disabled={currentSectionAiState === "refining"}
-                                    className="px-3 py-1.5 rounded-md bg-primary text-label-sm font-semibold text-on-primary hover:opacity-90 transition-opacity disabled:opacity-50"
-                                  >
-                                    {currentSectionAiState === "refining" ? "Refining..." : "Refine"}
-                                  </button>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                          {shouldShowTranslate && (
-                            <button
-                              onClick={() => activeChapter && translateChapter(activeChapter.sectionId, activeChapter.contentHtml)}
-                              disabled={!activeChapter || !isAiIdle}
-                              className="px-5 py-2 rounded-md border border-secondary/30 bg-secondary-container/60 text-secondary text-label-md font-semibold hover:bg-secondary-container transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed disabled:grayscale"
-                            >
-                              {currentSectionAiState === "translating" ? (
-                                <span className="inline-flex items-center gap-2">
-                                  <span className="w-3.5 h-3.5 border-2 border-secondary border-t-transparent rounded-full animate-spin" />
-                                  Translating...
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center gap-2">
-                                  <HugeiconsIcon icon="globe-02" size={16} strokeWidth={1.75} />
-                                  Translate to {getLanguageLabel(projectLanguage)}
-                                </span>
-                              )}
-                            </button>
-                          )}
-                        </div>
-                      )}
+                  {activeIsLeaf && hasContent(activeChapter) && (
+                    <div className="mt-3 pt-3 border-t border-outline-variant/60">
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        <span className="text-xs font-bold text-on-surface uppercase tracking-wider flex items-center gap-1.5">
+                          <HugeiconsIcon icon="tune" size={14} strokeWidth={2} className="text-primary" />
+                          Quick Polish Actions
+                        </span>
+                        <span className="text-xs text-on-surface-variant font-mono">
+                          {selectedText.trim() ? "Applies to highlighted selection" : "Applies to entire section"}
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {ALL_AI_TOOLS.filter((t) => t.id !== "Improve Academic Style").map((tool) => (
+                          <button
+                            key={tool.id}
+                            onClick={() => activeChapter && runChapterAction(activeChapter.sectionId, tool.id, activeChapter.contentHtml, selectedText)}
+                            disabled={!activeChapter || !isAiIdle}
+                            className="h-8 px-2.5 rounded-lg border border-outline-variant/70 bg-surface-container-lowest hover:bg-surface-container text-xs font-semibold text-on-surface hover:text-primary transition-all cursor-pointer disabled:opacity-40 shadow-2xs flex items-center gap-1.5 group"
+                            title={selectedText ? `Apply ${tool.label} to selected passage` : tool.desc}
+                          >
+                            <HugeiconsIcon icon={tool.icon} size={14} strokeWidth={2} className={cn(tool.iconColor, "transition-transform group-hover:scale-110")} />
+                            <span>{tool.label}</span>
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                    {activeIsLeaf && hasContent(activeChapter) && (
-                      <div className="mt-3.5 pt-3 border-t border-outline-variant/60">
-                        <div className="flex items-center justify-between gap-2 mb-2">
-                          <span className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider flex items-center gap-1.5">
-                            <span className="material-symbols-outlined text-[14px] text-primary">auto_fix_high</span>
-                            Quick AI Actions
-                          </span>
-                          <span className="text-[11px] text-on-surface-variant font-mono">
-                            {selectedText.trim() ? "Applies to highlighted selection" : "Applies to full chapter"}
-                          </span>
+                  )}
+
+                  {activeIsLeaf && (
+                    <div className="mt-2.5 flex flex-wrap items-center justify-between gap-3 text-xs">
+                      {selectedText.trim() ? (
+                        <div className="flex items-center gap-2 px-2.5 py-1 rounded-md bg-primary/10 text-primary border border-primary/20 font-bold text-xs">
+                          <HugeiconsIcon icon="edit" size={14} strokeWidth={2} />
+                          <span>Selection active ({selectedText.trim().split(/\s+/).filter(Boolean).length} words): Quick actions will update only the selection.</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              window.getSelection()?.removeAllRanges();
+                              setSelectedText("");
+                            }}
+                            className="ml-1 underline font-bold cursor-pointer hover:opacity-80"
+                          >
+                            Clear
+                          </button>
                         </div>
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          {ALL_AI_TOOLS.filter((t) => t.id !== "Improve Academic Style").map((tool) => (
-                            <button
-                              key={tool.id}
-                              onClick={() => activeChapter && runChapterAction(activeChapter.sectionId, tool.id, activeChapter.contentHtml, selectedText)}
-                              disabled={!activeChapter || !isAiIdle}
-                              className={cn(
-                                "h-8 px-2.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed",
-                                "bg-surface-container-low/70 hover:bg-primary-container/40 text-on-surface hover:text-primary border-outline-variant/70 hover:border-primary/30"
-                              )}
-                              title={selectedText ? `Apply ${tool.label} to selected passage` : tool.desc}
-                            >
-                              <span className="material-symbols-outlined text-[16px] text-primary shrink-0">{tool.icon}</span>
-                              <span>{tool.label}</span>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    {activeIsLeaf && (
-                      <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-body-sm">
-                        {selectedText.trim() ? (
-                          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary-container text-primary border border-primary/20 text-xs font-semibold">
-                            <span className="material-symbols-outlined text-[16px]">auto_awesome</span>
-                            <span>Selection Active ({selectedText.trim().split(/\s+/).filter(Boolean).length} words): AI tools will only update the highlighted passage.</span>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                window.getSelection()?.removeAllRanges();
-                                setSelectedText("");
-                              }}
-                              className="ml-2 underline text-primary hover:opacity-80 cursor-pointer font-bold"
-                            >
-                              Clear
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-1.5 text-xs text-on-surface-variant">
-                            <span className="material-symbols-outlined text-[16px] text-primary">lightbulb</span>
-                            <span>Pro-tip: Highlight any text in the editor below to rewrite or improve only that specific selection with AI.</span>
-                          </div>
-                        )}
-                        <span className="text-xs text-on-surface-variant font-mono">{countWords(activeChapter?.contentHtml || "")} words</span>
-                      </div>
-                    )}
-                    {activeIsOutdated && (
-                      <div className="mt-3 rounded-md border border-error/20 bg-error-container/40 px-3 py-2 text-body-sm text-on-error-container">
-                        Earlier project data changed after this chapter was generated. Regenerate or improve it before finalizing.
-                      </div>
-                    )}
-                    {finalReport?.contentMarkdown && (
-                      <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-md border border-secondary/20 bg-secondary-container/20 px-3 py-2">
-                        <span className="text-body-sm text-on-surface">Complete report is ready.</span>
-                        <button
-                          onClick={() => handleCopy(finalReport.contentMarkdown || "", "final")}
-                          className="h-8 px-3 bg-surface text-primary border border-primary/20 rounded-md text-label-sm font-semibold hover:bg-primary/10"
-                        >
-                          <span className="material-symbols-outlined text-[16px] align-[-3px] mr-1">{copied === "final" ? "check" : "content_copy"}</span>
-                          {copied === "final" ? "Copied" : "Copy Markdown"}
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                      ) : (
+                        <span className="text-xs text-on-surface-variant font-medium">Highlight any passage in the editor to refine or expand only that specific selection.</span>
+                      )}
+                      <span className="text-xs font-mono font-bold text-on-surface ml-auto">{countWords(activeChapter?.contentHtml || "")} words</span>
+                    </div>
+                  )}
                 </div>
 
-                <div className="flex items-center justify-between gap-3 px-4 sm:px-5 border-b border-outline-variant">
-                  <div className="flex gap-5 overflow-x-auto no-scrollbar">
+                <div className="flex items-center justify-between gap-3 px-4 sm:px-5 border-b border-outline-variant/80 bg-surface">
+                  <div className="flex gap-4 overflow-x-auto no-scrollbar">
                     {([
-                      ["rich", "Rich Text"],
-                      ["markdown", "Markdown"],
-                      ["latex", "LaTeX"],
+                      ["rich", "Rich Editor"],
+                      ["markdown", "Markdown Source"],
+                      ["latex", "LaTeX Source"],
                     ] as [StudioTab, string][]).map(([key, label]) => (
                       <button
                         key={key}
                         onClick={() => setActiveTab(key)}
                         className={cn(
-                          "py-3 text-label-md font-semibold border-b-2 transition-colors whitespace-nowrap",
+                          "py-2.5 text-xs font-bold border-b-2 transition-all cursor-pointer whitespace-nowrap",
                           activeTab === key ? "border-primary text-primary" : "border-transparent text-on-surface-variant hover:text-on-surface"
                         )}
                       >
@@ -642,15 +688,15 @@ export default function ReportBuilder() {
                   {activeTab !== "rich" && (
                     <button
                       onClick={() => handleCopy(activeTab === "markdown" ? currentMarkdown : currentLatex, activeTab)}
-                      className="h-8 px-3 font-label-sm text-primary hover:bg-primary/10 rounded-md transition-colors flex items-center gap-1.5 shrink-0"
+                      className="h-7 px-2.5 rounded-md border border-outline-variant/80 bg-surface hover:bg-surface-container text-xs font-bold text-primary flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
                     >
-                      <span className="material-symbols-outlined text-[16px]">{copied === activeTab ? "check" : "content_copy"}</span>
-                      {copied === activeTab ? "Copied" : "Copy"}
+                      <HugeiconsIcon icon={copied === activeTab ? "checkmark-circle-02" : "copy"} size={13} strokeWidth={2} />
+                      <span>{copied === activeTab ? "Copied" : "Copy Code"}</span>
                     </button>
                   )}
                 </div>
 
-                <div className="flex-1 min-h-0 p-4 sm:p-5 overflow-y-auto bg-surface">
+                <div className="flex-1 min-h-0 p-4 sm:p-5 overflow-y-auto bg-surface-container-lowest">
                   {!hasContent(activeChapter) ? (
                     <EmptyChapter
                       detailLevel={detailLevel}
@@ -703,108 +749,168 @@ function SectionNavItem({
   isGenerating?: boolean;
   onClick: () => void;
 }) {
-  if (!isLeaf) {
-    if (collapsed) {
-      return (
-        <div
-          className="w-full flex items-center justify-center py-1.5 text-primary opacity-80 my-1"
-          title={`Chapter ${item.number}: ${item.section.title}`}
-        >
-          <span className="material-symbols-outlined text-[18px]">folder</span>
-        </div>
-      );
-    }
-    return (
-      <div
-        className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-left border border-transparent bg-surface-container-lowest/60 text-on-surface opacity-85 select-none my-0.5"
-        style={{ paddingLeft: `${12 + (item.level - 1) * 18}px` }}
-      >
-        <span className="material-symbols-outlined text-[18px] shrink-0 text-primary">folder</span>
-        <span className="font-label-sm text-primary shrink-0 w-10">{item.number}</span>
-        <span className="text-body-sm font-semibold truncate text-on-surface">{item.section.title}</span>
-      </div>
-    );
-  }
-
   const generated = hasContent(chapter);
-  const icon = isGenerating
-    ? "progress_activity"
-    : outdated
-    ? "warning"
-    : chapter?.status === "completed"
-    ? "check_circle"
-    : generated
-    ? "edit_document"
-    : "radio_button_unchecked";
+  const isCompleted = chapter?.status === "completed";
+  const wordCount = countWords(chapter?.contentHtml || "");
 
-  const iconClass = isGenerating
-    ? "text-primary animate-spin"
+  // Status configuration: icon, color, badge bg
+  const statusConfig = isGenerating
+    ? {
+        icon: "sync-alt",
+        iconClass: "text-primary animate-spin",
+        badgeClass: "bg-primary/10 text-primary border-primary/25",
+        label: "Generating draft...",
+      }
     : outdated
-    ? "text-error"
-    : chapter?.status === "completed"
-    ? "text-secondary"
-    : generated
-    ? "text-primary"
-    : "text-outline";
+      ? {
+          icon: "alert-circle",
+          iconClass: "text-amber-600 dark:text-amber-400",
+          badgeClass: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30",
+          label: "Outdated",
+        }
+      : isCompleted
+        ? {
+            icon: "checkmark-circle-02",
+            iconClass: "text-emerald-600 dark:text-emerald-400",
+            badgeClass: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
+            label: "Completed",
+          }
+        : generated
+          ? {
+              icon: "edit",
+              iconClass: "text-blue-600 dark:text-blue-400",
+              badgeClass: "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30",
+              label: "Drafted",
+            }
+          : {
+              icon: "document-validation",
+              iconClass: "text-on-surface-variant/70",
+              badgeClass: "bg-surface-container text-on-surface-variant/70 border-outline-variant/60",
+              label: "Not started",
+            };
 
   if (collapsed) {
     return (
       <button
+        type="button"
         onClick={onClick}
         className={cn(
-          "w-full flex flex-col items-center justify-center p-2 rounded-lg transition-colors border cursor-pointer my-1 group",
-          isGenerating && "ring-2 ring-primary/30 bg-primary-container/20",
-          active ? "bg-primary-container text-primary border-primary/30 shadow-xs" : "text-on-surface-variant border-transparent hover:bg-surface-container-low hover:text-on-surface"
+          "w-full flex flex-col items-center justify-center p-2 rounded-xl transition-all border cursor-pointer my-1 group shadow-2xs",
+          isGenerating && "ring-2 ring-primary/30 bg-primary/10",
+          active
+            ? "bg-primary text-on-primary border-primary shadow-xs"
+            : "text-on-surface-variant border-transparent hover:bg-surface-container hover:text-on-surface"
         )}
-        title={`${item.number} ${item.section.title} ${isGenerating ? "(Generating with AI...)" : ""}`}
+        title={`${item.number} ${item.section.title} (${statusConfig.label})`}
       >
-        <span className={cn("material-symbols-outlined text-[18px]", iconClass)}>{icon}</span>
-        <span className="text-[10px] font-mono font-bold mt-0.5 text-primary">{item.number}</span>
+        <div
+          className={cn(
+            "w-6 h-6 rounded-lg flex items-center justify-center border transition-all",
+            active ? "bg-white/20 text-white border-white/30" : statusConfig.badgeClass
+          )}
+        >
+          <HugeiconsIcon
+            icon={statusConfig.icon}
+            size={14}
+            strokeWidth={2}
+            className={active ? "text-white" : statusConfig.iconClass}
+          />
+        </div>
+        <span className={cn("text-[9px] font-mono font-bold mt-1", active ? "text-on-primary" : "text-primary")}>
+          {item.number}
+        </span>
       </button>
     );
   }
 
   return (
-    <button
-      onClick={onClick}
+    <div
       className={cn(
-        "w-full flex items-center gap-2 rounded-lg px-3 py-2 text-left transition-colors border cursor-pointer group",
-        isGenerating && "bg-primary-container/30 border-primary/30 text-primary",
-        active ? "bg-primary-container/60 text-primary border-primary/20 font-medium" : "text-on-surface-variant border-transparent hover:bg-surface-container-low hover:text-on-surface"
+        "relative flex items-center group/navitem my-0.5",
+        item.level > 1 && "ml-3 pl-2.5 border-l-2 border-outline-variant/40 hover:border-primary/40 transition-colors"
       )}
-      style={{ paddingLeft: `${12 + (item.level - 1) * 18}px` }}
     >
-      <span className={cn("material-symbols-outlined text-[18px] shrink-0", iconClass)}>{icon}</span>
-      <span className="font-label-sm text-primary shrink-0 w-10">{item.number}</span>
-      <span className={cn("text-body-sm truncate flex-1", active && "font-semibold")}>{item.section.title}</span>
-      {isGenerating && (
-        <span className="w-2 h-2 rounded-full bg-primary animate-ping shrink-0 mr-1" title="Generating in background" />
-      )}
-    </button>
+      <button
+        type="button"
+        onClick={onClick}
+        className={cn(
+          "w-full flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-all border cursor-pointer group shadow-2xs min-w-0",
+          isGenerating && "bg-primary/10 border-primary/30 text-primary",
+          active
+            ? "bg-primary text-on-primary border-primary font-bold shadow-xs ring-2 ring-primary/25"
+            : "text-on-surface border-outline-variant/50 bg-surface-container-lowest hover:bg-surface-container hover:border-outline-variant/80"
+        )}
+      >
+        {/* Status Icon Badge */}
+        <div
+          className={cn(
+            "w-6 h-6 rounded-lg flex items-center justify-center border shrink-0 transition-all shadow-2xs",
+            active ? "bg-white/20 text-white border-white/30" : statusConfig.badgeClass
+          )}
+          title={statusConfig.label}
+        >
+          <HugeiconsIcon
+            icon={statusConfig.icon}
+            size={13}
+            strokeWidth={2.2}
+            className={active ? "text-white" : statusConfig.iconClass}
+          />
+        </div>
+
+        {/* Section Number */}
+        <span
+          className={cn(
+            "font-mono text-xs font-bold shrink-0",
+            active ? "text-on-primary" : "text-primary/90"
+          )}
+        >
+          {item.number}
+        </span>
+
+        {/* Section Title */}
+        <span
+          className={cn(
+            "text-xs truncate flex-1",
+            active ? "text-on-primary font-bold" : "text-on-surface font-medium group-hover:text-primary transition-colors"
+          )}
+        >
+          {item.section.title}
+        </span>
+
+        {/* Word count or active ping */}
+        {isGenerating ? (
+          <span className="w-2 h-2 rounded-full bg-primary animate-ping shrink-0 ml-1" title="Generating draft..." />
+        ) : generated && !active ? (
+          <span className="text-[10px] font-mono text-on-surface-variant/70 shrink-0 hidden sm:inline-block">
+            {wordCount}w
+          </span>
+        ) : null}
+      </button>
+    </div>
   );
 }
 
 function ChapterStatusBadge({ chapter, outdated, isLeaf }: { chapter?: ReportChapter; outdated: boolean; isLeaf: boolean }) {
   if (!isLeaf) {
-    return <Badge icon="folder" label="Container" className="bg-surface text-on-surface-variant border-outline-variant" />;
+    return <Badge icon="layers" label="Chapter Container" className="bg-primary/10 text-primary border-primary/25" />;
   }
   if (outdated) {
-    return <Badge icon="warning" label="Outdated" className="bg-error-container/60 text-on-error-container border-error/20" />;
+    return <Badge icon="alert-circle" label="Sync Outdated" className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30" />;
   }
   if (chapter?.status === "completed") {
-    return <Badge icon="check_circle" label="Completed" className="bg-secondary-container/40 text-secondary border-secondary/20" />;
+    return <Badge icon="checkmark-circle-02" label="Completed" className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30" />;
   }
   if (hasContent(chapter)) {
-    return <Badge icon="edit_document" label="In Progress" className="bg-primary-container/30 text-primary border-primary/20" />;
+    return <Badge icon="edit" label="Draft in Progress" className="bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30" />;
   }
-  return <Badge icon="radio_button_unchecked" label="Not Started" className="bg-surface text-on-surface-variant border-outline-variant" />;
+  return <Badge icon="document-validation" label="Not Drafted" className="bg-surface-container text-on-surface-variant/80 border-outline-variant/70" />;
 }
 
 function Badge({ icon, label, className }: { icon: string; label: string; className: string }) {
   return (
-    <span className={cn("inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-label-sm font-bold uppercase tracking-wider whitespace-nowrap", className)}>
-      <span className="material-symbols-outlined text-[15px]">{icon}</span>
-      {label}
+    <span className={cn("inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-[11px] font-bold uppercase tracking-wider whitespace-nowrap shadow-2xs", className)}>
+      <HugeiconsIcon icon={icon} size={13} strokeWidth={2} />
+      <span>{label}</span>
     </span>
   );
 }
@@ -821,23 +927,25 @@ function EmptyChapter({
   onGenerate: () => void;
 }) {
   return (
-    <div className="w-full min-h-[430px] flex flex-col items-center justify-center text-center border-2 border-dashed border-outline-variant rounded-xl bg-surface-container-lowest p-6">
-      <div className="w-16 h-16 rounded-xl bg-surface-container border border-outline-variant flex items-center justify-center mb-4">
-        <span className="material-symbols-outlined text-[30px] text-primary">edit_document</span>
+    <div className="flex-1 flex flex-col items-center justify-center p-8 text-center min-h-[460px]">
+      <div className="w-14 h-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-4 shadow-xs">
+        <HugeiconsIcon icon="edit" size={28} strokeWidth={1.8} />
       </div>
-      <h3 className="font-headline-sm text-headline-sm text-on-surface mb-2">No draft for this section yet</h3>
-      <p className="font-body-md text-body-md text-on-surface-variant max-w-[440px] mb-6">
-        Generate a first academic draft from the report structure and all completed Smart PFE artifacts.
+      <h3 className="text-lg font-bold text-on-surface mb-1">No draft generated for this section yet</h3>
+      <p className="text-xs text-on-surface-variant max-w-sm mb-6 leading-relaxed">
+        Generate your first academic draft with AI using the project context and all completed workflow steps.
       </p>
-      <button onClick={onGenerate} disabled={disabled} className="h-10 px-6 bg-primary text-on-primary font-label-md rounded-md flex items-center gap-2 hover:bg-primary/90 transition-colors shadow-sm disabled:opacity-50">
-        <span className="material-symbols-outlined text-[18px]">auto_awesome</span>
-        {loading ? "Generating..." : `Generate ${detailLabels[detailLevel]} Draft`}
+      <button
+        onClick={onGenerate}
+        disabled={disabled}
+        className="h-10 px-5 bg-primary text-on-primary text-xs font-bold rounded-lg flex items-center gap-2 hover:bg-primary/90 transition-all shadow-2xs cursor-pointer disabled:opacity-50"
+      >
+        <HugeiconsIcon icon={loading ? "sync-alt" : "edit"} size={15} strokeWidth={2} className={loading ? "animate-spin" : undefined} />
+        <span>{loading ? "Generating Draft..." : `Generate ${detailLabels[detailLevel]} Draft`}</span>
       </button>
     </div>
   );
 }
-
-
 
 function RichChapterEditor({
   content,
@@ -909,7 +1017,6 @@ function RichChapterEditor({
 
   useEffect(() => {
     const handleSelectionUpdate = () => {
-      // If user is actively typing in custom prompt input/textarea in the toolbar, don't clear
       if (isToolbarInteractingRef.current) {
         return;
       }
@@ -922,7 +1029,6 @@ function RichChapterEditor({
         return;
       }
 
-      // Ensure selection is inside this editor
       if (editorRef.current && (editorRef.current.contains(sel.anchorNode) || editorRef.current.contains(sel.focusNode))) {
         const text = sel.toString();
         if (text.trim()) {
@@ -935,7 +1041,6 @@ function RichChapterEditor({
           setFloatingPos(null);
         }
       } else {
-        // Selection is outside editor
         setCurrentSelectedText("");
         onSelectionChange("");
         setFloatingPos(null);
@@ -954,9 +1059,9 @@ function RichChapterEditor({
   }, [calculatePos, onSelectionChange]);
 
   return (
-    <div ref={containerRef} className="relative rounded-xl border border-outline-variant overflow-visible bg-surface shadow-sm transition-all">
+    <div ref={containerRef} className="relative rounded-2xl border border-outline-variant/80 overflow-visible bg-surface shadow-2xs transition-all">
       {aiState !== "idle" && (
-        <div className="absolute top-0 inset-x-0 z-30 overflow-hidden rounded-t-xl">
+        <div className="absolute top-0 inset-x-0 z-30 overflow-hidden rounded-t-2xl">
           <div className="h-1 w-full bg-primary/15 overflow-hidden">
             <div
               className="h-full bg-primary rounded-full"
@@ -966,11 +1071,11 @@ function RichChapterEditor({
               }}
             />
           </div>
-          <div className="bg-primary-container/80 backdrop-blur-sm border-b border-primary/20 px-4 py-2 flex items-center justify-between text-xs font-semibold text-primary">
+          <div className="bg-primary-container/90 backdrop-blur-sm border-b border-primary/20 px-4 py-2 flex items-center justify-between text-xs font-bold text-primary">
             <span className="flex items-center gap-2">
               <span className="w-3.5 h-3.5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
               {aiState === "generating"
-                ? "AI is generating chapter draft..."
+                ? "AI is drafting chapter section..."
                 : aiState === "refining"
                   ? "AI is refining content..."
                   : aiState === "translating"
@@ -978,8 +1083,8 @@ function RichChapterEditor({
                     : "AI is rewriting selection..."}
             </span>
             <span className="text-[11px] font-normal text-on-surface-variant flex items-center gap-1">
-              <span className="material-symbols-outlined text-[14px] text-primary">info</span>
-              Runs in background • You can freely switch sections or pages
+              <HugeiconsIcon icon="info" size={13} strokeWidth={2} className="text-primary" />
+              Background Task Active
             </span>
           </div>
         </div>
@@ -1012,17 +1117,28 @@ function RichChapterEditor({
         />
       )}
 
-      <div className="flex flex-wrap gap-1 p-2 border-b border-outline-variant bg-surface-container-lowest">
-        <ToolbarButton icon="format_bold" label="Bold" onClick={() => exec("bold")} disabled={disabled} />
-        <ToolbarButton icon="format_italic" label="Italic" onClick={() => exec("italic")} disabled={disabled} />
-        <ToolbarButton icon="title" label="Heading 2" onClick={() => exec("formatBlock", "h2")} disabled={disabled} />
-        <ToolbarButton icon="subtitles" label="Heading 3" onClick={() => exec("formatBlock", "h3")} disabled={disabled} />
-        <ToolbarButton icon="format_list_bulleted" label="Bullet list" onClick={() => exec("insertUnorderedList")} disabled={disabled} />
-        <ToolbarButton icon="format_list_numbered" label="Numbered list" onClick={() => exec("insertOrderedList")} disabled={disabled} />
-        <ToolbarButton icon="code" label="Code block" onClick={() => insertHtml("<pre><code>// Code snippet</code></pre>")} disabled={disabled} />
-        <ToolbarButton icon="table" label="Table" onClick={() => insertHtml("<table><caption>Table: Caption</caption><tbody><tr><th>Element</th><th>Description</th></tr><tr><td>...</td><td>...</td></tr></tbody></table>")} disabled={disabled} />
-        <ToolbarButton icon="image" label="Figure" onClick={() => insertHtml('<figure data-placeholder="true"><div>[Figure placeholder]</div><figcaption>Figure: Caption</figcaption></figure>')} disabled={disabled} />
-        <ToolbarButton icon="vertical_split" label="Page break" onClick={() => insertHtml('<hr data-page-break="true" />')} disabled={disabled} />
+      <div className="flex flex-wrap gap-1 p-2 border-b border-outline-variant/80 bg-surface">
+        <ToolbarButton label="Bold" onClick={() => exec("bold")} disabled={disabled}>
+          <span className="font-bold text-xs">B</span>
+        </ToolbarButton>
+        <ToolbarButton label="Italic" onClick={() => exec("italic")} disabled={disabled}>
+          <span className="italic text-xs font-serif">I</span>
+        </ToolbarButton>
+        <ToolbarButton label="Heading 2" onClick={() => exec("formatBlock", "h2")} disabled={disabled}>
+          <span className="font-bold text-xs">H2</span>
+        </ToolbarButton>
+        <ToolbarButton label="Heading 3" onClick={() => exec("formatBlock", "h3")} disabled={disabled}>
+          <span className="font-bold text-xs">H3</span>
+        </ToolbarButton>
+        <ToolbarButton label="Bullet list" onClick={() => exec("insertUnorderedList")} disabled={disabled}>
+          <HugeiconsIcon icon="list-ordered" size={15} strokeWidth={2} />
+        </ToolbarButton>
+        <ToolbarButton label="Code block" onClick={() => insertHtml("<pre><code>// Code snippet</code></pre>")} disabled={disabled}>
+          <HugeiconsIcon icon="code" size={15} strokeWidth={2} />
+        </ToolbarButton>
+        <ToolbarButton label="Table" onClick={() => insertHtml("<table><caption>Table: Caption</caption><tbody><tr><th>Element</th><th>Description</th></tr><tr><td>...</td><td>...</td></tr></tbody></table>")} disabled={disabled}>
+          <HugeiconsIcon icon="layers" size={15} strokeWidth={2} />
+        </ToolbarButton>
       </div>
 
       <div
@@ -1030,7 +1146,7 @@ function RichChapterEditor({
         contentEditable={!disabled}
         suppressContentEditableWarning
         onInput={(event) => onChange(event.currentTarget.innerHTML)}
-        className="report-rich-editor min-h-[520px] px-6 py-7 outline-none text-on-surface leading-relaxed bg-surface focus:ring-4 focus:ring-primary/10 overflow-x-auto"
+        className="report-rich-editor min-h-[520px] px-6 py-7 outline-none text-on-surface leading-relaxed bg-surface focus:ring-2 focus:ring-primary/20 overflow-x-auto rounded-b-2xl"
       />
     </div>
   );
@@ -1144,10 +1260,10 @@ function FloatingSelectionAiBar({
               type="button"
               onClick={() => onAction(tool.id)}
               disabled={disabled}
-              className="h-8 px-2.5 rounded-lg text-xs font-semibold text-on-surface hover:text-primary hover:bg-primary-container/30 flex items-center gap-1.5 transition-colors disabled:opacity-40 cursor-pointer shrink-0"
+              className="h-8 px-2.5 rounded-lg border border-outline-variant/70 bg-surface hover:bg-surface-container text-xs font-semibold text-on-surface hover:text-primary transition-all disabled:opacity-40 cursor-pointer shrink-0 flex items-center gap-1.5 shadow-2xs group"
               title={tool.desc}
             >
-              <span className="material-symbols-outlined text-[16px] text-primary">{tool.icon}</span>
+              <HugeiconsIcon icon={tool.icon} size={14} strokeWidth={2} className={cn(tool.iconColor, "transition-transform group-hover:scale-110")} />
               <span>{tool.label}</span>
             </button>
           ))}
@@ -1161,12 +1277,12 @@ function FloatingSelectionAiBar({
             }}
             disabled={disabled}
             className={cn(
-              "h-8 px-2 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors disabled:opacity-40 cursor-pointer shrink-0",
-              moreOpen ? "bg-primary-container text-primary" : "text-on-surface hover:text-primary hover:bg-primary-container/30"
+              "h-8 px-2 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors disabled:opacity-40 cursor-pointer shrink-0",
+              moreOpen ? "bg-primary/10 text-primary border border-primary/20" : "text-on-surface hover:text-primary hover:bg-surface-container border border-outline-variant/60"
             )}
             title="More AI tools & customize toolbar"
           >
-            <span className="material-symbols-outlined text-[17px]">add</span>
+            <HugeiconsIcon icon="plus" size={15} strokeWidth={2} />
           </button>
 
           {/* Custom Instruct Button */}
@@ -1178,12 +1294,12 @@ function FloatingSelectionAiBar({
             }}
             disabled={disabled}
             className={cn(
-              "h-8 px-2.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors disabled:opacity-40 cursor-pointer shrink-0",
-              customOpen ? "bg-primary text-on-primary shadow-sm" : "text-on-surface hover:text-primary hover:bg-primary-container/30"
+              "h-8 px-2.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors disabled:opacity-40 cursor-pointer shrink-0",
+              customOpen ? "bg-primary text-on-primary shadow-2xs" : "text-on-surface hover:text-primary hover:bg-surface-container border border-outline-variant/60"
             )}
             title="Give specific custom instructions for this selection"
           >
-            <span className="material-symbols-outlined text-[16px]">edit</span>
+            <HugeiconsIcon icon="edit" size={14} strokeWidth={2} />
             <span>Instruct</span>
           </button>
 
@@ -1194,16 +1310,16 @@ function FloatingSelectionAiBar({
             className="w-7 h-7 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container flex items-center justify-center transition-colors ml-auto cursor-pointer shrink-0"
             title="Dismiss selection"
           >
-            <span className="material-symbols-outlined text-[16px]">close</span>
+            <HugeiconsIcon icon="close" size={14} strokeWidth={2} />
           </button>
         </div>
 
         {/* More Tools & Pin Manager Popover */}
         {moreOpen && (
           <div className="mt-2 pt-2 border-t border-outline-variant max-h-56 overflow-y-auto divide-y divide-outline-variant/40 animate-in fade-in slide-in-from-top-1 duration-150">
-            <div className="px-2 py-1 text-[11px] font-bold text-on-surface-variant uppercase tracking-wider flex items-center justify-between">
+            <div className="px-2 py-1 text-[11px] font-bold text-on-surface uppercase tracking-wider flex items-center justify-between">
               <span>All AI Selection Tools</span>
-              <span className="text-[10px] lowercase font-normal opacity-80">Click tool to run • Pin to toolbar</span>
+              <span className="text-[10px] lowercase font-normal text-on-surface-variant">Click tool to run • Pin to toolbar</span>
             </div>
             {ALL_AI_TOOLS.map((tool) => {
               const isPinned = pinnedToolIds.includes(tool.id);
@@ -1214,12 +1330,14 @@ function FloatingSelectionAiBar({
                     onAction(tool.id);
                     setMoreOpen(false);
                   }}
-                  className="px-2.5 py-1.5 flex items-center justify-between gap-3 hover:bg-primary-container/20 cursor-pointer rounded-lg transition-colors group"
+                  className="px-2.5 py-1.5 flex items-center justify-between gap-3 hover:bg-surface-container cursor-pointer rounded-lg transition-colors group"
                 >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="material-symbols-outlined text-[16px] text-primary shrink-0">{tool.icon}</span>
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-6 h-6 rounded-md bg-surface-container border border-outline-variant/60 flex items-center justify-center shrink-0">
+                      <HugeiconsIcon icon={tool.icon} size={13} strokeWidth={2} className={tool.iconColor} />
+                    </div>
                     <div className="min-w-0">
-                      <span className="text-xs font-semibold text-on-surface block truncate group-hover:text-primary">{tool.label}</span>
+                      <span className="text-xs font-bold text-on-surface block truncate group-hover:text-primary transition-colors">{tool.label}</span>
                       <span className="text-[11px] text-on-surface-variant block truncate">{tool.desc}</span>
                     </div>
                   </div>
@@ -1229,14 +1347,12 @@ function FloatingSelectionAiBar({
                     className={cn(
                       "p-1 rounded-md text-xs transition-colors shrink-0 cursor-pointer",
                       isPinned
-                        ? "text-primary bg-primary-container/60 hover:bg-primary-container"
+                        ? "text-primary bg-primary/15 hover:bg-primary/25"
                         : "text-on-surface-variant opacity-40 group-hover:opacity-100 hover:text-primary hover:bg-surface-container"
                     )}
                     title={isPinned ? "Unpin from toolbar" : "Pin to toolbar"}
                   >
-                    <span className="material-symbols-outlined text-[16px]">
-                      {isPinned ? "push_pin" : "bookmark_add"}
-                    </span>
+                    <HugeiconsIcon icon={isPinned ? "checkmark-circle-02" : "plus"} size={14} strokeWidth={2} />
                   </button>
                 </div>
               );
@@ -1306,35 +1422,26 @@ function FloatingSelectionAiBar({
   );
 }
 
-function ToolbarButton({ icon, label, onClick, disabled }: { icon: string; label: string; onClick: () => void; disabled: boolean }) {
+function ToolbarButton({ label, onClick, disabled, children }: { label: string; onClick: () => void; disabled: boolean; children: React.ReactNode }) {
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
       title={label}
-      className="w-8 h-8 rounded-md flex items-center justify-center text-on-surface-variant hover:text-primary hover:bg-primary/10 transition-colors disabled:opacity-40"
+      className="h-8 min-w-[32px] px-2 rounded-lg flex items-center justify-center text-on-surface hover:text-primary hover:bg-surface-container transition-all disabled:opacity-40 cursor-pointer shadow-2xs border border-outline-variant/60 bg-surface"
     >
-      <span className="material-symbols-outlined text-[18px]">{icon}</span>
+      {children}
     </button>
   );
 }
 
 function SourcePreview({ value, dark = false }: { value: string; dark?: boolean }) {
   return (
-    <div className={cn("rounded-xl p-4 min-h-[520px] overflow-auto border", dark ? "bg-[#1f2937] border-[#374151]" : "bg-surface-container-lowest border-outline-variant")}>
-      <pre className={cn("font-mono text-[13px] leading-relaxed whitespace-pre-wrap", dark ? "text-[#f9fafb]" : "text-on-surface")}>
+    <div className={cn("rounded-2xl p-5 min-h-[520px] overflow-auto border shadow-2xs", dark ? "bg-[#1e293b] border-[#334155]" : "bg-surface border-outline-variant/80")}>
+      <pre className={cn("font-mono text-xs leading-relaxed whitespace-pre-wrap", dark ? "text-[#f8fafc]" : "text-on-surface")}>
         {value || "No source generated yet."}
       </pre>
-    </div>
-  );
-}
-
-function Metric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-md bg-surface-container-lowest border border-outline-variant px-3 py-2 text-body-sm">
-      <span className="text-on-surface-variant">{label}</span>
-      <span className="block font-label-md text-on-surface mt-0.5">{value}</span>
     </div>
   );
 }
@@ -1391,7 +1498,7 @@ function ReportOverviewDashboard({
   onSelectSection: (sectionId: string) => void;
   sourceFingerprint: string;
 }) {
-  const [expandedChapters, setExpandedChapters] = useState<Record<string, boolean>>({});
+  const [collapsedOverviewChapters, setCollapsedOverviewChapters] = useState<Record<string, boolean>>({});
 
   const nextPendingSection =
     leafSections.find((item) => !hasContent(getChapter(item.section.id))) ||
@@ -1401,28 +1508,28 @@ function ReportOverviewDashboard({
   const topLevelSections = useMemo(() => flatSections.filter((item) => item.level === 1), [flatSections]);
 
   const toggleChapter = (chapterId: string) => {
-    setExpandedChapters((prev) => ({
+    setCollapsedOverviewChapters((prev) => ({
       ...prev,
       [chapterId]: !prev[chapterId],
     }));
   };
 
   return (
-    <div className="w-full flex-1 flex flex-col gap-6 p-6 sm:p-8 overflow-y-auto bg-surface">
-      {/* Executive Top Header */}
+    <div className="w-full flex-1 flex flex-col gap-6 p-6 sm:p-8 overflow-y-auto bg-surface-container-lowest">
+      {/* Top Banner Overview */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-6 border-b border-outline-variant/60">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-            <span className="px-2.5 py-1 rounded-md text-xs font-bold tracking-wider uppercase bg-primary-container text-primary border border-primary/20">
-              Report Studio Overview
+            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wider uppercase bg-primary/10 text-primary border border-primary/20">
+              Thesis Compilation Hub
             </span>
-            <span className="text-sm text-on-surface-variant font-medium">
-              {topLevelSections.length} Chapters • {leafSections.length} Total Subsections
+            <span className="text-xs text-on-surface font-semibold">
+              {topLevelSections.length} Chapters • {leafSections.length} Subsections
             </span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-on-surface">
+          <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-on-surface">
             Academic Report Progress
-          </h1>
+          </h2>
         </div>
 
         {/* Action Controls */}
@@ -1430,104 +1537,114 @@ function ReportOverviewDashboard({
           {nextPendingSection && (
             <button
               onClick={() => onSelectSection(nextPendingSection.section.id)}
-              className="h-10 px-4 rounded-lg bg-primary text-on-primary font-semibold text-sm hover:bg-primary/90 transition-all shadow-xs flex items-center gap-2 cursor-pointer whitespace-nowrap"
+              className="h-9 px-3.5 rounded-lg bg-primary text-on-primary font-bold text-xs hover:bg-primary/90 transition-all shadow-2xs flex items-center gap-2 cursor-pointer whitespace-nowrap"
             >
-              <span className="material-symbols-outlined text-[18px]">edit_note</span>
-              <span>Resume at {nextPendingSection.number}</span>
+              <HugeiconsIcon icon="edit" size={14} strokeWidth={2} />
+              <span>Resume Drafting ({nextPendingSection.number})</span>
             </button>
           )}
           <button
             onClick={onGenerateFinal}
             disabled={!allGenerated || aiState !== "idle"}
             className={cn(
-              "h-10 px-4 rounded-lg font-semibold text-sm flex items-center gap-2 transition-all shadow-xs cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap",
+              "h-9 px-3.5 rounded-lg font-bold text-xs flex items-center gap-2 transition-all shadow-2xs cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap",
               allGenerated
                 ? "bg-secondary text-on-secondary hover:bg-secondary/90"
-                : "bg-surface-container-high text-on-surface-variant border border-outline-variant"
+                : "bg-surface text-on-surface border border-outline-variant"
             )}
           >
-            <span className="material-symbols-outlined text-[18px]">
-              {aiState === "finalizing" ? "sync" : "auto_stories"}
-            </span>
+            <HugeiconsIcon icon={aiState === "finalizing" ? "sync-alt" : "book-open"} size={14} strokeWidth={2} className={aiState === "finalizing" ? "animate-spin" : undefined} />
             <span>{aiState === "finalizing" ? "Compiling..." : "Compile Complete Report"}</span>
           </button>
         </div>
       </div>
 
-      {/* KPI Metrics Strip */}
+      {/* KPI Metrics Ribbon */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Metric 1: Drafts */}
-        <div className="p-4 sm:p-5 rounded-xl bg-surface-container-lowest border border-outline-variant shadow-xs flex flex-col justify-between">
-          <div className="flex items-center justify-between text-on-surface-variant mb-2">
-            <span className="text-label-xs font-semibold uppercase tracking-wider text-on-surface-variant">Sections Drafted</span>
-            <span className="material-symbols-outlined text-[20px] text-primary">auto_awesome</span>
+        <div className="p-4 rounded-2xl bg-surface border border-outline-variant/80 shadow-2xs flex flex-col justify-between">
+          <div className="flex items-center justify-between text-on-surface/80 mb-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-on-surface/70">Drafted Sections</span>
+            <div className="w-7 h-7 rounded-lg bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-500/30">
+              <HugeiconsIcon icon="document" size={15} strokeWidth={2} />
+            </div>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl sm:text-3xl font-bold font-mono tracking-tight text-on-surface">{generatedCount}</span>
-            <span className="text-body-sm text-on-surface-variant font-medium">/ {leafSections.length}</span>
-            <span className="ml-auto text-label-sm font-bold text-primary">{progressPercent}%</span>
+            <span className="text-2xl font-bold font-mono tracking-tight text-blue-600 dark:text-blue-400">{generatedCount}</span>
+            <span className="text-xs text-on-surface-variant font-medium">/ {leafSections.length}</span>
+            <span className="ml-auto text-xs font-bold text-blue-600 dark:text-blue-400">{progressPercent}%</span>
           </div>
           <div className="h-1.5 w-full bg-surface-container-high rounded-full overflow-hidden mt-3">
-            <div className="h-full bg-primary rounded-full transition-all duration-300" style={{ width: `${progressPercent}%` }} />
+            <div className="h-full bg-blue-500 rounded-full transition-all duration-300" style={{ width: `${progressPercent}%` }} />
           </div>
         </div>
 
         {/* Metric 2: Completed */}
-        <div className="p-4 sm:p-5 rounded-xl bg-surface-container-lowest border border-outline-variant shadow-xs flex flex-col justify-between">
-          <div className="flex items-center justify-between text-on-surface-variant mb-2">
-            <span className="text-label-xs font-semibold uppercase tracking-wider text-on-surface-variant">Approved & Done</span>
-            <span className="material-symbols-outlined text-[20px] text-secondary">check_circle</span>
+        <div className="p-4 rounded-2xl bg-surface border border-outline-variant/80 shadow-2xs flex flex-col justify-between">
+          <div className="flex items-center justify-between text-on-surface/80 mb-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-on-surface/70">Approved & Done</span>
+            <div className="w-7 h-7 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-500/30">
+              <HugeiconsIcon icon="checkmark-circle-02" size={15} strokeWidth={2} />
+            </div>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl sm:text-3xl font-bold font-mono tracking-tight text-on-surface">{completedCount}</span>
-            <span className="text-body-sm text-on-surface-variant font-medium">/ {leafSections.length}</span>
-            <span className="ml-auto text-label-sm font-bold text-secondary">
+            <span className="text-2xl font-bold font-mono tracking-tight text-emerald-600 dark:text-emerald-400">{completedCount}</span>
+            <span className="text-xs text-on-surface-variant font-medium">/ {leafSections.length}</span>
+            <span className="ml-auto text-xs font-bold text-emerald-600 dark:text-emerald-400">
               {leafSections.length ? Math.round((completedCount / leafSections.length) * 100) : 0}%
             </span>
           </div>
           <div className="h-1.5 w-full bg-surface-container-high rounded-full overflow-hidden mt-3">
             <div
-              className="h-full bg-secondary rounded-full transition-all duration-300"
+              className="h-full bg-emerald-500 rounded-full transition-all duration-300"
               style={{ width: `${leafSections.length ? (completedCount / leafSections.length) * 100 : 0}%` }}
             />
           </div>
         </div>
 
         {/* Metric 3: Outdated */}
-        <div className="p-4 sm:p-5 rounded-xl bg-surface-container-lowest border border-outline-variant shadow-xs flex flex-col justify-between">
-          <div className="flex items-center justify-between text-on-surface-variant mb-2">
-            <span className="text-label-xs font-semibold uppercase tracking-wider text-on-surface-variant">Needs Re-sync</span>
-            <span className={cn("material-symbols-outlined text-[20px]", outdatedCount > 0 ? "text-error" : "text-on-surface-variant")}>
-              {outdatedCount > 0 ? "warning" : "sync"}
-            </span>
+        <div className="p-4 rounded-2xl bg-surface border border-outline-variant/80 shadow-2xs flex flex-col justify-between">
+          <div className="flex items-center justify-between text-on-surface/80 mb-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-on-surface/70">Sync Health</span>
+            <div className={cn(
+              "w-7 h-7 rounded-lg flex items-center justify-center border",
+              outdatedCount > 0 ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30" : "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
+            )}>
+              <HugeiconsIcon icon={outdatedCount > 0 ? "alert-circle" : "checkmark-circle-02"} size={15} strokeWidth={2} />
+            </div>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className={cn("text-2xl sm:text-3xl font-bold font-mono tracking-tight", outdatedCount > 0 ? "text-error" : "text-on-surface")}>
+            <span className={cn("text-2xl font-bold font-mono tracking-tight", outdatedCount > 0 ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400")}>
               {outdatedCount}
             </span>
-            <span className="text-body-sm text-on-surface-variant font-medium">sections</span>
-            <span className={cn("ml-auto text-label-xs font-semibold", outdatedCount > 0 ? "text-error" : "text-on-surface-variant")}>
-              {outdatedCount > 0 ? "Outdated" : "In sync"}
+            <span className="text-xs text-on-surface-variant font-medium">outdated</span>
+            <span className={cn(
+              "ml-auto text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border",
+              outdatedCount > 0 ? "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30" : "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
+            )}>
+              {outdatedCount > 0 ? "Re-sync" : "Synced"}
             </span>
           </div>
-          <p className="text-body-sm text-on-surface-variant mt-3 truncate">
+          <p className="text-[11px] text-on-surface-variant mt-3 truncate font-medium">
             {outdatedCount > 0 ? "Earlier project data updated" : "All chapters up to date"}
           </p>
         </div>
 
         {/* Metric 4: Total Volume */}
-        <div className="p-4 sm:p-5 rounded-xl bg-surface-container-lowest border border-outline-variant shadow-xs flex flex-col justify-between">
-          <div className="flex items-center justify-between text-on-surface-variant mb-2">
-            <span className="text-label-xs font-semibold uppercase tracking-wider text-on-surface-variant">Total Volume</span>
-            <span className="material-symbols-outlined text-[20px] text-tertiary">menu_book</span>
+        <div className="p-4 rounded-2xl bg-surface border border-outline-variant/80 shadow-2xs flex flex-col justify-between">
+          <div className="flex items-center justify-between text-on-surface/80 mb-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-on-surface/70">Total Volume</span>
+            <div className="w-7 h-7 rounded-lg bg-purple-500/15 text-purple-600 dark:text-purple-400 flex items-center justify-center border border-purple-500/30">
+              <HugeiconsIcon icon="menu-book" size={15} strokeWidth={2} />
+            </div>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl sm:text-3xl font-bold font-mono tracking-tight text-on-surface">
+            <span className="text-2xl font-bold font-mono tracking-tight text-purple-600 dark:text-purple-400">
               {totalWords.toLocaleString()}
             </span>
-            <span className="text-body-sm text-on-surface-variant font-medium">words</span>
+            <span className="text-xs text-on-surface-variant font-medium">words</span>
           </div>
-          <p className="text-body-sm text-on-surface-variant mt-3 truncate">
+          <p className="text-[11px] text-on-surface-variant mt-3 truncate font-medium">
             ~{estimatedReadMinutes} min reading time
           </p>
         </div>
@@ -1538,20 +1655,20 @@ function ReportOverviewDashboard({
         {/* Left: Structured Chapter Matrix */}
         <div className="flex flex-col gap-4 min-w-0">
           <div className="flex items-center justify-between">
-            <h2 className="text-headline-sm font-bold text-on-surface flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary text-[22px]">format_list_bulleted</span>
-              Chapter Breakdown & Progress
-            </h2>
-            <span className="text-body-sm text-on-surface-variant font-medium">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-on-surface/80 flex items-center gap-2">
+              <HugeiconsIcon icon="list-ordered" size={15} strokeWidth={2} className="text-primary" />
+              <span>Chapter Breakdown & Matrix</span>
+            </h3>
+            <span className="text-xs text-on-surface-variant font-medium">
               Click any section to edit
             </span>
           </div>
 
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3">
             {topLevelSections.map((topItem) => {
-              const isCollapsed = !expandedChapters[topItem.section.id];
+              const isCollapsed = Boolean(collapsedOverviewChapters[topItem.section.id]);
               const childLeaves = leafSections.filter(
-                (leaf) => leaf.number === topItem.number || leaf.number.startsWith(`${topItem.number}.`)
+                (leaf) => leaf.ancestorIds?.includes(topItem.section.id) || leaf.section.id === topItem.section.id
               );
               const childGenerated = childLeaves.filter((leaf) => hasContent(getChapter(leaf.section.id))).length;
               const childCompleted = childLeaves.filter((leaf) => getChapter(leaf.section.id)?.status === "completed").length;
@@ -1560,48 +1677,49 @@ function ReportOverviewDashboard({
               return (
                 <div
                   key={topItem.section.id}
-                  className="rounded-xl border border-outline-variant bg-surface-container-lowest overflow-hidden shadow-xs"
+                  className="rounded-2xl border border-outline-variant/80 bg-surface overflow-hidden shadow-2xs"
                 >
                   {/* Chapter Header Banner */}
                   <div
                     onClick={() => toggleChapter(topItem.section.id)}
-                    className="p-4 sm:p-5 flex items-center justify-between gap-4 cursor-pointer hover:bg-surface-container-low/50 transition-colors border-b border-outline-variant/60"
+                    className="p-4 flex items-center justify-between gap-4 cursor-pointer hover:bg-surface-container/50 transition-colors border-b border-outline-variant/60"
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      <span className="material-symbols-outlined text-primary text-[20px] shrink-0">
-                        {childPercent === 100 ? "task_alt" : "folder_open"}
-                      </span>
+                      <HugeiconsIcon
+                        icon={childPercent === 100 ? "checkmark-circle-02" : "layers"}
+                        size={18}
+                        strokeWidth={2}
+                        className={childPercent === 100 ? "text-secondary" : "text-primary"}
+                      />
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-label-sm font-bold text-primary font-mono">
+                          <span className="text-xs font-bold text-primary font-mono">
                             Chapter {topItem.number}
                           </span>
-                          <span className="text-body-sm text-on-surface-variant">•</span>
-                          <span className="text-label-sm text-on-surface-variant font-medium">
+                          <span className="text-xs text-on-surface-variant">•</span>
+                          <span className="text-xs text-on-surface font-semibold">
                             {childGenerated}/{childLeaves.length} Drafted
                           </span>
                           {childCompleted === childLeaves.length && childLeaves.length > 0 && (
-                            <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-secondary-container text-secondary">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-secondary/10 text-secondary border border-secondary/20 uppercase">
                               Complete
                             </span>
                           )}
                         </div>
-                        <h3 className="text-body-lg font-bold text-on-surface truncate mt-0.5">
+                        <h4 className="text-sm font-bold text-on-surface truncate mt-0.5">
                           {topItem.section.title}
-                        </h3>
+                        </h4>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-4 shrink-0">
                       <div className="hidden sm:flex flex-col items-end gap-1">
-                        <span className="text-label-sm font-bold text-on-surface font-mono">{childPercent}%</span>
-                        <div className="w-24 h-1.5 bg-surface-container-high rounded-full overflow-hidden">
+                        <span className="text-xs font-bold text-on-surface font-mono">{childPercent}%</span>
+                        <div className="w-20 h-1.5 bg-surface-container-high rounded-full overflow-hidden">
                           <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${childPercent}%` }} />
                         </div>
                       </div>
-                      <span className="material-symbols-outlined text-on-surface-variant text-[20px]">
-                        {isCollapsed ? "expand_more" : "expand_less"}
-                      </span>
+                      <HugeiconsIcon icon={isCollapsed ? "chevron-down" : "chevron-up"} size={16} strokeWidth={2} className="text-on-surface-variant" />
                     </div>
                   </div>
 
@@ -1619,56 +1737,61 @@ function ReportOverviewDashboard({
                           <div
                             key={leaf.section.id}
                             onClick={() => onSelectSection(leaf.section.id)}
-                            className="p-3.5 sm:px-5 flex items-center justify-between gap-4 hover:bg-primary-container/10 transition-colors cursor-pointer group"
+                            className="p-3 sm:px-5 flex items-center justify-between gap-4 hover:bg-primary/5 transition-colors cursor-pointer group"
                           >
                             <div className="flex items-center gap-3.5 min-w-0 flex-1">
-                              {/* Status Icon */}
-                              <span
+                              <div
                                 className={cn(
-                                  "material-symbols-outlined text-[18px] shrink-0",
-                                  isOut ? "text-error" : isComp ? "text-secondary" : isGen ? "text-primary" : "text-outline"
+                                  "w-7 h-7 rounded-lg flex items-center justify-center border shrink-0 transition-all shadow-2xs",
+                                  isOut
+                                    ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30"
+                                    : isComp
+                                      ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
+                                      : isGen
+                                        ? "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30"
+                                        : "bg-surface-container text-on-surface-variant/70 border-outline-variant/60"
                                 )}
                               >
-                                {isOut ? "warning" : isComp ? "check_circle" : isGen ? "edit_document" : "radio_button_unchecked"}
-                              </span>
+                                <HugeiconsIcon
+                                  icon={isOut ? "alert-circle" : isComp ? "checkmark-circle-02" : isGen ? "edit" : "document-validation"}
+                                  size={15}
+                                  strokeWidth={2}
+                                />
+                              </div>
 
-                              {/* Section Title */}
                               <div className="flex items-baseline gap-2.5 min-w-0 flex-1">
-                                <span className="text-label-sm font-bold text-primary font-mono shrink-0">
+                                <span className="text-xs font-bold text-primary font-mono shrink-0">
                                   {leaf.number}
                                 </span>
-                                <span className="text-body-md font-medium text-on-surface truncate group-hover:text-primary transition-colors">
+                                <span className="text-xs font-semibold text-on-surface truncate group-hover:text-primary transition-colors">
                                   {leaf.section.title}
                                 </span>
                               </div>
                             </div>
 
-                            {/* Metadata & Open Action */}
                             <div className="flex items-center gap-3 shrink-0">
                               {isGen && (
-                                <span className="hidden md:inline-block text-label-xs text-on-surface-variant font-mono">
+                                <span className="hidden md:inline-block text-[11px] text-on-surface-variant font-mono">
                                   {wordCount} words
                                 </span>
                               )}
 
                               <span
                                 className={cn(
-                                  "px-2.5 py-0.5 rounded text-label-xs font-bold uppercase tracking-wider",
+                                  "px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border shadow-2xs",
                                   isOut
-                                    ? "bg-error-container text-on-error-container"
+                                    ? "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30"
                                     : isComp
-                                      ? "bg-secondary-container/80 text-secondary"
+                                      ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
                                       : isGen
-                                        ? "bg-primary-container/80 text-primary"
-                                        : "bg-surface-container text-on-surface-variant"
+                                        ? "bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30"
+                                        : "bg-surface-container text-on-surface-variant/80 border-outline-variant/70"
                                 )}
                               >
                                 {isOut ? "Outdated" : isComp ? "Done" : isGen ? "Drafted" : "Empty"}
                               </span>
 
-                              <span className="material-symbols-outlined text-on-surface-variant text-[18px] group-hover:text-primary group-hover:translate-x-0.5 transition-all">
-                                arrow_forward
-                              </span>
+                              <HugeiconsIcon icon="chevron-right" size={14} strokeWidth={2} className="text-on-surface-variant group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
                             </div>
                           </div>
                         );
@@ -1684,23 +1807,23 @@ function ReportOverviewDashboard({
         {/* Right: Assembly & Quick Controls */}
         <div className="flex flex-col gap-4">
           {/* Compilation Hub Card */}
-          <div className="p-5 rounded-xl border border-outline-variant bg-surface-container-lowest shadow-xs flex flex-col gap-4">
+          <div className="p-5 rounded-2xl border border-outline-variant/80 bg-surface shadow-2xs flex flex-col gap-4">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <span className="material-symbols-outlined text-secondary text-[20px]">verified</span>
-                <h3 className="text-body-lg font-bold text-on-surface">Final Report</h3>
+                <HugeiconsIcon icon="checkmark-circle-02" size={18} strokeWidth={2} className="text-secondary" />
+                <h3 className="text-sm font-bold text-on-surface">Final Thesis Compilation</h3>
               </div>
-              <p className="text-body-sm text-on-surface-variant">
-                Assemble and export the entire thesis with all table of contents, LaTeX styling, and bibliography.
+              <p className="text-xs text-on-surface-variant leading-relaxed">
+                Assemble and export your full academic document with table of contents and LaTeX source.
               </p>
             </div>
 
-            <div className="p-3 rounded-lg border border-outline-variant bg-surface flex items-center justify-between text-body-sm">
-              <span className="text-on-surface font-medium">Readiness</span>
+            <div className="p-3 rounded-xl border border-outline-variant/80 bg-surface-container-lowest flex items-center justify-between text-xs font-semibold">
+              <span className="text-on-surface">Thesis Status</span>
               <span
                 className={cn(
-                  "px-2.5 py-0.5 rounded-full text-label-xs font-bold uppercase",
-                  allGenerated ? "bg-secondary-container text-secondary" : "bg-surface-container-high text-on-surface-variant"
+                  "px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase",
+                  allGenerated ? "bg-secondary/10 text-secondary border border-secondary/20" : "bg-surface-container text-on-surface-variant"
                 )}
               >
                 {allGenerated ? "Ready to Compile" : `${generatedCount}/${leafSections.length} Drafted`}
@@ -1711,67 +1834,40 @@ function ReportOverviewDashboard({
               onClick={onGenerateFinal}
               disabled={!allGenerated || aiState !== "idle"}
               className={cn(
-                "w-full py-2.5 px-4 rounded-lg font-semibold text-label-md flex items-center justify-center gap-2 transition-all shadow-xs cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed",
+                "w-full py-2.5 px-4 rounded-lg font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-2xs cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed",
                 allGenerated
                   ? "bg-primary text-on-primary hover:bg-primary/90"
-                  : "bg-surface-container-high text-on-surface-variant border border-outline-variant"
+                  : "bg-surface-container text-on-surface-variant border border-outline-variant"
               )}
             >
-              <span className="material-symbols-outlined text-[18px]">
-                {aiState === "finalizing" ? "sync" : "auto_stories"}
-              </span>
-              <span>{aiState === "finalizing" ? "Compiling..." : finalReport?.contentMarkdown ? "Recompile Report" : "Compile Full Report"}</span>
+              <HugeiconsIcon icon={aiState === "finalizing" ? "sync-alt" : "book-open"} size={15} strokeWidth={2} className={aiState === "finalizing" ? "animate-spin" : undefined} />
+              <span>{aiState === "finalizing" ? "Compiling..." : finalReport?.contentMarkdown ? "Recompile Full Report" : "Compile Full Report"}</span>
             </button>
 
             {finalReport?.contentMarkdown && (
-              <div className="pt-3 border-t border-outline-variant flex flex-col gap-2.5">
-                <span className="text-label-xs font-bold text-secondary uppercase tracking-wider flex items-center gap-1.5">
-                  <span className="material-symbols-outlined text-[16px]">check_circle</span>
-                  Report compiled & ready
+              <div className="pt-3 border-t border-outline-variant/80 flex flex-col gap-2.5">
+                <span className="text-[11px] font-bold text-secondary uppercase tracking-wider flex items-center gap-1.5">
+                  <HugeiconsIcon icon="checkmark-circle-02" size={14} strokeWidth={2} />
+                  Report Ready for Export
                 </span>
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     onClick={() => onCopy(finalReport.contentMarkdown || "", "final")}
-                    className="py-2 px-3 rounded-lg border border-outline-variant bg-surface hover:bg-surface-container text-body-sm font-semibold text-on-surface flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                    className="py-2 px-3 rounded-lg border border-outline-variant/80 bg-surface hover:bg-surface-container text-xs font-bold text-on-surface flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
                   >
-                    <span className="material-symbols-outlined text-[16px] text-primary">
-                      {copied === "final" ? "check" : "content_copy"}
-                    </span>
+                    <HugeiconsIcon icon={copied === "final" ? "checkmark-circle-02" : "copy"} size={13} strokeWidth={2} className="text-primary" />
                     <span>{copied === "final" ? "Copied" : "Markdown"}</span>
                   </button>
                   <button
                     onClick={() => onCopy(finalReport.contentLatex || markdownToLatex(finalReport.contentMarkdown || ""), "final")}
-                    className="py-2 px-3 rounded-lg border border-outline-variant bg-surface hover:bg-surface-container text-body-sm font-semibold text-on-surface flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                    className="py-2 px-3 rounded-lg border border-outline-variant/80 bg-surface hover:bg-surface-container text-xs font-bold text-on-surface flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
                   >
-                    <span className="material-symbols-outlined text-[16px] text-primary">
-                      {copied === "final" ? "check" : "code"}
-                    </span>
+                    <HugeiconsIcon icon={copied === "final" ? "checkmark-circle-02" : "code"} size={13} strokeWidth={2} className="text-primary" />
                     <span>{copied === "final" ? "Copied" : "LaTeX"}</span>
                   </button>
                 </div>
               </div>
             )}
-          </div>
-
-          {/* Quick Guide Card */}
-          <div className="p-5 rounded-xl border border-outline-variant bg-surface-container-lowest shadow-xs flex flex-col gap-3">
-            <h4 className="text-label-sm font-bold text-on-surface uppercase tracking-wider">
-              Writing Workflow
-            </h4>
-            <ul className="text-body-sm text-on-surface-variant space-y-2">
-              <li className="flex items-start gap-2">
-                <span className="material-symbols-outlined text-primary text-[18px] shrink-0 mt-0.5">auto_awesome</span>
-                <span>Generate drafts using AI trained on your previous project steps.</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="material-symbols-outlined text-primary text-[18px] shrink-0 mt-0.5">tune</span>
-                <span>Refine tone, format tables, and citations in the rich text editor.</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="material-symbols-outlined text-secondary text-[18px] shrink-0 mt-0.5">check_circle</span>
-                <span>Mark completed when satisfied to unlock final document compilation.</span>
-              </li>
-            </ul>
           </div>
         </div>
       </div>

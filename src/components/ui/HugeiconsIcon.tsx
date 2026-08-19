@@ -388,6 +388,63 @@ const ICONS: Record<string, (props: { strokeWidth: number }) => React.ReactNode>
       <path d="M5 10C5 13.866 8.13401 17 12 17C15.866 17 19 13.866 19 10M12 17V21M8 21H16" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
     </>
   ),
+  "mic-off": ({ strokeWidth }) => (
+    <>
+      <path d="M2 2L22 22" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M9 5C9 3.34315 10.3431 2 12 2C13.6569 2 15 3.34315 15 5V10M15 13.5C14.5 15 13.3 16 12 16C9.79086 16 8 14.2091 8 12V8M5 10C5 13.866 8.13401 17 12 17M19 10C19 11.2386 18.6791 12.4022 18.1189 13.411M12 17V21M8 21H16" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
+  "camera": ({ strokeWidth }) => (
+    <>
+      <path d="M4 8C4 6.89543 4.89543 6 6 6H7.5L9 4H15L16.5 6H18C19.1046 6 20 6.89543 20 8V18C20 19.1046 19.1046 20 18 20H6C4.89543 20 4 19.1046 4 18V8Z" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="12" cy="13" r="4" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
+  "video": ({ strokeWidth }) => (
+    <>
+      <rect x="3" y="6" width="13" height="12" rx="2" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M16 10L21 7V17L16 14" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
+  "video-camera": ({ strokeWidth }) => (
+    <>
+      <rect x="3" y="6" width="13" height="12" rx="2" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M16 10L21 7V17L16 14" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
+  "video-off": ({ strokeWidth }) => (
+    <>
+      <path d="M2 2L22 22" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M16 10L21 7V17L16 14" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M10 6H14C15.1046 6 16 6.89543 16 8V12M6 6H5C3.89543 6 3 6.89543 3 8V16C3 17.1046 3.89543 18 5 18H15" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
+  "volume-high": ({ strokeWidth }) => (
+    <>
+      <path d="M11 5L6 9H2V15H6L11 19V5Z" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M15.5 8.5C16.5 9.5 17 10.7 17 12C17 13.3 16.5 14.5 15.5 15.5M19 5C21 7 22 9.5 22 12C22 14.5 21 17 19 19" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
+  "fullscreen": ({ strokeWidth }) => (
+    <>
+      <path d="M3 8V5C3 3.89543 3.89543 3 5 3H8M21 8V5C21 3.89543 20.1046 3 19 3H16M3 16V19C3 20.1046 3.89543 21 5 21H8M21 16V19C21 20.1046 20.1046 21 19 21H16" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
+  "fullscreen-exit": ({ strokeWidth }) => (
+    <>
+      <path d="M8 3V6C8 7.10457 7.10457 8 6 8H3M16 3V6C16 7.10457 16.8954 8 18 8H21M8 21V18C8 16.8954 7.10457 16 6 16H3M16 21V18C16 16.8954 16.8954 16 18 16H21" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
+  "maximize": ({ strokeWidth }) => (
+    <>
+      <path d="M3 8V5C3 3.89543 3.89543 3 5 3H8M21 8V5C21 3.89543 20.1046 3 19 3H16M3 16V19C3 20.1046 3.89543 21 5 21H8M21 16V19C21 20.1046 20.1046 21 19 21H16" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
+  "minimize": ({ strokeWidth }) => (
+    <>
+      <path d="M8 3V6C8 7.10457 7.10457 8 6 8H3M16 3V6C16 7.10457 16.8954 8 18 8H21M8 21V18C8 16.8954 7.10457 16 6 16H3M16 21V18C16 16.8954 16.8954 16 18 16H21" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
 
   // Quality & System Attributes (NFRs)
   "shield": ({ strokeWidth }) => (
@@ -424,12 +481,6 @@ const ICONS: Record<string, (props: { strokeWidth: number }) => React.ReactNode>
       <path d="M4 5V8M4 8H5M4 8H3" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
       <path d="M3 11.5C3 11 3.5 10.5 4.5 10.5C5.5 10.5 6 11 6 12C6 13.2 3 14 3 15H6" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
       <path d="M3 17.5H5C5.5 17.5 6 18 6 18.5C6 19 5.5 19.5 5 19.5H4M5 19.5C5.5 19.5 6 20 6 20.5C6 21 5.5 21.5 5 21.5H3" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
-    </>
-  ),
-  "check-circle": ({ strokeWidth }) => (
-    <>
-      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M8.5 12.5L11 15L15.5 9.5" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
     </>
   ),
   "alert-circle": ({ strokeWidth }) => (
@@ -555,23 +606,65 @@ const ICONS: Record<string, (props: { strokeWidth: number }) => React.ReactNode>
   "subdirectory-arrow-right": ({ strokeWidth }) => (
     <path d="M4 6V14C4 16.2091 5.79086 18 8 18H20M20 18L15 13M20 18L15 23" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
   ),
-  "mic": ({ strokeWidth }) => (
-    <>
-      <rect x="9" y="2" width="6" height="12" rx="3" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M5 10V11C5 14.866 8.13401 18 12 18C15.866 18 19 14.866 19 11V10M12 18V22M8 22H16" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
-    </>
-  ),
   "stop-circle": ({ strokeWidth }) => (
     <>
       <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
       <rect x="9" y="9" width="6" height="6" rx="1" fill="currentColor" />
     </>
   ),
+  "document-validation": ({ strokeWidth }) => (
+    <>
+      <path d="M4 4C4 2.89543 4.89543 2 6 2H14L20 8V20C20 21.1046 19.1046 22 18 22H6C4.89543 22 4 21.1046 4 20V4Z" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M14 2V8H20" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M9 13L11 15L15 11" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
+  "document": ({ strokeWidth }) => (
+    <>
+      <path d="M4 4C4 2.89543 4.89543 2 6 2H14L20 8V20C20 21.1046 19.1046 22 18 22H6C4.89543 22 4 21.1046 4 20V4Z" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M14 2V8H20" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M8 13H16M8 17H13" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
+  "radio-button-unchecked": ({ strokeWidth }) => (
+    <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+  ),
+  "format-align-left": ({ strokeWidth }) => (
+    <path d="M3 6H21M3 12H15M3 18H18" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+  ),
+  "format-align-center": ({ strokeWidth }) => (
+    <path d="M3 6H21M6 12H18M4 18H20" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+  ),
+  "terminal": ({ strokeWidth }) => (
+    <>
+      <rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M7 9L10 12L7 15M12 15H17" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
+  "spellcheck": ({ strokeWidth }) => (
+    <>
+      <path d="M4 16L9 4L14 16M6.2 11.5H11.8" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M14 19L17 22L22 17" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
+  "psychology": ({ strokeWidth }) => (
+    <>
+      <path d="M12 4C8.68629 4 6 6.68629 6 10C6 11.8 6.8 13.4 8 14.5V17C8 17.5523 8.44772 18 9 18H15C15.5523 18 16 17.5523 16 17V14.5C17.2 13.4 18 11.8 18 10C18 6.68629 15.3137 4 12 4Z" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M10 21H14" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M10 10C10.5 9 11.5 8.5 12.5 9C13.5 9.5 14 10.5 13.5 11.5C13 12.5 12 12.5 12 14" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" />
+    </>
+  ),
   "chevron-right": ({ strokeWidth }) => (
     <path d="M9 18L15 12L9 6" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
   ),
+  "chevron-left": ({ strokeWidth }) => (
+    <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+  ),
   "chevron-down": ({ strokeWidth }) => (
     <path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+  ),
+  "chevron-up": ({ strokeWidth }) => (
+    <path d="M6 15L12 9L18 15" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
   ),
 };
 
