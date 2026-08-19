@@ -85,8 +85,8 @@ export default function NotificationBell({ label = "Live updates" }: { label?: s
 
       {isOpen && (
         <>
-          <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)}></div>
-          <div className="absolute right-0 mt-2 w-80 bg-surface rounded-lg shadow-lg border border-outline-variant z-50 overflow-hidden">
+          <div className="fixed inset-0 z-[90]" onClick={() => setIsOpen(false)}></div>
+          <div className="absolute right-0 mt-2 w-80 bg-surface rounded-lg shadow-2xl border border-outline-variant z-[100] overflow-hidden">
             <div className="px-md py-sm border-b border-outline-variant flex items-center justify-between">
               <div>
                 <p className="font-label-md text-label-md text-on-surface">Notifications</p>

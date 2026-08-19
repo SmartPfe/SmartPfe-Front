@@ -86,7 +86,7 @@ const initials = user.fullName
 
   return (
     <>
-      <header className="sticky top-0 z-30 bg-surface border-b border-outline-variant flex justify-between items-center gap-2 px-3 sm:px-6 md:px-8 h-16 w-full shrink-0">
+      <header className="sticky top-0 z-40 bg-surface border-b border-outline-variant flex justify-between items-center gap-2 px-3 sm:px-6 md:px-8 h-16 w-full shrink-0">
         <div className="flex items-center text-sm font-body-md text-body-md min-w-0">
           <div className="flex items-center gap-2 sm:gap-4 mr-2 sm:mr-6 min-w-0">
             <button 

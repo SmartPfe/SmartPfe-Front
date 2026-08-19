@@ -91,7 +91,7 @@ export default function AiActionToolbar({
   return (
     <div
       className={cn(
-        "relative z-30 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-surface-container-lowest border border-outline-variant/80 rounded-xl p-2 sm:p-2.5 shadow-2xs",
+        "relative z-10 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-surface-container-lowest border border-outline-variant/80 rounded-xl p-2 sm:p-2.5 shadow-2xs",
         className
       )}
     >
