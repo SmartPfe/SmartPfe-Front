@@ -170,8 +170,8 @@ export default function JurySimulation() {
       ]);
 
       setProject(projectData);
-      setPresentation(normalizePresentation(presentationData.presentation || {}, projectData));
-      setPitch(normalizePitch(pitchData.pitch || {}, projectData));
+      setPresentation(normalizePresentation(presentationData.presentation || {}));
+      setPitch(normalizePitch(pitchData.pitch || {}));
       setAttempts(Array.isArray(juryData.attempts) ? juryData.attempts : []);
       setCurrentAttempt(null);
       setActiveSlideIndex(0);
