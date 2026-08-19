@@ -179,6 +179,21 @@ const ICONS: Record<string, (props: { strokeWidth: number }) => React.ReactNode>
       <path d="M3 6H21M3 12H21M3 18H21" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
     </>
   ),
+  "arrow-right-01": ({ strokeWidth }) => (
+    <path d="M5 12H19M19 12L13 6M19 12L13 18" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+  ),
+  "arrow-right": ({ strokeWidth }) => (
+    <path d="M5 12H19M19 12L13 6M19 12L13 18" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+  ),
+  "arrow-forward": ({ strokeWidth }) => (
+    <path d="M5 12H19M19 12L13 6M19 12L13 18" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+  ),
+  "arrow-left": ({ strokeWidth }) => (
+    <path d="M19 12H5M5 12L11 6M5 12L11 18" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+  ),
+  "arrow-right-02": ({ strokeWidth }) => (
+    <path d="M3 12H21M21 12L15 6M21 12L15 18" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+  ),
   "command": ({ strokeWidth }) => (
     <>
       <path d="M6.5 9A2.5 2.5 0 1 1 9 6.5V17.5A2.5 2.5 0 1 1 6.5 15H17.5A2.5 2.5 0 1 1 15 17.5V6.5A2.5 2.5 0 1 1 17.5 9H6.5Z" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
