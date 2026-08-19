@@ -154,24 +154,153 @@ const ICONS: Record<string, (props: { strokeWidth: number }) => React.ReactNode>
     <path d="M5 12H19" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
   ),
 
-  // Arrows / Navigation
-  "arrow-right-01": ({ strokeWidth }) => (
-    <path d="M5 12H19M19 12L13 6M19 12L13 18" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
-  ),
-  "arrow-right": ({ strokeWidth }) => (
-    <path d="M5 12H19M19 12L13 6M19 12L13 18" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
-  ),
-  "arrow-forward": ({ strokeWidth }) => (
-    <path d="M5 12H19M19 12L13 6M19 12L13 18" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
-  ),
-  "refresh": ({ strokeWidth }) => (
+  // Navigation & Menus & Sidebar
+  "sidebar-left": ({ strokeWidth }) => (
     <>
-      <path d="M20 11A8.1 8.1 0 0 0 4.5 8.5L2 11M4 13A8.1 8.1 0 0 0 19.5 15.5L22 13" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M2 4V11H9M22 20V13H15" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <rect x="3" y="4" width="18" height="16" rx="3" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M9 4V20" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M14 10L12 12L14 14" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
     </>
   ),
-
-  // Globe / Language / Translate
+  "sidebar-right": ({ strokeWidth }) => (
+    <>
+      <rect x="3" y="4" width="18" height="16" rx="3" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M15 4V20" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M10 10L12 12L10 14" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
+  "menu-01": ({ strokeWidth }) => (
+    <>
+      <path d="M3 6H21M3 12H21M3 18H21" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
+  "menu": ({ strokeWidth }) => (
+    <>
+      <path d="M3 6H21M3 12H21M3 18H21" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
+  "command": ({ strokeWidth }) => (
+    <>
+      <path d="M6.5 9A2.5 2.5 0 1 1 9 6.5V17.5A2.5 2.5 0 1 1 6.5 15H17.5A2.5 2.5 0 1 1 15 17.5V6.5A2.5 2.5 0 1 1 17.5 9H6.5Z" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
+  "folder-01": ({ strokeWidth }) => (
+    <>
+      <path d="M2.5 7.5C2.5 6.11929 3.61929 5 5 5H9.17157C9.70201 5 10.2107 5.21071 10.5858 5.58579L12.4142 7.41421C12.7893 7.78929 13.298 8 13.8284 8H19C20.3807 8 21.5 9.11929 21.5 10.5V17.5C21.5 18.8807 20.3807 20 19 20H5C3.61929 20 2.5 18.8807 2.5 17.5V7.5Z" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
+  "folder": ({ strokeWidth }) => (
+    <>
+      <path d="M2.5 7.5C2.5 6.11929 3.61929 5 5 5H9.17157C9.70201 5 10.2107 5.21071 10.5858 5.58579L12.4142 7.41421C12.7893 7.78929 13.298 8 13.8284 8H19C20.3807 8 21.5 9.11929 21.5 10.5V17.5C21.5 18.8807 20.3807 20 19 20H5C3.61929 20 2.5 18.8807 2.5 17.5V7.5Z" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
+  "file-01": ({ strokeWidth }) => (
+    <>
+      <path d="M4 4C4 2.89543 4.89543 2 6 2H14L20 8V20C20 21.1046 19.1046 22 18 22H6C4.89543 22 4 21.1046 4 20V4Z" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M14 2V8H20" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
+  "notification-02": ({ strokeWidth }) => (
+    <>
+      <path d="M12 2C8.13401 2 5 5.13401 5 9V14.2C5 14.8 4.7 15.4 4.2 15.8L3.2 16.6C2.6 17.1 2.9 18 3.7 18H20.3C21.1 18 21.4 17.1 20.8 16.6L19.8 15.8C19.3 15.4 19 14.8 19 14.2V9C19 5.13401 15.866 2 12 2Z" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M9 19C9.4 20.2 10.6 21 12 21C13.4 21 14.6 20.2 15 19" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
+  "notifications": ({ strokeWidth }) => (
+    <>
+      <path d="M12 2C8.13401 2 5 5.13401 5 9V14.2C5 14.8 4.7 15.4 4.2 15.8L3.2 16.6C2.6 17.1 2.9 18 3.7 18H20.3C21.1 18 21.4 17.1 20.8 16.6L19.8 15.8C19.3 15.4 19 14.8 19 14.2V9C19 5.13401 15.866 2 12 2Z" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M9 19C9.4 20.2 10.6 21 12 21C13.4 21 14.6 20.2 15 19" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
+  "bell": ({ strokeWidth }) => (
+    <>
+      <path d="M12 2C8.13401 2 5 5.13401 5 9V14.2C5 14.8 4.7 15.4 4.2 15.8L3.2 16.6C2.6 17.1 2.9 18 3.7 18H20.3C21.1 18 21.4 17.1 20.8 16.6L19.8 15.8C19.3 15.4 19 14.8 19 14.2V9C19 5.13401 15.866 2 12 2Z" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M9 19C9.4 20.2 10.6 21 12 21C13.4 21 14.6 20.2 15 19" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
+  "time-02": ({ strokeWidth }) => (
+    <>
+      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M12 6V12L16 14" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
+  "history": ({ strokeWidth }) => (
+    <>
+      <path d="M3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12C21 16.9706 16.9706 21 12 21C8.04 21 4.7 18.45 3.46 15" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M3 8V12H7" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M12 7V12L15 14" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
+  "cloud-sync": ({ strokeWidth }) => (
+    <>
+      <path d="M6.5 19C4.01 19 2 16.99 2 14.5C2 12.16 3.79 10.24 6.1 10.03C6.6 6.64 9.5 4 13 4C17.08 4 20.44 7.15 20.94 11.16C21.57 11.53 22 12.22 22 13C22 14.1 21.1 15 20 15H19M6.5 19H19" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M10 13L12 11M12 11L14 13M12 11V16" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
+  "cloud-check": ({ strokeWidth }) => (
+    <>
+      <path d="M6.5 19C4.01 19 2 16.99 2 14.5C2 12.16 3.79 10.24 6.1 10.03C6.6 6.64 9.5 4 13 4C17.08 4 20.44 7.15 20.94 11.16C21.57 11.53 22 12.22 22 13C22 14.1 21.1 15 20 15H19M6.5 19H19" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M9 13.5L11 15.5L15 11.5" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
+  "settings-02": ({ strokeWidth }) => (
+    <>
+      <path d="M12 15C13.6569 15 15 13.6569 15 12C15 10.3431 13.6569 9 12 9C10.3431 9 9 10.3431 9 12C9 13.6569 10.3431 15 12 15Z" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M19.4 15A1.65 1.65 0 0 0 19.73 16.82L20.14 17.53C20.48 18.12 20.35 18.88 19.82 19.32L18.82 20.15C18.29 20.59 17.53 20.59 17 20.15L16.29 19.6C15.7 19.14 14.88 19.26 14.44 19.85L14.03 20.4C13.69 20.99 12.93 21.36 12.25 21.36H11.75C11.07 21.36 10.31 20.99 9.97 20.4L9.56 19.85C9.12 19.26 8.3 19.14 7.71 19.6L7 20.15C6.47 20.59 5.71 20.59 5.18 20.15L4.18 19.32C3.65 18.88 3.52 18.12 3.86 17.53L4.27 16.82C4.6 16.23 4.48 15.41 3.89 14.97L3.18 14.44C2.59 14 2.22 13.24 2.22 12.56V11.44C2.22 10.76 2.59 10 3.18 9.56L3.89 9.03C4.48 8.59 4.6 7.77 4.27 7.18L3.86 6.47C3.52 5.88 3.65 5.12 4.18 4.68L5.18 3.85C5.71 3.41 6.47 3.41 7 3.85L7.71 4.4C8.3 4.86 9.12 4.74 9.56 4.15L9.97 3.6C10.31 3.01 11.07 2.64 11.75 2.64H12.25C12.93 2.64 13.69 3.01 14.03 3.6L14.44 4.15C14.88 4.74 15.7 4.86 16.29 4.4L17 3.85C17.53 3.41 18.29 3.41 18.82 3.85L19.82 4.68C20.35 5.12 20.48 5.88 20.14 6.47L19.73 7.18C19.4 7.77 19.52 8.59 20.11 9.03L20.82 9.56C21.41 10 21.78 10.76 21.78 11.44V12.56C21.78 13.24 21.41 14 20.82 14.44L20.11 14.97C19.7 15.28 19.45 15.77 19.4 16.3" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
+  "settings": ({ strokeWidth }) => (
+    <>
+      <path d="M12 15C13.6569 15 15 13.6569 15 12C15 10.3431 13.6569 9 12 9C10.3431 9 9 10.3431 9 12C9 13.6569 10.3431 15 12 15Z" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M19.4 15A1.65 1.65 0 0 0 19.73 16.82L20.14 17.53C20.48 18.12 20.35 18.88 19.82 19.32L18.82 20.15C18.29 20.59 17.53 20.59 17 20.15L16.29 19.6C15.7 19.14 14.88 19.26 14.44 19.85L14.03 20.4C13.69 20.99 12.93 21.36 12.25 21.36H11.75C11.07 21.36 10.31 20.99 9.97 20.4L9.56 19.85C9.12 19.26 8.3 19.14 7.71 19.6L7 20.15C6.47 20.59 5.71 20.59 5.18 20.15L4.18 19.32C3.65 18.88 3.52 18.12 3.86 17.53L4.27 16.82C4.6 16.23 4.48 15.41 3.89 14.97L3.18 14.44C2.59 14 2.22 13.24 2.22 12.56V11.44C2.22 10.76 2.59 10 3.18 9.56L3.89 9.03C4.48 8.59 4.6 7.77 4.27 7.18L3.86 6.47C3.52 5.88 3.65 5.12 4.18 4.68L5.18 3.85C5.71 3.41 6.47 3.41 7 3.85L7.71 4.4C8.3 4.86 9.12 4.74 9.56 4.15L9.97 3.6C10.31 3.01 11.07 2.64 11.75 2.64H12.25C12.93 2.64 13.69 3.01 14.03 3.6L14.44 4.15C14.88 4.74 15.7 4.86 16.29 4.4L17 3.85C17.53 3.41 18.29 3.41 18.82 3.85L19.82 4.68C20.35 5.12 20.48 5.88 20.14 6.47L19.73 7.18C19.4 7.77 19.52 8.59 20.11 9.03L20.82 9.56C21.41 10 21.78 10.76 21.78 11.44V12.56C21.78 13.24 21.41 14 20.82 14.44L20.11 14.97C19.7 15.28 19.45 15.77 19.4 16.3" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
+  "logout-01": ({ strokeWidth }) => (
+    <>
+      <path d="M9 21H5C3.89543 21 3 20.1046 3 19V5C3 3.89543 3.89543 3 5 3H9" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M16 17L21 12L16 7M21 12H9" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
+  "logout": ({ strokeWidth }) => (
+    <>
+      <path d="M9 21H5C3.89543 21 3 20.1046 3 19V5C3 3.89543 3.89543 3 5 3H9" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M16 17L21 12L16 7M21 12H9" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
+  "compass": ({ strokeWidth }) => (
+    <>
+      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <polygon points="16.24,7.76 14.12,14.12 7.76,16.24 9.88,9.88" stroke="currentColor" strokeWidth={strokeWidth} strokeLinejoin="round" />
+    </>
+  ),
+  "filter": ({ strokeWidth }) => (
+    <path d="M22 3H2L10 12.46V19L14 21V12.46L22 3Z" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+  ),
+  "layout-grid": ({ strokeWidth }) => (
+    <>
+      <rect x="3" y="3" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <rect x="14" y="3" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <rect x="14" y="14" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <rect x="3" y="14" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
+  "dashboard": ({ strokeWidth }) => (
+    <>
+      <rect x="3" y="3" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <rect x="14" y="3" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <rect x="14" y="14" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <rect x="3" y="14" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
+  "sun": ({ strokeWidth }) => (
+    <>
+      <circle cx="12" cy="12" r="5" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M12 1V3M12 21V23M4.22 4.22L5.64 5.64M18.36 18.36L19.78 19.78M1 12H3M21 12H23M4.22 19.78L5.64 18.36M18.36 5.64L19.78 4.22" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
+  "moon": ({ strokeWidth }) => (
+    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+  ),
   "ai-translate": ({ strokeWidth }) => (
     <>
       <path d="M19 21L15.7004 13.4581C15.5787 13.1798 15.3037 13 15 13C14.6963 13 14.4213 13.1798 14.2996 13.4581L11 21M13 18H17" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
@@ -676,9 +805,33 @@ export default function HugeiconsIcon({
   color,
   ...props
 }: HugeiconsIconProps) {
+  if (!icon) return null;
+
   if (typeof icon === "function") {
     const Component = icon as React.ComponentType<any>;
     return <Component size={size} strokeWidth={strokeWidth} className={className} color={color} {...props} />;
+  }
+
+  if (typeof icon === "object" && icon !== null) {
+    if (Array.isArray((icon as any)[2])) {
+      return (
+        <svg
+          width={size}
+          height={size}
+          viewBox="0 0 24 24"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          className={cn("inline-block shrink-0 select-none", className)}
+          style={{ color: color || "currentColor" }}
+          {...props}
+        >
+          {(icon as any)[2].map(([tag, attrs]: [string, any], idx: number) => {
+            const Tag = tag as any;
+            return <Tag key={idx} {...attrs} strokeWidth={strokeWidth} />;
+          })}
+        </svg>
+      );
+    }
   }
 
   const normalizedKey = String(icon || "").toLowerCase().replace(/_/g, "-");
@@ -712,6 +865,26 @@ export default function HugeiconsIcon({
   );
 }
 
+export const Folder01Icon = ({ size = 18, strokeWidth = 1.5, className, color, ...props }: Omit<HugeiconsIconProps, "icon">) => (
+  <HugeiconsIcon icon="folder-01" size={size} strokeWidth={strokeWidth} className={className} color={color} {...props} />
+);
+
+export const Search01Icon = ({ size = 18, strokeWidth = 1.5, className, color, ...props }: Omit<HugeiconsIconProps, "icon">) => (
+  <HugeiconsIcon icon="search" size={size} strokeWidth={strokeWidth} className={className} color={color} {...props} />
+);
+
+export const SidebarLeft01Icon = ({ size = 18, strokeWidth = 1.5, className, color, ...props }: Omit<HugeiconsIconProps, "icon">) => (
+  <HugeiconsIcon icon="sidebar-left" size={size} strokeWidth={strokeWidth} className={className} color={color} {...props} />
+);
+
+export const Notification02Icon = ({ size = 18, strokeWidth = 1.5, className, color, ...props }: Omit<HugeiconsIconProps, "icon">) => (
+  <HugeiconsIcon icon="notification-02" size={size} strokeWidth={strokeWidth} className={className} color={color} {...props} />
+);
+
+export const Time02Icon = ({ size = 18, strokeWidth = 1.5, className, color, ...props }: Omit<HugeiconsIconProps, "icon">) => (
+  <HugeiconsIcon icon="time-02" size={size} strokeWidth={strokeWidth} className={className} color={color} {...props} />
+);
+
 export const AiBeautifyIcon = ({ size = 18, strokeWidth = 1.5, className, color, ...props }: Omit<HugeiconsIconProps, "icon">) => (
   <HugeiconsIcon icon="ai-beautify" size={size} strokeWidth={strokeWidth} className={className} color={color} {...props} />
 );
@@ -725,4 +898,5 @@ export const AiTranslateIcon = ({ size = 18, strokeWidth = 1.5, className, color
 );
 
 export { HugeiconsIcon };
+
 

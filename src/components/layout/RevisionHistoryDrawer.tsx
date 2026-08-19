@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
 import { createPortal } from "react-dom";
+import HugeiconsIcon from "@/components/ui/HugeiconsIcon";
 import { cn } from "@/lib/utils";
 
 interface RevisionHistoryDrawerProps {
@@ -75,80 +76,80 @@ export default function RevisionHistoryDrawer({ isOpen, onClose }: RevisionHisto
   ];
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex justify-end font-sans">
+    <div className="fixed inset-0 z-50 flex justify-end font-sans animate-in fade-in duration-150">
       <div 
-        className="fixed inset-0 bg-on-surface-variant/40 backdrop-blur-sm transition-opacity"
+        className="fixed inset-0 bg-black/45 dark:bg-black/60 backdrop-blur-md transition-opacity"
         onClick={onClose}
+        aria-hidden="true"
       />
-      <div className="relative w-[90vw] sm:w-[450px] max-w-full bg-surface h-full shadow-2xl border-l border-outline-variant flex flex-col z-10 transition-transform transform translate-x-0">
-        <div className="flex items-center justify-between px-6 py-5 border-b border-outline-variant bg-surface-container-lowest">
+      <div className="relative w-[90vw] sm:w-[420px] max-w-full bg-surface h-full shadow-2xl border-l border-outline-variant/80 flex flex-col z-10 animate-in slide-in-from-right duration-200">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-outline-variant/60 bg-surface-container-lowest">
           <div>
-            <h2 className="text-lg font-bold text-on-surface flex items-center gap-2 mb-1">
-              <span className="material-symbols-outlined text-primary">history</span>
-              Revision History
+            <h2 className="text-sm font-bold text-on-surface flex items-center gap-2">
+              <HugeiconsIcon icon="history" size={17} className="text-primary" strokeWidth={1.8} />
+              <span>Revision History</span>
             </h2>
-            <p className="text-xs text-on-surface-variant font-medium">Track modifications across all PFE phases</p>
+            <p className="text-[11px] text-on-surface-variant mt-0.5 font-medium">Track modifications across all PFE phases</p>
           </div>
           <button 
             onClick={onClose}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-outline hover:text-on-surface hover:bg-surface-container transition-colors"
+            type="button"
+            className="w-7 h-7 rounded-md flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors cursor-pointer"
+            aria-label="Close revision history"
           >
-            <span className="material-symbols-outlined text-[20px]">close</span>
+            <HugeiconsIcon icon="close" size={15} strokeWidth={2} />
           </button>
         </div>
         
-        <div className="flex-1 overflow-y-auto p-6 bg-surface-container-lowest/50">
-          <div className="relative border-l-2 border-outline-variant/30 ml-3 space-y-10">
+        <div className="flex-1 overflow-y-auto p-5 bg-surface">
+          <div className="relative border-l-2 border-outline-variant/40 ml-2 space-y-6">
             {history.map((item) => (
-              <div key={item.id} className="relative pl-6">
+              <div key={item.id} className="relative pl-5">
                 <div className={cn(
-                  "absolute -left-[9px] top-1 w-4 h-4 rounded-full border-2 bg-surface",
-                  item.current ? "border-primary" : "border-outline-variant"
+                  "absolute -left-[7px] top-1 w-3 h-3 rounded-full border-2 bg-surface",
+                  item.current ? "border-primary bg-primary/20" : "border-outline-variant"
                 )} />
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-1.5">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold uppercase tracking-wider text-outline-variant">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-outline-variant">
                       {item.time}
                     </span>
                     {item.current && (
-                      <span className="text-[10px] uppercase font-bold tracking-wider bg-primary/20 text-primary px-2 py-0.5 border border-primary/30 rounded">
+                      <span className="text-[9px] uppercase font-bold tracking-wider bg-primary/10 text-primary px-1.5 py-0.5 border border-primary/20 rounded">
                         Latest Edit
                       </span>
                     )}
                   </div>
                   
                   <div className={cn(
-                    "p-4 rounded-xl border mt-1",
-                    item.current ? "bg-surface border-primary/30 shadow-sm" : "bg-surface-container-lowest border-outline-variant/50 hover:bg-surface-container-low transition-colors"
+                    "p-3 rounded-xl border transition-all",
+                    item.current ? "bg-surface-container-low/90 border-primary/30 shadow-xs" : "bg-surface-container-lowest border-outline-variant/60 hover:bg-surface-container-low"
                   )}>
-                    <div className="flex items-start justify-between gap-4 mb-2">
-                       <h3 className={cn(
-                        "font-bold text-sm",
-                        item.current ? "text-on-surface" : "text-on-surface"
-                      )}>
+                    <div className="flex items-start justify-between gap-3 mb-1.5">
+                       <h3 className="font-semibold text-xs text-on-surface">
                         {item.action}
                       </h3>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant font-medium whitespace-nowrap">
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-surface-container text-on-surface-variant font-medium whitespace-nowrap">
                         {item.phase}
                       </span>
                     </div>
                     
-                    <p className="text-xs text-on-surface-variant leading-relaxed mb-3">
+                    <p className="text-xs text-on-surface-variant leading-relaxed mb-2.5">
                       {item.details}
                     </p>
                     
-                    <div className="flex items-center justify-between border-t border-outline-variant/30 pt-3">
-                      <div className="flex items-center gap-2">
-                        <div className="w-5 h-5 rounded-full bg-surface-container-highest flex items-center justify-center text-[10px] font-bold text-on-surface">
+                    <div className="flex items-center justify-between border-t border-outline-variant/40 pt-2 text-[11px]">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-4 h-4 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[9px] font-bold">
                           {item.user === "JD" ? "JD" : item.user.substring(0, 2).toUpperCase()}
                         </div>
-                        <span className="text-[11px] font-medium text-outline">{item.date}</span>
+                        <span className="text-[10px] font-mono text-outline-variant">{item.date}</span>
                       </div>
                       
                       {!item.current && (
-                        <button className="px-2.5 py-1 text-[11px] font-bold text-primary hover:bg-primary-container/50 rounded transition-colors flex items-center gap-1">
-                          <span className="material-symbols-outlined text-[14px]">restore</span>
-                          Restore
+                        <button type="button" className="px-2 py-0.5 text-[10px] font-semibold text-primary hover:bg-primary/10 rounded transition-colors flex items-center gap-1 cursor-pointer">
+                          <HugeiconsIcon icon="refresh" size={11} strokeWidth={2} />
+                          <span>Restore</span>
                         </button>
                       )}
                     </div>
@@ -163,3 +164,4 @@ export default function RevisionHistoryDrawer({ isOpen, onClose }: RevisionHisto
     document.body
   );
 }
+

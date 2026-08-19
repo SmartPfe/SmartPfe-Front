@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { NotificationItem, useNotifications } from "@/context/NotificationContext";
+import HugeiconsIcon from "@/components/ui/HugeiconsIcon";
+import { cn } from "@/lib/utils";
 
 function formatNotificationTime(createdAt: string) {
   const diff = Date.now() - new Date(createdAt).getTime();
@@ -17,6 +19,7 @@ function formatNotificationTime(createdAt: string) {
 
 export default function NotificationBell({ label = "Live updates" }: { label?: string }) {
   const navigate = useNavigate();
+  const bellRef = useRef<HTMLDivElement>(null);
   const {
     notifications,
     unreadCount,
@@ -25,6 +28,30 @@ export default function NotificationBell({ label = "Live updates" }: { label?: s
     markNotificationAsRead,
   } = useNotifications();
   const [isOpen, setIsOpen] = useState(false);
+
+  // Close notifications on outside click or Escape
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (bellRef.current && !bellRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [isOpen]);
 
   const handleNotificationClick = async (notification: NotificationItem) => {
     try {
@@ -51,12 +78,12 @@ export default function NotificationBell({ label = "Live updates" }: { label?: s
 
   const getNotificationIcon = (notification: NotificationItem) =>
     notification.type === "generation_complete" || notification.type === "success"
-      ? "check_circle"
+      ? "checkmark-circle-02"
       : notification.type === "error"
-        ? "error"
+        ? "cancel-circle"
         : notification.type === "warning"
-          ? "warning"
-          : "info";
+          ? "alert-circle"
+          : "information-circle";
 
   const getNotificationColor = (notification: NotificationItem) =>
     notification.type === "generation_complete" || notification.type === "success"
@@ -68,84 +95,92 @@ export default function NotificationBell({ label = "Live updates" }: { label?: s
           : "text-primary";
 
   return (
-    <div className="relative">
+    <div ref={bellRef} className="relative">
       <button
         onClick={() => setIsOpen((value) => !value)}
-        className="relative w-9 h-9 flex items-center justify-center text-outline hover:text-on-surface rounded-lg border border-transparent hover:border-outline-variant hover:bg-surface-container transition-colors"
+        className="relative w-8 h-8 flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high/80 active:scale-95 rounded-md transition-all cursor-pointer"
         title="Notifications"
         type="button"
+        aria-label="Notifications"
       >
-        <span className="material-symbols-outlined text-[20px]">notifications</span>
+        <HugeiconsIcon icon="notification-02" size={17} strokeWidth={1.75} />
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-error text-on-error text-[10px] font-bold flex items-center justify-center">
+          <span className="absolute 0 top-0.5 right-0.5 min-w-3.5 h-3.5 px-0.5 rounded-full bg-primary text-on-primary text-[9px] font-bold flex items-center justify-center shadow-xs">
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
       </button>
 
       {isOpen && (
-        <>
-          <div className="fixed inset-0 z-[90]" onClick={() => setIsOpen(false)}></div>
-          <div className="absolute right-0 mt-2 w-80 bg-surface rounded-lg shadow-2xl border border-outline-variant z-[100] overflow-hidden">
-            <div className="px-md py-sm border-b border-outline-variant flex items-center justify-between">
-              <div>
-                <p className="font-label-md text-label-md text-on-surface">Notifications</p>
-                <p className="font-body-sm text-body-sm text-on-surface-variant">{label}</p>
-              </div>
-              <div className="flex items-center gap-2">
-                {unreadCount > 0 && (
-                  <button
-                    type="button"
-                    onClick={handleMarkAllAsRead}
-                    className="rounded-md px-2 py-1 text-label-sm font-medium text-primary hover:bg-primary/10"
-                  >
-                    Mark all as read
-                  </button>
-                )}
-                <span
-                  className={`w-2 h-2 rounded-full ${isConnected ? "bg-secondary" : "bg-outline"}`}
-                  title={isConnected ? "Realtime connected" : "Reconnecting"}
-                ></span>
-              </div>
+        <div className="absolute right-0 mt-2 w-84 bg-surface rounded-xl shadow-xl border border-outline-variant/80 z-50 overflow-hidden font-sans animate-in fade-in zoom-in-95 duration-100">
+          {/* Popover Header */}
+          <div className="px-3.5 py-2.5 border-b border-outline-variant/60 flex items-center justify-between bg-surface-container-lowest">
+            <div>
+              <p className="text-xs font-semibold text-on-surface">Notifications</p>
+              <p className="text-[11px] text-on-surface-variant">{label}</p>
             </div>
-
-            <div className="max-h-80 overflow-y-auto">
-              {notifications.length === 0 ? (
-                <div className="px-md py-lg text-center text-on-surface-variant font-body-md text-body-md">
-                  No notifications yet.
-                </div>
-              ) : (
-                notifications.map((notification) => (
-                  <button
-                    key={notification._id}
-                    type="button"
-                    onClick={() => handleNotificationClick(notification)}
-                    className={`w-full px-md py-sm text-left border-b border-outline-variant last:border-b-0 hover:bg-surface-container-low transition-colors ${
-                      notification.read ? "" : "bg-primary/5"
-                    }`}
-                  >
-                    <div className="flex items-start gap-sm">
-                      <span className={`material-symbols-outlined text-[18px] mt-base ${getNotificationColor(notification)}`}>
-                        {getNotificationIcon(notification)}
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          {!notification.read && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />}
-                          <p className="font-label-md text-label-md text-on-surface">{notification.title}</p>
-                        </div>
-                        <p className="font-body-sm text-body-sm text-on-surface-variant mt-base">{notification.message}</p>
-                        <p className="font-body-sm text-body-sm text-outline mt-xs">
-                          {formatNotificationTime(notification.createdAt)}
-                        </p>
-                      </div>
-                    </div>
-                  </button>
-                ))
+            <div className="flex items-center gap-2">
+              {unreadCount > 0 && (
+                <button
+                  type="button"
+                  onClick={handleMarkAllAsRead}
+                  className="rounded px-1.5 py-0.5 text-[11px] font-medium text-primary hover:bg-primary/10 transition-colors cursor-pointer"
+                >
+                  Mark all as read
+                </button>
               )}
+              <span
+                className={cn(
+                  "w-2 h-2 rounded-full",
+                  isConnected ? "bg-secondary" : "bg-outline-variant"
+                )}
+                title={isConnected ? "Live sync active" : "Connecting..."}
+              />
             </div>
           </div>
-        </>
+
+          {/* Notification List */}
+          <div className="max-h-72 overflow-y-auto divide-y divide-outline-variant/30">
+            {notifications.length === 0 ? (
+              <div className="py-8 px-4 text-center text-on-surface-variant text-xs flex flex-col items-center justify-center">
+                <HugeiconsIcon icon="notification-02" size={24} className="text-outline-variant mb-2" strokeWidth={1.5} />
+                <span>No new notifications</span>
+              </div>
+            ) : (
+              notifications.map((notification) => (
+                <button
+                  key={notification._id}
+                  type="button"
+                  onClick={() => handleNotificationClick(notification)}
+                  className={cn(
+                    "w-full px-3.5 py-2.5 text-left transition-colors cursor-pointer hover:bg-surface-container-high/60 flex items-start gap-2.5",
+                    notification.read ? "" : "bg-primary/5"
+                  )}
+                >
+                  <HugeiconsIcon
+                    icon={getNotificationIcon(notification)}
+                    size={16}
+                    className={cn("mt-0.5 shrink-0", getNotificationColor(notification))}
+                    strokeWidth={1.75}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5">
+                      {!notification.read && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />}
+                      <p className="text-xs font-semibold text-on-surface truncate">{notification.title}</p>
+                    </div>
+                    <p className="text-xs text-on-surface-variant line-clamp-2 mt-0.5">{notification.message}</p>
+                    <p className="text-[10px] text-outline-variant mt-1 font-mono">
+                      {formatNotificationTime(notification.createdAt)}
+                    </p>
+                  </div>
+                </button>
+              ))
+            )}
+          </div>
+        </div>
       )}
     </div>
   );
 }
+
+

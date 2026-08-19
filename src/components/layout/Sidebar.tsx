@@ -2,6 +2,7 @@ import { Link, NavLink, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import { useWorkflow } from "@/context/WorkflowContext";
+import HugeiconsIcon from "@/components/ui/HugeiconsIcon";
 
 const NAV_ITEMS = [
   { icon: "info", label: "Project Overview", path: "/workspace/overview", tooltip: "Define the core premise, goals, and domain of your project." },
@@ -137,35 +138,39 @@ export default function Sidebar({ isOpen, setIsSidebarOpen }: SidebarProps) {
           })}
         </nav>
       </div>
-      <div className="mt-auto border-t border-outline-variant py-md flex flex-col">
+      <div className="mt-auto border-t border-outline-variant/60 py-2 flex flex-col">
         <button 
+          type="button"
           onClick={() => setIsDarkMode(!isDarkMode)}
-          className="flex items-center justify-between px-4 py-3 text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors font-medium text-sm group"
+          className="flex items-center justify-between px-4 py-2.5 text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors font-medium text-xs group cursor-pointer"
         >
-          <div className="flex items-center gap-3">
-            <span className="material-symbols-outlined text-[20px] group-hover:text-primary transition-colors">
-              {isDarkMode ? "dark_mode" : "light_mode"}
-            </span>
+          <div className="flex items-center gap-2.5">
+            <HugeiconsIcon 
+              icon={isDarkMode ? "moon" : "sun"} 
+              size={16} 
+              className="group-hover:text-primary transition-colors text-on-surface-variant" 
+              strokeWidth={1.75}
+            />
             <span>{isDarkMode ? "Dark Mode" : "Light Mode"}</span>
           </div>
           <div className={cn(
-            "w-8 h-4 rounded-full p-0.5 transition-colors relative flex items-center",
-            isDarkMode ? "bg-primary" : "bg-outline-variant"
+            "w-7 h-4 rounded-full p-0.5 transition-colors relative flex items-center",
+            isDarkMode ? "bg-primary" : "bg-outline-variant/70"
           )}>
             <div className={cn(
-              "w-3 h-3 rounded-full bg-white transition-transform transform shadow-sm",
-              isDarkMode ? "translate-x-4" : "translate-x-0"
+              "w-3 h-3 rounded-full bg-white transition-transform transform shadow-xs",
+              isDarkMode ? "translate-x-3" : "translate-x-0"
             )} />
           </div>
         </button>
-        <Link to="/workspace/settings" className="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors font-medium text-sm group">
-          <span className="material-symbols-outlined text-[20px] group-hover:text-primary transition-colors">settings</span>
+        <Link to="/workspace/settings" className="flex items-center gap-2.5 px-4 py-2.5 text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors font-medium text-xs group">
+          <HugeiconsIcon icon="settings-02" size={16} className="group-hover:text-primary transition-colors text-on-surface-variant" strokeWidth={1.75} />
           <span>Settings</span>
         </Link>
-        <a href="#" className="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors font-medium text-sm group">
-          <span className="material-symbols-outlined text-[20px] group-hover:text-primary transition-colors">help</span>
-          <span>Help Center</span>
-        </a>
+        <Link to="/workspace/overview" className="flex items-center gap-2.5 px-4 py-2.5 text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors font-medium text-xs group">
+          <HugeiconsIcon icon="information-circle" size={16} className="group-hover:text-primary transition-colors text-on-surface-variant" strokeWidth={1.75} />
+          <span>Documentation</span>
+        </Link>
       </div>
     </aside>
     </>
