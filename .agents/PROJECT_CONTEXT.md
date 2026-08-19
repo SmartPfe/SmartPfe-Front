@@ -47,7 +47,7 @@ The platform is structured into synchronized workspace modules:
 - **Runtime & Server**: Node.js, Express (REST API).
 - **Database**: MongoDB Atlas via Mongoose.
   - Core collections: `projects` (unified project document containing all modules), `users`, `pfe_chunks` (3,092 indexed thesis chunks for vector search).
-- **AI Engine**: OpenRouter API (`openRouterService.js`) with automatic multi-model fallback chain.
+- **AI Engine**: Google Gemini API (`geminiService.js`) with task-tiered routing (`reasoning`, `default`, `fast`) and automatic multi-model fallback chain.
 - **RAG & Search**:
   - Native MongoDB Atlas `$vectorSearch` (`pfe_chunks_vector_index`, 384 dimensions).
   - Python bridge script (`sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`) for dense embeddings.
