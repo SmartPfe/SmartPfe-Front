@@ -7,8 +7,10 @@ import { normalizePresentation, PresentationDeck, PresentationSlide } from "./Pr
 import { formatDuration, normalizePitch, PitchDeck, PitchSlide } from "./Pitch/hooks/usePitch";
 import HugeiconsIcon from "@/components/ui/HugeiconsIcon";
 import InfoTooltip from "@/components/ui/InfoTooltip";
+import JuryQASession from "./JuryQA/JuryQASession";
+import type { JuryQASessionRecord } from "./JuryQA/types";
 
-type JuryStage = "loading" | "prepare" | "presenting" | "analyzing" | "results";
+type JuryStage = "loading" | "prepare" | "presenting" | "analyzing" | "results" | "qa";
 type MicStatus = "unknown" | "checking" | "ready" | "denied" | "unavailable";
 
 type CategoryScores = {
@@ -113,6 +115,7 @@ export default function JurySimulation() {
   const [presentation, setPresentation] = useState<PresentationDeck>(normalizePresentation());
   const [pitch, setPitch] = useState<PitchDeck>(normalizePitch());
   const [attempts, setAttempts] = useState<JuryAttempt[]>([]);
+  const [qaSessions, setQaSessions] = useState<JuryQASessionRecord[]>([]);
   const [currentAttempt, setCurrentAttempt] = useState<JuryAttempt | null>(null);
   const [micStatus, setMicStatus] = useState<MicStatus>("unknown");
   const [error, setError] = useState("");
@@ -173,6 +176,7 @@ export default function JurySimulation() {
       setPresentation(normalizePresentation(presentationData.presentation || {}));
       setPitch(normalizePitch(pitchData.pitch || {}));
       setAttempts(Array.isArray(juryData.attempts) ? juryData.attempts : []);
+      setQaSessions(Array.isArray(juryData.qaSessions) ? juryData.qaSessions : []);
       setCurrentAttempt(null);
       setActiveSlideIndex(0);
       setStage("prepare");
@@ -627,7 +631,6 @@ export default function JurySimulation() {
       const attempt = data.attempt;
       setAttempts((current) => [attempt, ...current.filter((item) => item._id !== attempt._id)]);
       setCurrentAttempt(attempt);
-      await refreshWorkflow();
       setStage("results");
     } catch (err: any) {
       streamRef.current?.getTracks().forEach((track) => track.stop());
@@ -653,6 +656,21 @@ export default function JurySimulation() {
     setError("");
     setStage("prepare");
   };
+
+  const qaSessionForAttempt = useCallback((attempt?: JuryAttempt | null) => {
+    if (!attempt?._id) return null;
+    return qaSessions.find((session) => String(session.juryAttemptId) === String(attempt._id)) || null;
+  }, [qaSessions]);
+
+  const upsertQASession = useCallback((session: JuryQASessionRecord) => {
+    setQaSessions((current) => {
+      const sessionId = session._id || `${session.juryAttemptId}-${session.createdAt || ""}`;
+      const exists = current.some((item) => (item._id || `${item.juryAttemptId}-${item.createdAt || ""}`) === sessionId);
+      return exists
+        ? current.map((item) => ((item._id || `${item.juryAttemptId}-${item.createdAt || ""}`) === sessionId ? session : item))
+        : [session, ...current];
+    });
+  }, []);
 
   if (stage === "loading") {
     return (
@@ -697,12 +715,34 @@ export default function JurySimulation() {
   }
 
   if (stage === "results" && currentAttempt) {
+    const activeQASession = qaSessionForAttempt(currentAttempt);
     return (
       <ResultsView
         attempt={currentAttempt}
         attempts={attempts}
+        qaSessions={qaSessions}
+        qaSession={activeQASession}
         onPracticeAgain={practiceAgain}
         onSelectAttempt={setCurrentAttempt}
+        onContinueToQA={() => setStage("qa")}
+      />
+    );
+  }
+
+  if (stage === "qa" && currentAttempt && project?._id) {
+    return (
+      <JuryQASession
+        projectId={project._id}
+        presentation={presentation}
+        pitch={pitch}
+        attempt={currentAttempt}
+        initialSession={qaSessionForAttempt(currentAttempt)}
+        onSessionChange={upsertQASession}
+        onBackToResults={() => setStage("results")}
+        onCompleted={async (session) => {
+          upsertQASession(session);
+          await refreshWorkflow();
+        }}
       />
     );
   }
@@ -1035,6 +1075,7 @@ export default function JurySimulation() {
         <div className="flex flex-col gap-6">
           <AttemptHistory
             attempts={attempts}
+            qaSessions={qaSessions}
             onSelectAttempt={(attempt) => {
               setCurrentAttempt(attempt);
               setStage("results");
@@ -1396,15 +1437,22 @@ function TimerPill({ label, value }: { label: string; value: string }) {
 function ResultsView({
   attempt,
   attempts,
+  qaSessions,
+  qaSession,
   onPracticeAgain,
   onSelectAttempt,
+  onContinueToQA,
 }: {
   attempt: JuryAttempt;
   attempts: JuryAttempt[];
+  qaSessions: JuryQASessionRecord[];
+  qaSession: JuryQASessionRecord | null;
   onPracticeAgain: () => void;
   onSelectAttempt: (attempt: JuryAttempt) => void;
+  onContinueToQA: () => void;
 }) {
   const analysis = attempt.analysis;
+  const finalEvaluation = qaSession?.finalEvaluation;
 
   return (
     <div className="mx-auto flex max-w-[1440px] flex-col h-full pb-32">
@@ -1422,14 +1470,24 @@ function ResultsView({
                   {attemptVersionLabel(attempt)} · Presentation v{attempt.presentationVersion}, Pitch v{attempt.pitchVersion}
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={onPracticeAgain}
-                className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-lg bg-primary text-on-primary text-xs font-bold shadow-2xs hover:bg-primary/90 transition-all cursor-pointer"
-              >
-                <HugeiconsIcon icon="refresh" size={15} strokeWidth={2} />
-                <span>Practice Again</span>
-              </button>
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={onContinueToQA}
+                  className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-lg bg-primary text-on-primary text-xs font-bold shadow-2xs hover:bg-primary/90 transition-all cursor-pointer"
+                >
+                  <HugeiconsIcon icon={qaSession?.status === "completed" ? "analytics" : "arrow-right"} size={15} strokeWidth={2} />
+                  <span>{qaSession?.status === "completed" ? "View Final Report" : qaSession ? "Resume Jury Questions" : "Continue to Jury Questions"}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={onPracticeAgain}
+                  className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-lg border border-outline-variant/80 bg-surface text-on-surface text-xs font-bold shadow-2xs hover:bg-surface-container transition-all cursor-pointer"
+                >
+                  <HugeiconsIcon icon="refresh" size={15} strokeWidth={2} />
+                  <span>Practice Again</span>
+                </button>
+              </div>
             </div>
             <div className="mt-6 grid gap-3 grid-cols-2 sm:grid-cols-5">
               {scoreCategories.map(([key, label]) => (
@@ -1438,6 +1496,27 @@ function ResultsView({
                   <p className="mt-1 text-xl font-bold font-mono text-on-surface">{analysis.categoryScores[key]}</p>
                 </div>
               ))}
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-outline-variant/80 bg-surface-container-lowest p-5 sm:p-6 shadow-2xs">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="text-sm font-bold uppercase tracking-wider text-on-surface">Defense Completed - Jury Q&A - Final Report</h2>
+                <p className="mt-2 text-sm leading-relaxed text-on-surface-variant">
+                  {qaSession?.status === "completed"
+                    ? `Final jury evaluation completed with readiness: ${finalEvaluation?.readinessLevel || "Ready"}.`
+                    : qaSession
+                      ? "Your jury question session is in progress. Resume it to preserve your completed answers."
+                      : "The AI evaluation is ready. Continue to personalized jury questions before generating the final report."}
+                </p>
+              </div>
+              {qaSession?.status === "completed" && (
+                <div className="rounded-xl border border-primary/25 bg-primary/10 px-4 py-3 text-right">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-primary">Final Score</p>
+                  <p className="font-mono text-2xl font-bold text-on-surface">{finalEvaluation?.overallScore || 0}/100</p>
+                </div>
+              )}
             </div>
           </section>
 
@@ -1494,7 +1573,7 @@ function ResultsView({
           </section>
         </main>
 
-        <AttemptHistory attempts={attempts} onSelectAttempt={onSelectAttempt} selectedId={attempt._id} />
+        <AttemptHistory attempts={attempts} qaSessions={qaSessions} onSelectAttempt={onSelectAttempt} selectedId={attempt._id} />
       </div>
     </div>
   );
@@ -1543,39 +1622,78 @@ function MiniList({ title, items }: { title: string; items: string[] }) {
   );
 }
 
-function AttemptHistory({ attempts, onSelectAttempt, selectedId }: { attempts: JuryAttempt[]; onSelectAttempt: (attempt: JuryAttempt) => void; selectedId?: string }) {
+function AttemptHistory({
+  attempts,
+  qaSessions = [],
+  onSelectAttempt,
+  selectedId,
+}: {
+  attempts: JuryAttempt[];
+  qaSessions?: JuryQASessionRecord[];
+  onSelectAttempt: (attempt: JuryAttempt) => void;
+  selectedId?: string;
+}) {
+  const safeQASessions = Array.isArray(qaSessions) ? qaSessions : [];
+  const sessionForAttempt = (attempt: JuryAttempt) =>
+    safeQASessions.find((session) => String(session.juryAttemptId) === String(attempt._id));
+
   return (
     <aside className="rounded-2xl border border-outline-variant/80 bg-surface-container-lowest p-4 sm:p-5 shadow-2xs h-fit">
       <h2 className="text-xs font-bold uppercase tracking-wider text-on-surface mb-3">Attempt History</h2>
       <div className="space-y-2">
-        {attempts.length ? attempts.map((attempt) => (
-          <button
-            key={attempt._id || attempt.attemptNumber}
-            type="button"
-            onClick={() => onSelectAttempt(attempt)}
-            className={cn(
-              "w-full rounded-xl border p-3 text-left transition-all duration-150 cursor-pointer shadow-2xs",
-              selectedId === attempt._id
-                ? "border-primary bg-primary/10"
-                : "border-outline-variant/70 bg-surface hover:bg-surface-container"
-            )}
-          >
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-xs font-bold text-on-surface">Attempt #{attempt.attemptNumber}</span>
-              <span className="text-sm font-bold font-mono text-primary">{attempt.analysis?.overallScore ?? 0}</span>
-            </div>
-            <p className={cn("mt-1 text-xs font-semibold", attempt.isCurrent ? "text-secondary" : "text-on-surface-variant")}>
-              {attemptVersionLabel(attempt)}
-            </p>
-            <p className="mt-0.5 text-xs text-on-surface font-mono">{formatDuration(attempt.actualSeconds)} recorded</p>
-          </button>
-        )) : (
+        {attempts.length ? attempts.map((attempt) => {
+          const qaSession = sessionForAttempt(attempt);
+          const finalScore = qaSession?.finalEvaluation?.overallScore;
+          const qaScores = qaSession?.questions?.map((question) => question.evaluation?.score).filter((score): score is number => typeof score === "number") || [];
+          const qaScore = qaScores.length ? Math.round(qaScores.reduce((sum, score) => sum + score, 0) / qaScores.length) : null;
+          return (
+            <button
+              key={attempt._id || attempt.attemptNumber}
+              type="button"
+              onClick={() => onSelectAttempt(attempt)}
+              className={cn(
+                "w-full rounded-xl border p-3 text-left transition-all duration-150 cursor-pointer shadow-2xs",
+                selectedId === attempt._id
+                  ? "border-primary bg-primary/10"
+                  : "border-outline-variant/70 bg-surface hover:bg-surface-container"
+              )}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-xs font-bold text-on-surface">Attempt #{attempt.attemptNumber}</span>
+                <span className="text-sm font-bold font-mono text-primary">{finalScore ?? attempt.analysis?.overallScore ?? 0}</span>
+              </div>
+              <div className="mt-2 grid grid-cols-3 gap-1.5">
+                <HistoryMetric label="Defense" value={`${attempt.analysis?.overallScore ?? 0}`} />
+                <HistoryMetric label="Q&A" value={qaScore === null ? "-" : `${qaScore}`} />
+                <HistoryMetric label="Final" value={finalScore === undefined ? "-" : `${finalScore}`} />
+              </div>
+              <p className={cn("mt-2 text-xs font-semibold", attempt.isCurrent ? "text-secondary" : "text-on-surface-variant")}>
+                {attemptVersionLabel(attempt)}
+              </p>
+              <p className="mt-0.5 text-xs text-on-surface-variant">
+                {qaSession?.finalEvaluation?.readinessLevel || (qaSession ? "Q&A in progress" : "Q&A not started")}
+              </p>
+              <p className="mt-0.5 text-xs text-on-surface font-mono">
+                {attempt.createdAt ? new Date(attempt.createdAt).toLocaleDateString() : formatDuration(attempt.actualSeconds)}
+              </p>
+            </button>
+          );
+        }) : (
           <p className="rounded-xl border border-dashed border-outline-variant/80 p-4 text-xs text-on-surface-variant text-center font-medium">
             No previous attempts recorded.
           </p>
         )}
       </div>
     </aside>
+  );
+}
+
+function HistoryMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <span className="rounded-lg border border-outline-variant/70 bg-surface-container-low px-2 py-1 text-center">
+      <span className="block text-[9px] font-bold uppercase tracking-wider text-on-surface-variant">{label}</span>
+      <span className="block font-mono text-xs font-bold text-on-surface">{value}</span>
+    </span>
   );
 }
 

@@ -106,7 +106,13 @@ export function WorkflowProvider({ children }: { children: ReactNode }) {
         data.jurySimulation?.attempts?.some((attempt: any) =>
           attempt?.status === "completed" &&
           Number(attempt.presentationVersion) === Number(data.presentation?.version || (data.presentation?.slides?.length ? 1 : 0)) &&
-          Number(attempt.pitchVersion) === Number(data.pitch?.version || (data.pitch?.slides?.length ? 1 : 0))
+          Number(attempt.pitchVersion) === Number(data.pitch?.version || (data.pitch?.slides?.length ? 1 : 0)) &&
+          data.jurySimulation?.qaSessions?.some((session: any) =>
+            session?.status === "completed" &&
+            String(session.juryAttemptId) === String(attempt._id) &&
+            Number(session.presentationVersion) === Number(attempt.presentationVersion) &&
+            Number(session.pitchVersion) === Number(attempt.pitchVersion)
+          )
         )
       ),
     };

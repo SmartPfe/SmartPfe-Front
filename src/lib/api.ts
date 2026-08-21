@@ -14,7 +14,8 @@ const shouldRefreshProjectWorkflow = (endpoint: string, options: RequestInit) =>
 
   return (
     endpoint.startsWith("/projects") ||
-    endpoint === "/ai/report-studio/final/generate"
+    endpoint === "/ai/report-studio/final/generate" ||
+    endpoint.includes("/ai/jury-qa/")
   );
 };
 
