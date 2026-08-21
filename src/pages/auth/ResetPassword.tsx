@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { fetchApi } from "../../lib/api";
-import HugeiconsIcon from "../../components/ui/HugeiconsIcon";
+import HugeiconsIcon, { LockPasswordIcon } from "../../components/ui/HugeiconsIcon";
 
 export default function ResetPassword() {
   const { token } = useParams<{ token: string }>();
@@ -70,7 +70,7 @@ export default function ResetPassword() {
       {/* Header */}
       <div className="flex flex-col items-center mb-6 text-center">
         <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center mb-3 shadow-2xs">
-          <HugeiconsIcon icon="key" size={24} strokeWidth={1.8} />
+          <HugeiconsIcon icon={LockPasswordIcon} size={24} strokeWidth={1.8} />
         </div>
         <h1 className="text-2xl font-bold tracking-tight text-on-surface">Set new password</h1>
         <p className="text-xs text-on-surface-variant mt-1 max-w-[280px]">

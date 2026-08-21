@@ -922,6 +922,15 @@ const ICONS: Record<string, (props: { strokeWidth: number }) => React.ReactNode>
   "chevron-up": ({ strokeWidth }) => (
     <path d="M6 15L12 9L18 15" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
   ),
+  "lock-password": ({ strokeWidth }) => (
+    <>
+      <rect x="5" y="10" width="14" height="11" rx="3" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M8 10V7C8 4.79086 9.79086 3 12 3C14.2091 3 16 4.79086 16 7V10" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="9" cy="15.5" r="1" fill="currentColor" />
+      <circle cx="12" cy="15.5" r="1" fill="currentColor" />
+      <circle cx="15" cy="15.5" r="1" fill="currentColor" />
+    </>
+  ),
   "google": () => (
     <g>
       <path
@@ -1014,6 +1023,10 @@ export default function HugeiconsIcon({
 
 export const GoogleIcon = ({ size = 18, className, ...props }: Omit<HugeiconsIconProps, "icon">) => (
   <HugeiconsIcon icon="google" size={size} className={className} {...props} />
+);
+
+export const LockPasswordIcon = ({ size = 18, strokeWidth = 1.5, className, color, ...props }: Omit<HugeiconsIconProps, "icon">) => (
+  <HugeiconsIcon icon="lock-password" size={size} strokeWidth={strokeWidth} className={className} color={color} {...props} />
 );
 
 export const Folder01Icon = ({ size = 18, strokeWidth = 1.5, className, color, ...props }: Omit<HugeiconsIconProps, "icon">) => (
