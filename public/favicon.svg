@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <defs>
+    <linearGradient id="brand-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366f1" />
+      <stop offset="100%" stop-color="#4338ca" />
+    </linearGradient>
+    <filter id="subtle-shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="1" stdDeviation="1" flood-opacity="0.2"/>
+    </filter>
+  </defs>
+
+  <!-- Squircle Base -->
+  <rect width="32" height="32" rx="8" fill="url(#brand-grad)" />
+
+  <!-- Graduation Cap Icon -->
+  <g filter="url(#subtle-shadow)">
+    <path d="M26 13L16 8L6 13L16 18L26 13Z" fill="#ffffff" fill-opacity="0.2" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M10 15.5V19.5C10 19.5 12.5 22 16 22C19.5 22 22 19.5 22 19.5V15.5" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M26 13V18.5" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+    <circle cx="26" cy="19" r="0.8" fill="#ffffff" />
+  </g>
+</svg>

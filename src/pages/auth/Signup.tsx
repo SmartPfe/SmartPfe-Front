@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { fetchApi } from "../../lib/api";
 import GoogleLoginButton from "../../components/GoogleLoginButton";
+import HugeiconsIcon from "../../components/ui/HugeiconsIcon";
 
 export default function Signup() {
   const navigate = useNavigate();
@@ -12,29 +13,23 @@ export default function Signup() {
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [passwordStrength, setPasswordStrength] = useState(0);
+  const [passwordStrength, setPasswordStrength] = useState(0); // 0 to 4
   const [showPassword, setShowPassword] = useState(false);
 
-  // Calculate password strength
+  // Calculate 4-stage password strength
   useEffect(() => {
-    let strength = 0;
-    if (formData.password.length >= 6) strength += 25;
-    if (formData.password.length >= 8) strength += 25;
-    if (/[A-Z]/.test(formData.password)) strength += 25;
-    if (/[0-9]/.test(formData.password) || /[^A-Za-z0-9]/.test(formData.password)) strength += 25;
+    let score = 0;
+    if (formData.password.length >= 6) score += 1;
+    if (formData.password.length >= 8) score += 1;
+    if (/[A-Z]/.test(formData.password)) score += 1;
+    if (/[0-9]|[^A-Za-z0-9]/.test(formData.password)) score += 1;
     
-    setPasswordStrength(strength);
+    setPasswordStrength(score);
   }, [formData.password]);
-
-  const getStrengthColor = () => {
-    if (passwordStrength < 50) return "bg-error";
-    if (passwordStrength < 100) return "bg-[warning]"; // Using a yellow-ish color, can fallback to secondary
-    return "bg-[#34A853]"; // Green
-  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.id]: e.target.value });
-    setError(""); // clear error when typing
+    setError("");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -67,62 +62,88 @@ export default function Signup() {
     }
   };
 
+  const getStrengthLabel = () => {
+    if (passwordStrength <= 1) return { text: "Weak", color: "text-error" };
+    if (passwordStrength === 2) return { text: "Fair", color: "text-amber-500" };
+    if (passwordStrength === 3) return { text: "Good", color: "text-amber-500" };
+    return { text: "Strong", color: "text-secondary" };
+  };
+
+  const getSegmentColor = (segmentIndex: number) => {
+    if (segmentIndex >= passwordStrength) return "bg-surface-container-high";
+    if (passwordStrength <= 1) return "bg-error";
+    if (passwordStrength <= 3) return "bg-amber-500";
+    return "bg-secondary";
+  };
+
   return (
-    <div className="w-full max-w-[420px] bg-surface-container-lowest border border-outline-variant rounded-xl p-lg sm:p-xl shadow-[0_4px_20px_rgba(0,0,0,0.04)] flex flex-col gap-lg relative overflow-hidden">
-      <header className="flex flex-col items-center text-center gap-xs mt-sm">
-        <div className="w-12 h-12 bg-primary-container text-on-primary rounded-lg flex items-center justify-center mb-xs">
-          <span className="material-symbols-outlined text-[28px]">school</span>
+    <div className="w-full bg-surface-container-lowest border border-outline-variant/80 rounded-2xl p-6 sm:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.3)]">
+      {/* Header */}
+      <div className="flex flex-col items-center mb-6 text-center">
+        <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center mb-3 shadow-2xs">
+          <HugeiconsIcon icon="mortarboard-02" size={24} strokeWidth={1.8} />
         </div>
-        <h1 className="font-headline-md text-headline-md text-on-surface">Create your Workspace</h1>
-        <p className="font-body-md text-body-md text-on-surface-variant max-w-[280px]">Join your academic journey and start building your PFE project.</p>
-        <div className="mt-xs pt-xs border-t border-outline-variant w-full max-w-[200px] flex justify-center">
-          <span className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">PFE Guidance · Academic Year 2023-24</span>
-        </div>
-      </header>
-      
+        <h1 className="text-2xl font-bold tracking-tight text-on-surface">Create your account</h1>
+        <p className="text-xs text-on-surface-variant mt-1">Start architecting your end-of-studies project</p>
+      </div>
+
       {error && (
-        <div className="p-3 bg-error-container text-on-error-container rounded-md text-sm text-center border border-error">
-          {error}
+        <div className="p-3 mb-4 rounded-xl bg-error/10 text-error border border-error/20 text-xs font-medium flex items-center gap-2">
+          <HugeiconsIcon icon="alert-circle" size={16} strokeWidth={2} className="shrink-0" />
+          <span>{error}</span>
         </div>
       )}
 
-      <form className="flex flex-col gap-md mt-sm" onSubmit={handleSubmit}>
-        <div className="flex flex-col gap-base">
-          <label className="font-label-md text-label-md text-on-surface" htmlFor="fullName">Full Name</label>
+      {/* Form */}
+      <form className="space-y-3.5" onSubmit={handleSubmit}>
+        <div>
+          <label className="block text-xs font-semibold text-on-surface mb-1.5" htmlFor="fullName">
+            Full Name
+          </label>
           <div className="relative">
-            <span className="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-outline text-[20px] pointer-events-none">person</span>
+            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-on-surface-variant/60">
+              <HugeiconsIcon icon="user" size={18} strokeWidth={1.6} />
+            </div>
             <input 
               type="text" 
               id="fullName" 
               value={formData.fullName}
               onChange={handleChange}
-              placeholder="Jane Doe" 
+              placeholder="Alex Smith" 
               required 
-              className="w-full bg-surface h-12 pl-10 pr-sm border border-outline-variant rounded-lg font-body-md text-body-md text-on-surface placeholder:text-outline focus:border-secondary focus:ring-1 focus:ring-secondary transition-colors outline-none" 
+              className="block w-full h-11 pl-10 pr-3.5 bg-surface border border-outline-variant/80 rounded-xl text-sm text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all" 
             />
           </div>
         </div>
 
-        <div className="flex flex-col gap-base">
-          <label className="font-label-md text-label-md text-on-surface" htmlFor="email">University Email</label>
+        <div>
+          <label className="block text-xs font-semibold text-on-surface mb-1.5" htmlFor="email">
+            Email Address
+          </label>
           <div className="relative">
-            <span className="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-outline text-[20px] pointer-events-none">mail</span>
+            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-on-surface-variant/60">
+              <HugeiconsIcon icon="mail" size={18} strokeWidth={1.6} />
+            </div>
             <input 
               type="email" 
               id="email" 
               value={formData.email}
               onChange={handleChange}
-              placeholder="jane.doe@university.edu" 
+              placeholder="alex.smith@university.edu" 
               required 
-              className="w-full bg-surface h-12 pl-10 pr-sm border border-outline-variant rounded-lg font-body-md text-body-md text-on-surface placeholder:text-outline focus:border-secondary focus:ring-1 focus:ring-secondary transition-colors outline-none" 
+              className="block w-full h-11 pl-10 pr-3.5 bg-surface border border-outline-variant/80 rounded-xl text-sm text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all" 
             />
           </div>
         </div>
 
-        <div className="flex flex-col gap-base">
-          <label className="font-label-md text-label-md text-on-surface" htmlFor="password">Password</label>
+        <div>
+          <label className="block text-xs font-semibold text-on-surface mb-1.5" htmlFor="password">
+            Password
+          </label>
           <div className="relative">
-            <span className="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-outline text-[20px] pointer-events-none">lock</span>
+            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-on-surface-variant/60">
+              <HugeiconsIcon icon="lock" size={18} strokeWidth={1.6} />
+            </div>
             <input 
               type={showPassword ? "text" : "password"} 
               id="password" 
@@ -131,79 +152,94 @@ export default function Signup() {
               minLength={6} 
               placeholder="••••••••" 
               required 
-              className="w-full bg-surface h-12 pl-10 pr-10 border border-outline-variant rounded-lg font-body-md text-body-md text-on-surface placeholder:text-outline focus:border-secondary focus:ring-1 focus:ring-secondary transition-colors outline-none" 
+              className="block w-full h-11 pl-10 pr-10 bg-surface border border-outline-variant/80 rounded-xl text-sm text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all" 
             />
             <button
               type="button"
               onClick={() => setShowPassword((current) => !current)}
-              className="absolute inset-y-0 right-0 pr-3 flex items-center text-outline hover:text-on-surface transition-colors"
+              className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-on-surface-variant/60 hover:text-on-surface transition-colors cursor-pointer"
               aria-label={showPassword ? "Hide password" : "Show password"}
             >
-              <span className="material-symbols-outlined text-[18px]">
-                {showPassword ? "visibility_off" : "visibility"}
-              </span>
+              <HugeiconsIcon icon={showPassword ? "eye-off" : "eye"} size={18} strokeWidth={1.6} />
             </button>
           </div>
           
-          {/* Password Strength Progress Bar */}
+          {/* iOS-Style 4-Segment Password Strength Bar */}
           {formData.password.length > 0 && (
-            <div className="mt-2">
-              <div className="flex justify-between items-center mb-1">
-                <span className="font-label-sm text-xs text-on-surface-variant">Password strength:</span>
-                <span className="font-label-sm text-xs font-medium" style={{ color: passwordStrength < 50 ? '#BA1A1A' : passwordStrength < 100 ? '#F9A825' : '#34A853' }}>
-                  {passwordStrength < 50 ? "Weak" : passwordStrength < 100 ? "Medium" : "Strong"}
-                </span>
+            <div className="mt-2.5 space-y-1.5">
+              <div className="flex gap-1.5 w-full">
+                {[0, 1, 2, 3].map((index) => (
+                  <div 
+                    key={index} 
+                    className={`h-1 flex-1 rounded-full transition-colors duration-300 ${getSegmentColor(index)}`}
+                  />
+                ))}
               </div>
-              <div className="w-full bg-surface-container-highest rounded-full h-1.5 overflow-hidden">
-                <div 
-                  className={`h-1.5 rounded-full transition-all duration-300 ease-out`}
-                  style={{ 
-                    width: `${passwordStrength}%`,
-                    backgroundColor: passwordStrength < 50 ? '#BA1A1A' : passwordStrength < 100 ? '#F9A825' : '#34A853'
-                  }}
-                ></div>
+              <div className="flex justify-between items-center text-[11px]">
+                <span className="text-on-surface-variant">Security rating:</span>
+                <span className={`font-semibold ${getStrengthLabel().color}`}>
+                  {getStrengthLabel().text}
+                </span>
               </div>
             </div>
           )}
         </div>
 
-        <div className="mt-sm flex flex-col gap-md">
+        <div className="pt-2">
           <button 
             type="submit" 
             disabled={loading}
-            className="w-full h-12 bg-primary text-on-primary rounded-lg font-body-md text-body-md font-medium hover:bg-on-surface-variant transition-colors flex items-center justify-center gap-xs disabled:opacity-70 disabled:cursor-not-allowed"
+            className="w-full h-11 flex items-center justify-center gap-2 rounded-xl bg-primary text-on-primary text-sm font-semibold hover:bg-primary/90 active:scale-[0.99] transition-all shadow-xs disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
           >
-            {loading ? "Creating Account..." : "Create Account"}
-            {!loading && <span className="material-symbols-outlined text-[18px]">arrow_forward</span>}
+            {loading ? (
+              <>
+                <div className="w-4 h-4 border-2 border-on-primary/30 border-t-on-primary rounded-full animate-spin" />
+                <span>Creating Account...</span>
+              </>
+            ) : (
+              <>
+                <span>Create Account</span>
+                <HugeiconsIcon icon="arrow-right" size={16} strokeWidth={2} />
+              </>
+            )}
           </button>
-          <div className="text-center font-body-md text-body-md text-on-surface-variant">
-            Already have an account? 
-            <Link to="/login" className="text-primary hover:text-secondary font-medium transition-colors border-b border-transparent hover:border-secondary ml-1">Log in</Link>
-          </div>
         </div>
       </form>
 
-      <div className="relative my-4 flex items-center justify-center">
+      {/* Divider */}
+      <div className="relative my-5 flex items-center justify-center">
         <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-outline-variant"></div>
+          <div className="w-full border-t border-outline-variant/60"></div>
         </div>
-        <div className="relative bg-surface-container-lowest px-3 text-sm text-outline font-medium uppercase tracking-wider">
-          or
+        <div className="relative bg-surface-container-lowest px-3 text-[11px] text-on-surface-variant font-bold uppercase tracking-wider">
+          or continue with
         </div>
       </div>
 
-      <div className="mb-2">
+      {/* Google OAuth */}
+      <div className="mb-4">
         <GoogleLoginButton onError={setError} onLoading={setLoading} />
       </div>
 
-      <footer className="mt-md pt-md border-t border-surface-container text-center">
-        <p className="font-label-sm text-label-sm text-on-surface-variant leading-relaxed">
-          By signing up, you agree to our 
-          <a href="#" className="text-on-surface hover:text-primary underline transition-colors mx-1">Terms of Service</a> 
-          and 
-          <a href="#" className="text-on-surface hover:text-primary underline transition-colors ml-1">Privacy Policy</a>.
+      {/* Footer login & terms */}
+      <div className="space-y-3 text-center pt-1">
+        <p className="text-xs text-on-surface-variant">
+          Already have an account?{" "}
+          <Link 
+            to="/login" 
+            className="font-semibold text-primary hover:text-primary/80 transition-colors ml-0.5"
+          >
+            Log in
+          </Link>
         </p>
-      </footer>
+
+        <p className="text-[11px] text-on-surface-variant/70 leading-normal">
+          By signing up, you agree to our{" "}
+          <a href="#" className="underline hover:text-on-surface transition-colors">Terms of Service</a>{" "}
+          and{" "}
+          <a href="#" className="underline hover:text-on-surface transition-colors">Privacy Policy</a>.
+        </p>
+      </div>
     </div>
   );
 }

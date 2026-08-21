@@ -1,75 +1,48 @@
-# Agent Skill: Executive UI/UX Design System
-# Description: Automatically intercepts page-generation requests to enforce top-tier UI aesthetics, typography hierarchy, responsive layouts, and modern design standards.
+# Executive UI/UX Design System (Notion & iOS Aesthetics)
+> Canonical Skill Reference: [`.agents/skills/design/SKILL.md`](file:///c:/Users/hamma/Documents/GitHub/PfeMentor-front/SmartPfe-Front/.agents/skills/design/SKILL.md)
 
-## Global Design Rules
+## 🎯 Core Design Philosophy
 
-### 1. Typography & Hierarchy
-- **Strict Font Scale Hierarchy**:
-  - Page Titles / Headers: `text-2xl sm:text-3xl font-bold tracking-tight text-on-surface`
-  - Section Titles: `text-lg sm:text-xl font-bold tracking-tight text-on-surface`
-  - Card & Subsection Headers: `text-sm sm:text-base font-semibold text-on-surface`
-  - Eyebrows / Section Tags: `text-xs font-bold uppercase tracking-wider text-primary`
-  - Body Text: `text-sm text-on-surface-variant leading-relaxed`
-  - Stats / Metric Numbers: `text-2xl sm:text-3xl font-bold tracking-tight font-mono text-on-surface`
-- **Line Clamping & Wrapping Safety**:
-  - Never allow long titles to wrap into awkward single-word columns.
-  - Always pair titles with `truncate`, `line-clamp-1` or `line-clamp-2` with appropriate minimum column widths (`min-w-0`).
-  - Keep button labels and badges concise and `whitespace-nowrap`.
+1. **Notion-like Clarity**: Clean, breathable, clutter-free layouts. Zero yapping texts. High scannability with structured cards, tables, and pills.
+2. **iOS-Smooth Tactile Feel ("YUMMI")**: Snappy transitions (150–200ms), active scale presses (`active:scale-[0.99]`), refined focus rings, and buttery smooth progress bars.
+3. **No Raw Emojis / No Material Symbols**: Strictly use stroke-rounded SVG icons from [`HugeiconsIcon.tsx`](file:///c:/Users/hamma/Documents/GitHub/PfeMentor-front/SmartPfe-Front/src/components/ui/HugeiconsIcon.tsx) or `@hugeicons/react`.
+
+---
+
+## 🎨 Design Tokens & Hierarchy
+
+### 1. Typography Hierarchy
+- **Page / Hero Titles**: `text-2xl sm:text-3xl font-bold tracking-tight text-on-surface`
+- **Section Headers**: `text-lg sm:text-xl font-bold tracking-tight text-on-surface`
+- **Card & Subsection Headers**: `text-sm sm:text-base font-semibold text-on-surface`
+- **Eyebrows / Section Tags**: `text-xs font-bold uppercase tracking-wider text-primary`
+- **Body Text**: `text-sm text-on-surface-variant leading-relaxed`
+- **Secondary Captions**: `text-xs text-on-surface-variant/80`
+- **Numbers / Metrics**: `text-2xl sm:text-3xl font-bold tracking-tight font-mono text-on-surface`
 
 ### 2. Cards, Surfaces & Visual Depth
-- **Modern Clean Surfaces**:
-  - Primary Cards: `bg-surface-container-lowest border border-outline-variant/80 rounded-xl shadow-xs transition-all hover:border-outline`
-  - Interactive Cards: `hover:border-primary/40 hover:shadow-sm hover:bg-surface-container-low/40`
-  - Subtle Backdrops: `bg-surface/80 backdrop-blur-md border border-outline-variant/60`
-  - Avoid heavy, muddy gradients and visual noise. Use intentional, soft accents (`bg-primary/5`, `border-primary/20`).
+- **Primary Surface**: `bg-surface text-on-surface`
+- **Elevated Cards**: `bg-surface-container-lowest border border-outline-variant/80 rounded-2xl shadow-xs transition-all`
+- **Interactive Cards**: `hover:border-primary/40 hover:shadow-sm hover:bg-surface-container-low/40`
+- **Backdrops & Modals**: `bg-surface/80 backdrop-blur-md border border-outline-variant/60`
+- **Ambient Accents**: Use soft, intentional tints (`bg-primary/5`, `border-primary/20`).
 
-### 3. Metric Cards & KPI Bars
-- Structure KPI cards cleanly:
-  - Small uppercase label (`text-xs font-semibold text-on-surface-variant tracking-wider uppercase`).
-  - Large crisp stat value (`text-2xl sm:text-3xl font-bold tracking-tight text-on-surface font-mono`).
-  - Secondary context / pill (`text-xs text-on-surface-variant` with color-coded highlight).
-  - Micro progress bar: thin (`h-1.5`), smooth corners (`rounded-full`), high contrast track.
+### 3. Inputs & Form Controls
+- **Input Containers**: `h-11 rounded-xl bg-surface border border-outline-variant/80 px-3.5 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none`
+- **Icon Prefixes**: `HugeiconsIcon` with `size={18}` and `text-on-surface-variant/60`
+- **Field Labels**: `block text-xs font-semibold text-on-surface mb-1.5`
+- **Password Strength**: 4-segment animated bar (`bg-error`, `bg-amber-500`, `bg-emerald-500`) with smooth width/color transitions.
+- **Verification / OTP Inputs**: Segmented 6-box square digit cells with auto-advance and paste support.
 
-### 4. Interactive Components & States
-- **Component Completeness**: Every interactive component must natively handle:
-  - Default state
-  - Hover state (`hover:bg-... transition-colors duration-150`)
-  - Active / Selected state (`bg-primary-container text-primary font-semibold border-primary/30`)
-  - Disabled state (`disabled:opacity-40 disabled:cursor-not-allowed`)
-  - Loading state (clear spinner with matching color, non-jumping dimensions)
-  - Empty state (clean icon, concise title, single prominent CTA)
+### 4. Buttons & Interactive States
+- **Primary Action**: `h-11 px-5 rounded-xl bg-primary text-on-primary font-semibold text-sm shadow-xs hover:bg-primary/90 active:scale-[0.99] transition-all duration-150 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed`
+- **Secondary Action**: `h-11 px-5 rounded-xl bg-surface border border-outline-variant text-on-surface font-semibold text-sm hover:bg-surface-container-low active:scale-[0.99] transition-all cursor-pointer`
+- **Ghost / Text Button**: `text-sm font-semibold text-on-surface-variant hover:text-primary transition-colors cursor-pointer`
+- **Loading Spinner**: Non-jumping layout with `w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin`.
 
-### 5. Layout & Spacing Discipline
-- **Avoid Cramming**: Give data and text breathing room.
-  - Generous padding: `p-5 sm:p-6` for main containers, `gap-4 sm:gap-6` for grids.
-  - List tables and structured rows over cluttered multi-nested mini-boxes.
-  - Single-column or clean two-column responsive matrices rather than crammed 4-column sub-grids inside narrow sidebars.
-
----
-
-## Example Golden Layout (The AI Reference Point)
-
-```html
-<div class="min-h-screen bg-surface text-on-surface antialiased flex flex-col justify-center">
-  <div class="max-w-md w-full mx-auto p-8 bg-surface-container-lowest border border-outline-variant rounded-2xl shadow-xl">
-    <span class="text-xs font-bold tracking-wider text-primary uppercase">Executive Overview</span>
-    <h1 class="mt-2 text-2xl font-bold tracking-tight text-on-surface sm:text-3xl">Streamline your workflow</h1>
-    <p class="mt-3 text-sm text-on-surface-variant leading-relaxed">The intelligent orchestration layer engineered for modern research and academic reporting.</p>
-    <div class="mt-6 flex items-center gap-x-3">
-      <button class="rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-on-primary hover:bg-primary/90 transition-all duration-200 shadow-sm cursor-pointer">
-        Get Started
-      </button>
-      <button class="text-sm font-semibold text-on-surface-variant hover:text-on-surface transition-all duration-200 cursor-pointer">
-        Documentation &rarr;
-      </button>
-    </div>
-  </div>
-</div>
-```
-
----
-
-## Reference Repositories & Tooling
-* [VoltAgent / awesome-design-md](https://github.com): Single-file agent design presets for pristine UI consistency.
-* [GlamgarOnDiscord / uxui-AI-Prompt](https://github.com): Linear & Raycast inspired AI design templates.
-* [marvkr / better-design](https://github.com/marvkr/better-design): Production-grade accessibility and visual design rules.
+### 5. Iconography Guidelines (`HugeiconsIcon`)
+- Always use [`HugeiconsIcon.tsx`](file:///c:/Users/hamma/Documents/GitHub/PfeMentor-front/SmartPfe-Front/src/components/ui/HugeiconsIcon.tsx).
+- **Toolbar Buttons**: `size={17}` with `strokeWidth={1.65}`
+- **Form Inputs**: `size={18}` with `strokeWidth={1.6}`
+- **Action Icons (Edit, Delete, Check)**: `size={16}` with `strokeWidth={1.8}`
+- **Empty States / Headers**: `size={24}` to `32}` with `strokeWidth={1.6}` in rounded container.

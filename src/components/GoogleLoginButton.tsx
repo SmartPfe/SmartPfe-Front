@@ -1,5 +1,5 @@
 /// <reference types="vite/client" />
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { fetchApi } from "../lib/api";
 
@@ -16,6 +16,7 @@ interface GoogleLoginButtonProps {
 
 export default function GoogleLoginButton({ onError, onLoading }: GoogleLoginButtonProps) {
   const navigate = useNavigate();
+  const [isGoogleLoaded, setIsGoogleLoaded] = useState(false);
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || "YOUR_GOOGLE_CLIENT_ID";
 
   useEffect(() => {
@@ -24,6 +25,7 @@ export default function GoogleLoginButton({ onError, onLoading }: GoogleLoginBut
     const initializeGoogle = () => {
       if (window.google?.accounts?.id) {
         clearInterval(interval);
+        setIsGoogleLoaded(true);
         
         window.google.accounts.id.initialize({
           client_id: googleClientId,
@@ -35,7 +37,8 @@ export default function GoogleLoginButton({ onError, onLoading }: GoogleLoginBut
           window.google.accounts.id.renderButton(btnElement, {
             theme: "outline",
             size: "large",
-            width: "370", // matches login container width roughly
+            shape: "rectangular",
+            width: "360",
             logo_alignment: "left",
             text: "continue_with",
           });
@@ -97,8 +100,12 @@ export default function GoogleLoginButton({ onError, onLoading }: GoogleLoginBut
   };
 
   return (
-    <div className="w-full flex justify-center">
-      <div id="google-signin-btn" className="w-full max-w-[370px]"></div>
+    <div className="w-full flex items-center justify-center min-h-[44px]">
+      <div 
+        id="google-signin-btn" 
+        className="w-full flex justify-center overflow-hidden rounded-xl transition-opacity duration-200"
+        style={{ opacity: isGoogleLoaded ? 1 : 0.5 }}
+      />
     </div>
   );
 }

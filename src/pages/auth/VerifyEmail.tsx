@@ -1,6 +1,7 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { fetchApi } from "../../lib/api";
+import HugeiconsIcon from "../../components/ui/HugeiconsIcon";
 
 type VerifyEmailLocationState = {
   email?: string;
@@ -32,28 +33,83 @@ export default function VerifyEmail() {
   );
 
   const [email, setEmail] = useState(initialEmail);
-  const [code, setCode] = useState("");
+  const [digits, setDigits] = useState<string[]>(["", "", "", "", "", ""]);
   const [error, setError] = useState("");
-  const [message, setMessage] = useState(state.message || "Enter the 6-digit code sent to your email.");
+  const [message, setMessage] = useState(state.message || "");
   const [devCode, setDevCode] = useState(state.devVerificationCode || "");
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  const handleCodeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setCode(event.target.value.replace(/\D/g, "").slice(0, 6));
+  const code = digits.join("");
+
+  const handleDigitChange = (index: number, value: string) => {
     setError("");
+    // Allow only numeric input
+    const cleaned = value.replace(/\D/g, "");
+    
+    if (!cleaned) {
+      const newDigits = [...digits];
+      newDigits[index] = "";
+      setDigits(newDigits);
+      return;
+    }
+
+    // Handle single digit input
+    if (cleaned.length === 1) {
+      const newDigits = [...digits];
+      newDigits[index] = cleaned;
+      setDigits(newDigits);
+
+      // Auto-advance to next input
+      if (index < 5) {
+        inputRefs.current[index + 1]?.focus();
+      }
+    } else {
+      // Handle paste of multiple digits
+      const pastedDigits = cleaned.slice(0, 6).split("");
+      const newDigits = [...digits];
+      pastedDigits.forEach((d, i) => {
+        if (i < 6) newDigits[i] = d;
+      });
+      setDigits(newDigits);
+      
+      const nextFocus = Math.min(pastedDigits.length, 5);
+      inputRefs.current[nextFocus]?.focus();
+    }
+  };
+
+  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Backspace" && !digits[index] && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+    if (!pasted) return;
+
+    const newDigits = [...digits];
+    pasted.split("").forEach((char, idx) => {
+      newDigits[idx] = char;
+    });
+    setDigits(newDigits);
+
+    const targetIdx = Math.min(pasted.length, 5);
+    inputRefs.current[targetIdx]?.focus();
   };
 
   const handleVerify = async (event: React.FormEvent) => {
     event.preventDefault();
 
     if (!email.trim()) {
-      setError("Email is required.");
+      setError("Email address is required.");
       return;
     }
 
     if (code.length !== 6) {
-      setError("Enter the 6-digit verification code.");
+      setError("Please enter the complete 6-digit verification code.");
       return;
     }
 
@@ -76,7 +132,7 @@ export default function VerifyEmail() {
 
       navigate(data.hasCompletedOnboarding ? "/workspace/overview" : "/onboarding/1");
     } catch (err: any) {
-      setError(err.message || "Email verification failed. Please try again.");
+      setError(err.message || "Email verification failed. Please check the code and try again.");
     } finally {
       setLoading(false);
     }
@@ -103,9 +159,10 @@ export default function VerifyEmail() {
       }
 
       sessionStorage.setItem("pendingVerificationEmail", data.email || email);
-      setMessage(data.message || "A new verification code has been sent.");
+      setMessage(data.message || "A new verification code has been dispatched.");
       setDevCode(data.devVerificationCode || "");
-      setCode("");
+      setDigits(["", "", "", "", "", ""]);
+      inputRefs.current[0]?.focus();
     } catch (err: any) {
       setError(err.message || "Failed to resend verification code.");
     } finally {
@@ -114,88 +171,146 @@ export default function VerifyEmail() {
   };
 
   return (
-    <div className="w-full max-w-[420px] mx-auto bg-surface-container-lowest border border-outline-variant rounded-xl p-lg sm:p-xl shadow-sm">
-      <div className="flex flex-col items-center mb-xl text-center">
-        <div className="w-12 h-12 rounded-lg bg-primary-container text-on-primary-container flex items-center justify-center mb-md border border-outline-variant">
-          <span className="material-symbols-outlined text-[28px]" style={{ fontVariationSettings: "'FILL' 1" }}>mark_email_read</span>
+    <div className="w-full bg-surface-container-lowest border border-outline-variant/80 rounded-2xl p-6 sm:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.3)]">
+      {/* Header */}
+      <div className="flex flex-col items-center mb-6 text-center">
+        <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center mb-3 shadow-2xs">
+          <HugeiconsIcon icon="mark-email-read" size={24} strokeWidth={1.8} />
         </div>
-        <h1 className="font-headline-lg text-headline-lg text-primary mb-xs">Verify your email</h1>
-        <p className="font-body-md text-body-md text-on-surface-variant">{message}</p>
+        <h1 className="text-2xl font-bold tracking-tight text-on-surface">Verify your email</h1>
+        <p className="text-xs text-on-surface-variant mt-1 max-w-[300px]">
+          {email ? (
+            <>
+              Enter the 6-digit code sent to <strong className="text-on-surface font-semibold">{email}</strong>
+            </>
+          ) : (
+            "Enter the 6-digit verification code sent to your email."
+          )}
+        </p>
       </div>
 
       {devCode && (
-        <div className="p-3 mb-4 bg-secondary-container text-on-secondary-container rounded-md text-sm text-center border border-secondary-fixed-dim">
-          Development code: <span className="font-bold tracking-widest">{devCode}</span>
+        <div className="p-3 mb-4 bg-surface-container-low border border-primary/20 rounded-xl text-xs flex items-center justify-between">
+          <span className="text-on-surface-variant font-medium">Dev test code:</span>
+          <button 
+            type="button"
+            onClick={() => {
+              const pasted = devCode.slice(0, 6).split("");
+              const newDigits = [...digits];
+              pasted.forEach((d, i) => { newDigits[i] = d; });
+              setDigits(newDigits);
+            }}
+            className="font-mono font-bold tracking-widest text-primary hover:underline cursor-pointer"
+            title="Click to fill"
+          >
+            {devCode}
+          </button>
+        </div>
+      )}
+
+      {message && !error && (
+        <div className="p-3 mb-4 rounded-xl bg-secondary/10 text-secondary border border-secondary/20 text-xs font-medium flex items-center gap-2">
+          <HugeiconsIcon icon="checkmark-circle-02" size={16} strokeWidth={2} className="shrink-0" />
+          <span>{message}</span>
         </div>
       )}
 
       {error && (
-        <div className="p-3 mb-4 bg-error-container text-on-error-container rounded-md text-sm text-center border border-error">
-          {error}
+        <div className="p-3 mb-4 rounded-xl bg-error/10 text-error border border-error/20 text-xs font-medium flex items-center gap-2">
+          <HugeiconsIcon icon="alert-circle" size={16} strokeWidth={2} className="shrink-0" />
+          <span>{error}</span>
         </div>
       )}
 
-      <form className="space-y-lg" onSubmit={handleVerify}>
-        <div className="space-y-xs">
-          <label className="block font-label-md text-label-md text-on-surface" htmlFor="email">Email address</label>
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <span className="material-symbols-outlined text-outline text-[18px]">mail</span>
+      <form className="space-y-4" onSubmit={handleVerify}>
+        {!initialEmail && (
+          <div>
+            <label className="block text-xs font-semibold text-on-surface mb-1.5" htmlFor="email">
+              Email address
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-on-surface-variant/60">
+                <HugeiconsIcon icon="mail" size={18} strokeWidth={1.6} />
+              </div>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                value={email}
+                onChange={(event) => {
+                  setEmail(event.target.value);
+                  setError("");
+                }}
+                autoComplete="email"
+                required
+                placeholder="student@university.edu"
+                className="block w-full h-11 pl-10 pr-3.5 bg-surface border border-outline-variant/80 rounded-xl text-sm text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+              />
             </div>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              value={email}
-              onChange={(event) => {
-                setEmail(event.target.value);
-                setError("");
-              }}
-              autoComplete="email"
-              required
-              placeholder="student@university.edu"
-              className="block w-full pl-10 pr-3 py-2 bg-surface border border-outline-variant rounded-md font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:ring-1 focus:ring-secondary focus:border-secondary transition-colors"
-            />
+          </div>
+        )}
+
+        {/* 6-Digit Segmented OTP Input */}
+        <div>
+          <label className="block text-xs font-semibold text-on-surface mb-2.5 text-center">
+            Verification code
+          </label>
+          <div className="flex items-center justify-between gap-1.5 sm:gap-2">
+            {digits.map((digit, idx) => (
+              <input
+                key={idx}
+                ref={(el) => (inputRefs.current[idx] = el)}
+                type="text"
+                inputMode="numeric"
+                maxLength={1}
+                value={digit}
+                onChange={(e) => handleDigitChange(idx, e.target.value)}
+                onKeyDown={(e) => handleKeyDown(idx, e)}
+                onPaste={handlePaste}
+                autoFocus={idx === 0}
+                className="w-11 h-12 sm:w-12 sm:h-13 text-center text-lg sm:text-xl font-bold font-mono rounded-xl bg-surface border border-outline-variant/80 text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+              />
+            ))}
           </div>
         </div>
 
-        <div className="space-y-xs">
-          <label className="block font-label-md text-label-md text-on-surface" htmlFor="code">Verification code</label>
-          <input
-            id="code"
-            name="code"
-            type="text"
-            inputMode="numeric"
-            value={code}
-            onChange={handleCodeChange}
-            autoComplete="one-time-code"
-            required
-            placeholder="000000"
-            className="block h-14 w-full rounded-md border border-outline-variant bg-surface px-4 text-center text-headline-md font-semibold tracking-[0.35em] text-on-surface placeholder:text-outline focus:border-secondary focus:outline-none focus:ring-1 focus:ring-secondary"
-          />
+        <div className="pt-2">
+          <button
+            type="submit"
+            disabled={loading || code.length !== 6}
+            className="w-full h-11 flex items-center justify-center gap-2 rounded-xl bg-primary text-on-primary text-sm font-semibold hover:bg-primary/90 active:scale-[0.99] transition-all shadow-xs disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+          >
+            {loading ? (
+              <>
+                <div className="w-4 h-4 border-2 border-on-primary/30 border-t-on-primary rounded-full animate-spin" />
+                <span>Verifying...</span>
+              </>
+            ) : (
+              <span>Verify Email</span>
+            )}
+          </button>
         </div>
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-md bg-primary text-on-primary font-label-md text-label-md uppercase tracking-wider hover:bg-on-primary-fixed-variant transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary focus:ring-offset-surface disabled:opacity-70 disabled:cursor-not-allowed"
-        >
-          {loading ? "Verifying..." : "Verify Email"}
-        </button>
       </form>
 
-      <div className="mt-lg flex flex-col items-center gap-sm text-center">
+      {/* Resend and Login */}
+      <div className="mt-6 flex flex-col items-center gap-3 text-center pt-2 border-t border-outline-variant/60">
         <button
           type="button"
           onClick={handleResend}
           disabled={resending}
-          className="font-label-md text-label-md text-secondary hover:text-secondary-container transition-colors disabled:opacity-60"
+          className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors disabled:opacity-50 cursor-pointer"
         >
-          {resending ? "Sending..." : "Resend code"}
+          {resending ? "Sending code..." : "Didn't receive a code? Resend"}
         </button>
-        <p className="font-body-md text-body-md text-on-surface-variant">
-          Already verified?
-          <Link to="/login" className="font-label-md text-label-md text-primary hover:text-secondary transition-colors border-b border-transparent hover:border-secondary ml-1 pb-0.5">Log in</Link>
+
+        <p className="text-xs text-on-surface-variant">
+          Already verified?{" "}
+          <Link 
+            to="/login" 
+            className="font-semibold text-primary hover:text-primary/80 transition-colors ml-0.5"
+          >
+            Log in
+          </Link>
         </p>
       </div>
     </div>

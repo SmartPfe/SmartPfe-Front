@@ -1,6 +1,7 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { fetchApi } from "../../lib/api";
+import HugeiconsIcon from "../../components/ui/HugeiconsIcon";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
@@ -37,65 +38,75 @@ export default function ForgotPassword() {
   };
 
   return (
-    <div className="w-full max-w-[420px] mx-auto bg-surface-container-lowest border border-outline-variant rounded-xl p-lg sm:p-xl shadow-sm">
-      <div className="flex flex-col items-center mb-xl text-center">
-        <div className="w-12 h-12 rounded-lg bg-surface-container-high flex items-center justify-center mb-md border border-outline-variant">
-          <span className="material-symbols-outlined text-[28px] text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>lock_reset</span>
+    <div className="w-full bg-surface-container-lowest border border-outline-variant/80 rounded-2xl p-6 sm:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.3)]">
+      {/* Header */}
+      <div className="flex flex-col items-center mb-6 text-center">
+        <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center mb-3 shadow-2xs">
+          <HugeiconsIcon icon="lock-reset" size={24} strokeWidth={1.8} />
         </div>
-        <h1 className="font-headline-lg text-headline-lg text-primary mb-xs">Reset Password</h1>
-        <p className="font-body-md text-body-md text-on-surface-variant max-w-[300px]">
-          Enter your email address and we'll send you a link to reset your password.
+        <h1 className="text-2xl font-bold tracking-tight text-on-surface">Reset your password</h1>
+        <p className="text-xs text-on-surface-variant mt-1 max-w-[280px]">
+          Enter your registered email and we'll send you recovery instructions.
         </p>
       </div>
 
       {error && (
-        <div className="p-3 mb-4 bg-error-container text-on-error-container rounded-md text-sm text-center border border-error">
-          {error}
+        <div className="p-3 mb-4 rounded-xl bg-error/10 text-error border border-error/20 text-xs font-medium flex items-center gap-2">
+          <HugeiconsIcon icon="alert-circle" size={16} strokeWidth={2} className="shrink-0" />
+          <span>{error}</span>
         </div>
       )}
 
       {success ? (
-        <div className="space-y-lg">
-          <div className="p-4 bg-primary-container text-on-primary-container rounded-md text-sm text-center border border-primary">
-            <span className="material-symbols-outlined text-[24px] mb-2 block">mark_email_read</span>
-            {emailSent
-              ? "A reset link has been sent. Please check your inbox and spam folder."
-              : "If an account exists for this email, a reset link has been prepared."}
+        <div className="space-y-4">
+          <div className="p-5 rounded-xl bg-secondary/10 text-secondary border border-secondary/20 text-center space-y-2">
+            <div className="w-10 h-10 rounded-full bg-secondary/20 text-secondary mx-auto flex items-center justify-center">
+              <HugeiconsIcon icon="mark-email-read" size={20} strokeWidth={2} />
+            </div>
+            <p className="text-sm font-semibold text-on-surface">Check your inbox</p>
+            <p className="text-xs text-on-surface-variant leading-relaxed">
+              {emailSent
+                ? "A reset link has been dispatched. Please check your inbox and spam folder."
+                : "If an account exists for this email, reset instructions have been generated."}
+            </p>
           </div>
 
           {devResetLink && (
-            <div className="p-4 bg-surface-container-high rounded-md text-sm border border-outline-variant space-y-sm">
-              <p className="font-label-md text-label-md text-on-surface">
-                Mode développement — l&apos;email n&apos;a pas pu être envoyé (SMTP Brevo non configuré).
-              </p>
-              <p className="font-body-md text-body-md text-on-surface-variant">
-                Utilisez ce lien pour réinitialiser votre mot de passe :
+            <div className="p-3.5 bg-surface-container-low rounded-xl text-xs border border-outline-variant/80 space-y-1.5">
+              <div className="flex items-center gap-1.5 font-bold uppercase text-[10px] text-amber-500 tracking-wider">
+                <HugeiconsIcon icon="code" size={14} strokeWidth={2} />
+                <span>Development Mode Link</span>
+              </div>
+              <p className="text-on-surface-variant text-[11px]">
+                SMTP not active in local environment. Click below to test password reset:
               </p>
               <a
                 href={devResetLink}
-                className="block break-all font-label-md text-label-md text-secondary hover:text-primary transition-colors underline"
+                className="block break-all font-mono text-[11px] text-primary hover:underline pt-1"
               >
                 {devResetLink}
               </a>
             </div>
           )}
 
-          <Link
-            to="/login"
-            className="w-full flex justify-center py-2.5 px-4 border border-outline-variant rounded-md bg-surface text-on-surface font-label-md text-label-md uppercase tracking-wider hover:bg-surface-container-low transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary focus:ring-offset-surface"
-          >
-            Back to Sign In
-          </Link>
+          <div className="pt-2">
+            <Link
+              to="/login"
+              className="w-full h-11 flex items-center justify-center rounded-xl bg-surface border border-outline-variant text-on-surface font-semibold text-sm hover:bg-surface-container-low active:scale-[0.99] transition-all cursor-pointer"
+            >
+              Return to Sign In
+            </Link>
+          </div>
         </div>
       ) : (
-        <form className="space-y-lg" onSubmit={handleSubmit}>
-          <div className="space-y-xs">
-            <label className="block font-label-md text-label-md text-on-surface" htmlFor="email">
+        <form className="space-y-4" onSubmit={handleSubmit}>
+          <div>
+            <label className="block text-xs font-semibold text-on-surface mb-1.5" htmlFor="email">
               Email address
             </label>
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <span className="material-symbols-outlined text-outline text-[18px]">mail</span>
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-on-surface-variant/60">
+                <HugeiconsIcon icon="mail" size={18} strokeWidth={1.6} />
               </div>
               <input
                 id="email"
@@ -109,28 +120,38 @@ export default function ForgotPassword() {
                 autoComplete="email"
                 required
                 placeholder="student@university.edu"
-                className="block w-full pl-10 pr-3 py-2 bg-surface border border-outline-variant rounded-md font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:ring-1 focus:ring-secondary focus:border-secondary transition-colors"
+                className="block w-full h-11 pl-10 pr-3.5 bg-surface border border-outline-variant/80 rounded-xl text-sm text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
               />
             </div>
           </div>
 
-          <div className="pt-sm">
+          <div className="pt-2">
             <button
               type="submit"
               disabled={loading}
-              className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-md bg-primary text-on-primary font-label-md text-label-md uppercase tracking-wider hover:bg-on-primary-fixed-variant transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary focus:ring-offset-surface disabled:opacity-70 disabled:cursor-not-allowed"
+              className="w-full h-11 flex items-center justify-center gap-2 rounded-xl bg-primary text-on-primary text-sm font-semibold hover:bg-primary/90 active:scale-[0.99] transition-all shadow-xs disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
             >
-              {loading ? "Sending..." : "Send Reset Link"}
+              {loading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-on-primary/30 border-t-on-primary rounded-full animate-spin" />
+                  <span>Sending Link...</span>
+                </>
+              ) : (
+                <span>Send Reset Link</span>
+              )}
             </button>
           </div>
         </form>
       )}
 
       {!success && (
-        <div className="mt-lg text-center">
-          <p className="font-body-md text-body-md text-on-surface-variant">
-            Remember your password?
-            <Link to="/login" className="font-label-md text-label-md text-primary hover:text-secondary transition-colors border-b border-transparent hover:border-secondary ml-1 pb-0.5">
+        <div className="mt-6 text-center pt-1 border-t border-outline-variant/60">
+          <p className="text-xs text-on-surface-variant">
+            Remembered your password?{" "}
+            <Link 
+              to="/login" 
+              className="font-semibold text-primary hover:text-primary/80 transition-colors ml-0.5"
+            >
               Sign in
             </Link>
           </p>

@@ -260,6 +260,59 @@ const ICONS: Record<string, (props: { strokeWidth: number }) => React.ReactNode>
       <path d="M13.4955 9H10.4961C8.16128 9 6.99386 9 6.11018 9.47237C5.41244 9.84535 4.84098 10.4169 4.46807 11.1146C3.99578 11.9984 3.99589 13.1658 3.9961 15.5006C3.99632 17.835 3.99643 19.0023 4.46877 19.8858C4.84172 20.5835 5.41317 21.1548 6.11085 21.5277C6.99445 22 8.16166 22 10.4961 22H13.4955C15.8301 22 16.9974 22 17.8811 21.5277C18.5788 21.1548 19.1503 20.5833 19.5232 19.8856C19.9955 19.0019 19.9955 17.8346 19.9955 15.5C19.9955 13.1654 19.9955 11.9981 19.5232 11.1144C19.1503 10.4167 18.5788 9.84525 17.8811 9.47231C16.9974 9 15.8301 9 13.4955 9Z" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" />
     </>
   ),
+  "lock-reset": ({ strokeWidth }) => (
+    <>
+      <path d="M16 10V6.5C16 4.01472 13.9853 2 11.5 2C9.01472 2 7 4.01472 7 6.5V10" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <rect x="3.5" y="10" width="16" height="11" rx="3" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" />
+      <circle cx="11.5" cy="15.5" r="1.5" stroke="currentColor" strokeWidth={strokeWidth} />
+    </>
+  ),
+  "mail": ({ strokeWidth }) => (
+    <>
+      <rect x="3" y="5" width="18" height="14" rx="3" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M3 7L10.7386 12.417C11.5034 12.9524 12.4966 12.9524 13.2614 12.417L21 7" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
+  "mail-01": ({ strokeWidth }) => (
+    <>
+      <rect x="3" y="5" width="18" height="14" rx="3" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M3 7L10.7386 12.417C11.5034 12.9524 12.4966 12.9524 13.2614 12.417L21 7" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
+  "mail-02": ({ strokeWidth }) => (
+    <>
+      <rect x="3" y="5" width="18" height="14" rx="3" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M3 7L10.7386 12.417C11.5034 12.9524 12.4966 12.9524 13.2614 12.417L21 7" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
+  "mark-email-read": ({ strokeWidth }) => (
+    <>
+      <path d="M4 19H12M4 5H20C20.5523 5 21 5.44772 21 6V11" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M3 6.5L10.7386 11.917C11.5034 12.4524 12.4966 12.4524 13.2614 11.917L18.5 8" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M15 17.5L17.5 20L22 15.5" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M3 6V18C3 18.5523 3.44772 19 4 19" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
+  "mail-check": ({ strokeWidth }) => (
+    <>
+      <path d="M4 19H12M4 5H20C20.5523 5 21 5.44772 21 6V11" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M3 6.5L10.7386 11.917C11.5034 12.4524 12.4966 12.4524 13.2614 11.917L18.5 8" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M15 17.5L17.5 20L22 15.5" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M3 6V18C3 18.5523 3.44772 19 4 19" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
+  "key": ({ strokeWidth }) => (
+    <>
+      <circle cx="8" cy="15" r="4.5" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M11.18 11.82L21 2M21 2H17M21 2V6M15 8L18 11" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
+  "key-01": ({ strokeWidth }) => (
+    <>
+      <circle cx="8" cy="15" r="4.5" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M11.18 11.82L21 2M21 2H17M21 2V6M15 8L18 11" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
   "cloud-sync": ({ strokeWidth }) => (
     <>
       <path d="M6.5 19C4.01 19 2 16.99 2 14.5C2 12.16 3.79 10.24 6.1 10.03C6.6 6.64 9.5 4 13 4C17.08 4 20.44 7.15 20.94 11.16C21.57 11.53 22 12.22 22 13C22 14.1 21.1 15 20 15H19M6.5 19H19" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
@@ -728,6 +781,42 @@ const ICONS: Record<string, (props: { strokeWidth: number }) => React.ReactNode>
     <>
       <path d="M2 12C2 12 5.63636 5 12 5C18.3636 5 22 12 22 12C22 12 18.3636 19 12 19C5.63636 19 2 12 2 12Z" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
       <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
+  "eye": ({ strokeWidth }) => (
+    <>
+      <path d="M2 12C2 12 5.63636 5 12 5C18.3636 5 22 12 22 12C22 12 18.3636 19 12 19C5.63636 19 2 12 2 12Z" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
+  "view": ({ strokeWidth }) => (
+    <>
+      <path d="M2 12C2 12 5.63636 5 12 5C18.3636 5 22 12 22 12C22 12 18.3636 19 12 19C5.63636 19 2 12 2 12Z" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
+  "visibility-off": ({ strokeWidth }) => (
+    <>
+      <path d="M2 2L22 22" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M6.71277 6.7226C3.7297 8.52848 2 12 2 12C2 12 5.63636 19 12 19C14.0759 19 15.9388 18.2587 17.4735 17.1512" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M10.125 10.1348C9.42998 10.8327 9.42998 11.9619 10.125 12.6598C10.82 13.3577 11.9447 13.3577 12.6398 12.6598" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M9.36364 5.36534C10.2078 5.12739 11.0886 5 12 5C18.3636 5 22 12 22 12C22 12 20.8906 14.1355 18.9806 16.142" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
+  "view-off": ({ strokeWidth }) => (
+    <>
+      <path d="M2 2L22 22" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M6.71277 6.7226C3.7297 8.52848 2 12 2 12C2 12 5.63636 19 12 19C14.0759 19 15.9388 18.2587 17.4735 17.1512" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M10.125 10.1348C9.42998 10.8327 9.42998 11.9619 10.125 12.6598C10.82 13.3577 11.9447 13.3577 12.6398 12.6598" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M9.36364 5.36534C10.2078 5.12739 11.0886 5 12 5C18.3636 5 22 12 22 12C22 12 20.8906 14.1355 18.9806 16.142" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
+  "eye-off": ({ strokeWidth }) => (
+    <>
+      <path d="M2 2L22 22" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M6.71277 6.7226C3.7297 8.52848 2 12 2 12C2 12 5.63636 19 12 19C14.0759 19 15.9388 18.2587 17.4735 17.1512" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M10.125 10.1348C9.42998 10.8327 9.42998 11.9619 10.125 12.6598C10.82 13.3577 11.9447 13.3577 12.6398 12.6598" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M9.36364 5.36534C10.2078 5.12739 11.0886 5 12 5C18.3636 5 22 12 22 12C22 12 20.8906 14.1355 18.9806 16.142" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
     </>
   ),
   "timeline": ({ strokeWidth }) => (
