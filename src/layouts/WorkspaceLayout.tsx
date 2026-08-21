@@ -1,13 +1,44 @@
-import { Outlet, useLocation } from "react-router-dom";
+import { Outlet, useLocation, Navigate } from "react-router-dom";
 import Sidebar from "@/components/layout/Sidebar";
 import Topbar from "@/components/layout/Topbar";
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import { OnboardingProvider } from "@/context/OnboardingContext";
-import { WorkflowProvider } from "@/context/WorkflowContext";
+import { WorkflowProvider, useWorkflow } from "@/context/WorkflowContext";
 import { AiGenerationProvider } from "@/context/AiGenerationContext";
 import { NotificationProvider } from "@/context/NotificationContext";
 import FloatingAiDock from "@/components/ai/FloatingAiDock";
+
+function WorkspaceRouteGuard({ isFullWidthPage }: { isFullWidthPage: boolean }) {
+  const { steps, loading } = useWorkflow();
+  const location = useLocation();
+
+  const currentStep = steps[location.pathname];
+  const isWorkflowStep = Boolean(currentStep && location.pathname !== "/workspace/overview");
+  const isLocked = isWorkflowStep && currentStep?.status === "Locked";
+
+  if (loading && isWorkflowStep) {
+    return (
+      <div className="flex flex-col min-h-[50vh] items-center justify-center">
+        <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin mb-3" />
+        <p className="text-xs text-on-surface-variant font-medium">Verifying methodology access...</p>
+      </div>
+    );
+  }
+
+  if (!loading && isLocked) {
+    return <Navigate to="/workspace/overview" replace />;
+  }
+
+  return (
+    <div className={cn(
+      "w-full min-w-0 min-h-full flex flex-col",
+      isFullWidthPage ? "max-w-none px-0" : "max-w-6xl mx-auto"
+    )}>
+      <Outlet />
+    </div>
+  );
+}
 
 export default function WorkspaceLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -37,12 +68,7 @@ export default function WorkspaceLayout() {
                   "flex-1 overflow-y-auto overflow-x-hidden relative bg-surface-container-lowest",
                   isFullWidthPage ? "p-4 sm:p-6" : "p-4 sm:p-6 md:p-8"
                 )}>
-                  <div className={cn(
-                    "w-full min-w-0 min-h-full flex flex-col",
-                    isFullWidthPage ? "max-w-none px-0" : "max-w-6xl mx-auto"
-                  )}>
-                    <Outlet />
-                  </div>
+                  <WorkspaceRouteGuard isFullWidthPage={isFullWidthPage} />
                 </main>
               </div>
               <FloatingAiDock />

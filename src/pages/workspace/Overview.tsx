@@ -4,20 +4,19 @@ import { useWorkflow, type StepStatus } from "@/context/WorkflowContext";
 import HugeiconsIcon from "@/components/ui/HugeiconsIcon";
 import { cn } from "@/lib/utils";
 
-const workflowItems = [
-  { path: "/workspace/overview", label: "Project Overview", category: "Foundation", icon: "dashboard" },
-  { path: "/workspace/problem-statement", label: "Problem Statement", category: "Specification", icon: "document-validation" },
-  { path: "/workspace/actors", label: "Actors & Stakeholders", category: "Specification", icon: "group" },
-  { path: "/workspace/solutions", label: "Existing Solutions", category: "Specification", icon: "search" },
-  { path: "/workspace/functional-requirements", label: "Functional Requirements", category: "Engineering", icon: "list-ordered" },
-  { path: "/workspace/non-functional-requirements", label: "Non-Functional Requirements", category: "Engineering", icon: "shield" },
-  { path: "/workspace/backlog", label: "Product Backlog", category: "Engineering", icon: "layers" },
-  { path: "/workspace/uml-preparation", label: "UML Preparation", category: "Engineering", icon: "schema" },
-  { path: "/workspace/report-structure", label: "Report Structure", category: "Academic Delivery", icon: "book-open" },
-  { path: "/workspace/report-builder", label: "Report Builder", category: "Academic Delivery", icon: "edit" },
-  { path: "/workspace/presentation", label: "Presentation Deck", category: "Defense Preparation", icon: "presentation" },
-  { path: "/workspace/pitch", label: "Pitch Speech", category: "Defense Preparation", icon: "mic" },
-  { path: "/workspace/jury-simulation", label: "Jury Simulation", category: "Defense Preparation", icon: "play-circle" },
+const methodologySteps = [
+  { stepNumber: 1, path: "/workspace/problem-statement", label: "Problem Statement", category: "Specification", icon: "document" },
+  { stepNumber: 2, path: "/workspace/actors", label: "Actors & Stakeholders", category: "Specification", icon: "group" },
+  { stepNumber: 3, path: "/workspace/solutions", label: "Existing Solutions", category: "Specification", icon: "search" },
+  { stepNumber: 4, path: "/workspace/functional-requirements", label: "Functional Requirements", category: "Engineering", icon: "tune" },
+  { stepNumber: 5, path: "/workspace/non-functional-requirements", label: "Non-Functional Requirements", category: "Engineering", icon: "shield" },
+  { stepNumber: 6, path: "/workspace/backlog", label: "Product Backlog", category: "Engineering", icon: "list-ordered" },
+  { stepNumber: 7, path: "/workspace/uml-preparation", label: "UML Preparation", category: "Engineering", icon: "account-tree" },
+  { stepNumber: 8, path: "/workspace/report-structure", label: "Report Structure", category: "Academic Delivery", icon: "schema" },
+  { stepNumber: 9, path: "/workspace/report-builder", label: "Report Builder", category: "Academic Delivery", icon: "book-open" },
+  { stepNumber: 10, path: "/workspace/presentation", label: "Presentation Deck", category: "Defense Preparation", icon: "presentation" },
+  { stepNumber: 11, path: "/workspace/pitch", label: "Pitch Speech", category: "Defense Preparation", icon: "mic" },
+  { stepNumber: 12, path: "/workspace/jury-simulation", label: "Jury Simulation", category: "Defense Preparation", icon: "groups" },
 ];
 
 function cleanText(value: unknown) {
@@ -63,12 +62,12 @@ export default function Overview() {
     project?.technicalContext?.otherDevelopmentType
   );
 
-  const completedCount = workflowItems.filter((item) => steps[item.path]?.status === "Completed").length;
-  const totalTracked = workflowItems.length;
+  const completedCount = methodologySteps.filter((item) => steps[item.path]?.status === "Completed").length;
+  const totalTracked = methodologySteps.length;
   const progressPercent = Math.round((completedCount / totalTracked) * 100);
 
-  const nextStep = workflowItems.find((item) => steps[item.path]?.status === "Available" && item.path !== "/workspace/overview")
-    || workflowItems.find((item) => steps[item.path]?.status !== "Completed" && item.path !== "/workspace/overview");
+  const nextStep = methodologySteps.find((item) => steps[item.path]?.status === "Available")
+    || methodologySteps.find((item) => steps[item.path]?.status !== "Completed");
 
   if (loading) {
     return (
@@ -218,54 +217,65 @@ export default function Overview() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              {workflowItems.map((item, index) => {
-                const status = steps[item.path]?.status;
-                const isCompleted = status === "Completed";
-                const isAvailable = status === "Available";
+              {methodologySteps.map((item) => {
+                const stepState = steps[item.path] || { status: "Locked", isCompleted: false };
+                const isCompleted = stepState.status === "Completed";
+                const isAvailable = stepState.status === "Available";
+                const isLocked = stepState.status === "Locked";
 
                 return (
                   <Link
                     key={item.path}
-                    to={item.path}
+                    to={isLocked ? "#" : item.path}
+                    onClick={(e) => {
+                      if (isLocked) {
+                        e.preventDefault();
+                      }
+                    }}
                     className={cn(
-                      "flex items-center gap-3 p-3 rounded-xl border transition-all duration-150 group shadow-2xs",
-                      isCompleted && "border-outline-variant/60 bg-surface hover:bg-surface-container",
-                      isAvailable && "border-primary bg-primary/10 hover:bg-primary/15",
-                      !isCompleted && !isAvailable && "border-outline-variant/40 bg-surface/50 opacity-60 hover:opacity-80"
+                      "flex items-center gap-3 p-3 rounded-xl border transition-all duration-150 group shadow-2xs select-none",
+                      isCompleted && "border-outline-variant/70 bg-surface hover:bg-surface-container-low/70 cursor-pointer",
+                      isAvailable && "border-primary bg-primary/5 hover:bg-primary/10 hover:border-primary cursor-pointer shadow-xs",
+                      isLocked && "border-outline-variant/40 bg-surface-container/30 opacity-45 cursor-not-allowed text-on-surface-variant/70"
                     )}
                   >
                     <div className={cn(
-                      "w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border text-xs font-bold",
+                      "w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border text-xs font-bold transition-colors",
                       isCompleted && "bg-secondary/10 border-secondary/20 text-secondary",
                       isAvailable && "bg-primary text-on-primary border-primary",
-                      !isCompleted && !isAvailable && "bg-surface-container border-outline-variant/60 text-on-surface-variant"
+                      isLocked && "bg-surface-container border-outline-variant/60 text-on-surface-variant/50"
                     )}>
                       {isCompleted ? (
-                        <HugeiconsIcon icon="check-circle" size={16} strokeWidth={2} />
+                        <HugeiconsIcon icon="checkmark-circle-02" size={15} strokeWidth={2.5} />
+                      ) : isLocked ? (
+                        <HugeiconsIcon icon="lock" size={13} strokeWidth={1.6} />
                       ) : (
-                        <span className="font-mono">{index + 1}</span>
+                        <span className="font-mono text-xs">{item.stepNumber}</span>
                       )}
                     </div>
 
                     <div className="min-w-0 flex-1">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-on-surface/60 block leading-tight">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/70 block leading-tight font-mono">
                         {item.category}
                       </span>
                       <p className={cn(
                         "text-xs font-bold truncate mt-0.5",
-                        isAvailable ? "text-primary" : "text-on-surface"
+                        isAvailable ? "text-primary" : isLocked ? "text-on-surface-variant/80" : "text-on-surface"
                       )}>
                         {item.label}
                       </p>
                     </div>
 
                     {isAvailable && (
-                      <span className="px-2 py-0.5 rounded-md bg-primary text-on-primary text-[10px] font-bold uppercase tracking-wider shrink-0 shadow-2xs">
-                        Next
+                      <span className="px-2 py-0.5 rounded-md bg-primary text-on-primary text-[10px] font-bold uppercase tracking-wider shrink-0 shadow-2xs font-mono">
+                        Active
                       </span>
                     )}
                     {isCompleted && (
                       <HugeiconsIcon icon="checkmark-circle-02" size={16} strokeWidth={2} className="text-secondary shrink-0" />
+                    )}
+                    {isLocked && (
+                      <HugeiconsIcon icon="lock" size={14} strokeWidth={1.5} className="text-on-surface-variant/40 shrink-0" />
                     )}
                   </Link>
                 );
