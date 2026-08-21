@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { TextField } from "@/components/onboarding/FormControls";
 import { fetchApi } from "@/lib/api";
-import HugeiconsIcon from "@/components/ui/HugeiconsIcon";
+import HugeiconsIcon, { GoogleIcon } from "@/components/ui/HugeiconsIcon";
 
 type AccountForm = {
   fullName: string;
@@ -179,9 +179,9 @@ export default function AccountSettings() {
 
       {/* Google Account Notice */}
       {isGoogleAccount && (
-        <div className="mb-6 rounded-2xl border border-primary/20 bg-primary/5 p-4 text-on-surface flex items-start gap-3 shadow-2xs">
-          <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
-            <HugeiconsIcon icon="shield" size={16} strokeWidth={1.8} />
+        <div className="mb-6 rounded-2xl border border-outline-variant/80 bg-surface-container-low/60 p-4 text-on-surface flex items-start gap-3 shadow-2xs">
+          <div className="w-9 h-9 rounded-xl bg-surface border border-outline-variant/80 flex items-center justify-center shrink-0 shadow-2xs">
+            <HugeiconsIcon icon={GoogleIcon} size={18} />
           </div>
           <div>
             <p className="text-xs font-bold text-on-surface">Connected via Google Single Sign-On</p>

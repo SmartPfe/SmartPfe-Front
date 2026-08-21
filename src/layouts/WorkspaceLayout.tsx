@@ -9,24 +9,41 @@ import { AiGenerationProvider } from "@/context/AiGenerationContext";
 import { NotificationProvider } from "@/context/NotificationContext";
 import FloatingAiDock from "@/components/ai/FloatingAiDock";
 
+const WORKFLOW_METHODOLOGY_PATHS = [
+  "/workspace/problem-statement",
+  "/workspace/actors",
+  "/workspace/solutions",
+  "/workspace/functional-requirements",
+  "/workspace/non-functional-requirements",
+  "/workspace/backlog",
+  "/workspace/uml-preparation",
+  "/workspace/report-structure",
+  "/workspace/report-builder",
+  "/workspace/presentation",
+  "/workspace/pitch",
+  "/workspace/jury-simulation",
+];
+
 function WorkspaceRouteGuard({ isFullWidthPage }: { isFullWidthPage: boolean }) {
   const { steps, loading } = useWorkflow();
   const location = useLocation();
 
-  const currentStep = steps[location.pathname];
-  const isWorkflowStep = Boolean(currentStep && location.pathname !== "/workspace/overview");
-  const isLocked = isWorkflowStep && currentStep?.status === "Locked";
+  const isWorkflowRoute = WORKFLOW_METHODOLOGY_PATHS.includes(location.pathname);
+  const stepState = steps[location.pathname];
+  const isLocked = isWorkflowRoute && (stepState ? stepState.status === "Locked" : true);
 
-  if (loading && isWorkflowStep) {
+  // If this is a methodology workflow route, do not render Outlet while loading or evaluating
+  if (isWorkflowRoute && (loading || !stepState)) {
     return (
-      <div className="flex flex-col min-h-[50vh] items-center justify-center">
+      <div className="flex flex-col min-h-[55vh] items-center justify-center">
         <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin mb-3" />
         <p className="text-xs text-on-surface-variant font-medium">Verifying methodology access...</p>
       </div>
     );
   }
 
-  if (!loading && isLocked) {
+  // If this is a workflow route and is locked, immediately redirect to overview (no outlet rendered)
+  if (isWorkflowRoute && isLocked) {
     return <Navigate to="/workspace/overview" replace />;
   }
 

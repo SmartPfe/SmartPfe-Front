@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import HugeiconsIcon from "@/components/ui/HugeiconsIcon";
 import { WORKSPACE_PHASES } from "@/lib/constants";
+import { useWorkflow } from "@/context/WorkflowContext";
 import { cn } from "@/lib/utils";
 
 interface SearchPaletteProps {
@@ -33,6 +34,7 @@ const CATEGORY_TABS = [
 ];
 
 export default function SearchPalette({ isOpen, onClose }: SearchPaletteProps) {
+  const { steps } = useWorkflow();
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState<string>("all");
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -286,19 +288,22 @@ export default function SearchPalette({ isOpen, onClose }: SearchPaletteProps) {
         e.preventDefault();
         if (filteredItems[selectedIndex]) {
           const item = filteredItems[selectedIndex];
-          if (item.path) {
-            navigate(item.path);
-          } else if (item.action) {
-            item.action();
+          const isItemLocked = item.path ? steps[item.path]?.status === "Locked" : false;
+          if (!isItemLocked) {
+            if (item.path) {
+              navigate(item.path);
+            } else if (item.action) {
+              item.action();
+            }
+            onClose();
           }
-          onClose();
         }
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, filteredItems, selectedIndex, navigate, onClose]);
+  }, [isOpen, filteredItems, selectedIndex, navigate, onClose, steps]);
 
   // Scroll active item into view
   useEffect(() => {
@@ -393,22 +398,28 @@ export default function SearchPalette({ isOpen, onClose }: SearchPaletteProps) {
             <div className="space-y-1 pt-1">
               {filteredItems.map((item, index) => {
                 const isSelected = selectedIndex === index;
+                const isLocked = item.path ? steps[item.path]?.status === "Locked" : false;
+
                 return (
                   <button
                     key={item.id}
                     data-index={index}
                     type="button"
+                    disabled={isLocked}
                     onClick={() => {
+                      if (isLocked) return;
                       if (item.path) navigate(item.path);
                       else if (item.action) item.action();
                       onClose();
                     }}
                     onMouseEnter={() => setSelectedIndex(index)}
                     className={cn(
-                      "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-left cursor-pointer group",
-                      isSelected
-                        ? "bg-surface-container-high/90 shadow-xs text-on-surface"
-                        : "hover:bg-surface-container-low text-on-surface"
+                      "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-left group select-none",
+                      isLocked
+                        ? "opacity-40 cursor-not-allowed bg-surface-container/20"
+                        : isSelected
+                        ? "bg-surface-container-high/90 shadow-xs text-on-surface cursor-pointer"
+                        : "hover:bg-surface-container-low text-on-surface cursor-pointer"
                     )}
                   >
                     {/* Item Icon Badge */}
@@ -417,10 +428,10 @@ export default function SearchPalette({ isOpen, onClose }: SearchPaletteProps) {
                         "w-9 h-9 rounded-lg flex items-center justify-center shrink-0 transition-transform",
                         item.iconBg,
                         item.iconColor,
-                        isSelected ? "scale-105" : ""
+                        isSelected && !isLocked ? "scale-105" : ""
                       )}
                     >
-                      <HugeiconsIcon icon={item.icon} size={18} strokeWidth={1.8} />
+                      <HugeiconsIcon icon={isLocked ? "lock" : item.icon} size={18} strokeWidth={1.8} />
                     </div>
 
                     {/* Item Text */}
@@ -428,11 +439,11 @@ export default function SearchPalette({ isOpen, onClose }: SearchPaletteProps) {
                       <div className="flex items-center gap-2">
                         <span className={cn(
                           "text-sm font-semibold truncate transition-colors",
-                          isSelected ? "text-primary" : "text-on-surface"
+                          isLocked ? "text-on-surface-variant/80" : isSelected ? "text-primary" : "text-on-surface"
                         )}>
                           {item.label}
                         </span>
-                        <span className="text-[10px] font-semibold uppercase tracking-wider text-on-surface-variant/90 px-1.5 py-0.5 rounded-md bg-surface-container-high/80 shrink-0">
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-on-surface-variant/90 px-1.5 py-0.5 rounded-md bg-surface-container-high/80 shrink-0 font-mono">
                           {item.categoryLabel}
                         </span>
                       </div>
@@ -443,7 +454,12 @@ export default function SearchPalette({ isOpen, onClose }: SearchPaletteProps) {
 
                     {/* Action Indicator / Return Badge */}
                     <div className="shrink-0 flex items-center gap-1.5">
-                      {isSelected ? (
+                      {isLocked ? (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-surface-container border border-outline-variant/60 text-on-surface-variant/70 text-[10px] font-mono font-medium">
+                          <HugeiconsIcon icon="lock" size={11} strokeWidth={1.8} />
+                          <span>Locked</span>
+                        </span>
+                      ) : isSelected ? (
                         <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-primary/10 text-primary text-[11px] font-mono font-medium animate-in fade-in duration-100">
                           <span>Jump</span>
                           <span className="text-[12px]">↵</span>
