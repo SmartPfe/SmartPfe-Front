@@ -15,7 +15,7 @@ React 19 + TypeScript + Vite client for the SmartPFE platform.
 
 ```bash
 # 1. Clone & enter the project
-git clone https://github.com/your-username/PfeMentor-front.git
+git clone https://github.com/ahmedneffati/PFEGuidanceFront.git
 cd PfeMentor-front/SmartPfe-Front
 
 # 2. Install dependencies
