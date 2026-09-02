@@ -73,13 +73,6 @@ const RECENT_ACTIVITY = [
   "Jury simulation completed",
 ];
 
-const TRUST_PLACEHOLDERS = [
-  "School logo",
-  "Engineering faculty",
-  "Computer science club",
-  "Student incubator",
-];
-
 const PROBLEMS = [
   "No single source of truth",
   "Deliverables created independently",
@@ -393,15 +386,6 @@ export default function Landing() {
           </div>
         </section>
 
-        <section id="about" className="border-b border-indigo-100 bg-white py-10">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-              <div className="w-full min-w-0"><p className="text-sm font-extrabold uppercase text-indigo-600">Built for engineering & computer science students</p><p className="mt-2 max-w-[42rem] text-sm leading-6 text-slate-600">Clean placeholders are ready for verified academic logos or school references when the product has permission to display them.</p></div>
-              <div className="grid w-full min-w-0 grid-cols-2 gap-3 sm:grid-cols-4 lg:max-w-[560px]">{TRUST_PLACEHOLDERS.map((label) => <div key={label} className="flex h-16 items-center justify-center rounded-2xl border border-dashed border-indigo-200 bg-indigo-50/50 px-4 text-center text-xs font-bold uppercase text-indigo-300">{label}</div>)}</div>
-            </div>
-          </div>
-        </section>
-
         <section className="bg-[#f7f5ff] py-20 sm:py-24">
           <div className="mx-auto grid max-w-7xl grid-cols-1 gap-6 px-4 sm:px-6 lg:grid-cols-2 lg:px-8">
             <motion.div initial={{ opacity: 0, y: 18 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.25 }} transition={{ duration: 0.45 }} className="w-full min-w-0 rounded-[1.75rem] border border-rose-100 bg-white p-6 shadow-xl shadow-rose-950/5 sm:p-8">
@@ -545,7 +529,7 @@ export default function Landing() {
                 </div>
               </form>
             </div>
-            <div className="grid w-full min-w-0 content-start gap-5"><div className="rounded-[1.75rem] border border-indigo-100 bg-white p-6 shadow-xl shadow-indigo-950/5 sm:p-8"><div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600"><MapPin className="h-6 w-6" /></div><h3 className="mt-6 text-2xl font-extrabold text-slate-950">Contact information</h3><div className="mt-5 space-y-4 text-sm font-semibold text-slate-600"><div className="flex items-center gap-3"><MapPin className="h-4 w-4 text-indigo-500" />Tunisia</div><div className="flex items-center gap-3"><Mail className="h-4 w-4 text-indigo-500" />Developer email placeholder</div></div></div><div className="rounded-[1.75rem] border border-indigo-100 bg-[linear-gradient(135deg,#ffffff,#eef2ff)] p-6 shadow-xl shadow-indigo-950/5 sm:p-8"><h3 className="text-2xl font-extrabold text-slate-950">Built around the PFE method.</h3><p className="mt-4 w-full max-w-[36rem] leading-7 text-slate-600">The product keeps students moving from analysis to design, implementation, report writing and defense preparation inside a single workspace.</p></div></div>
+            <div className="grid w-full min-w-0 content-start gap-5"><div className="rounded-[1.75rem] border border-indigo-100 bg-white p-6 shadow-xl shadow-indigo-950/5 sm:p-8"><div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600"><MapPin className="h-6 w-6" /></div><h3 className="mt-6 text-2xl font-extrabold text-slate-950">Contact information</h3><div className="mt-5 space-y-4 text-sm font-semibold text-slate-600"><div className="flex items-center gap-3"><MapPin className="h-4 w-4 text-indigo-500" />Tunisia</div><div className="flex items-center gap-3"><Mail className="h-4 w-4 text-indigo-500" />Contact@9antra.tn</div></div></div><div className="rounded-[1.75rem] border border-indigo-100 bg-[linear-gradient(135deg,#ffffff,#eef2ff)] p-6 shadow-xl shadow-indigo-950/5 sm:p-8"><h3 className="text-2xl font-extrabold text-slate-950">Built around the PFE method.</h3><p className="mt-4 w-full max-w-[36rem] leading-7 text-slate-600">The product keeps students moving from analysis to design, implementation, report writing and defense preparation inside a single workspace.</p></div></div>
           </div>
         </section>
 
