@@ -42,7 +42,18 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
     headers,
   });
 
-  const data = await response.json();
+  let data: any;
+  const contentType = response.headers.get("content-type") || "";
+  if (contentType.includes("application/json")) {
+    try {
+      data = await response.json();
+    } catch {
+      data = { message: "Failed to parse server response as JSON." };
+    }
+  } else {
+    const rawText = await response.text();
+    data = { message: rawText.slice(0, 300) || `Server error (status ${response.status})` };
+  }
 
   if (!response.ok) {
     throw Object.assign(new Error(data.message || "Something went wrong"), data);
