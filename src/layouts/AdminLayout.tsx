@@ -90,13 +90,44 @@ export default function AdminLayout() {
 
         <div className="min-h-dvh lg:pl-[272px]">
           <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-outline-variant/60 bg-surface/90 px-3 backdrop-blur-md sm:px-5">
-            <div className="flex min-w-0 items-center gap-2.5">
-              <button type="button" onClick={() => setMobileOpen(true)} className="grid h-8 w-8 place-items-center rounded-lg text-on-surface-variant hover:bg-surface-container lg:hidden" aria-label="Open admin menu">
-                <HugeiconsIcon icon="menu-01" size={17} />
+            <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+              <button
+                type="button"
+                onClick={() => setMobileOpen(true)}
+                className="grid h-8 w-8 place-items-center rounded-lg text-on-surface-variant hover:bg-surface-container lg:hidden"
+                aria-label="Open admin menu"
+              >
+                <HugeiconsIcon icon="menu-01" size={17} strokeWidth={1.75} />
               </button>
-              <div className="min-w-0">
-                <div className="flex items-center gap-1.5 text-[10px] font-bold text-on-surface-variant"><span>Admin</span><span>/</span></div>
-                <p className="truncate text-sm font-extrabold text-on-surface">{current.label}</p>
+
+              {/* Breadcrumb Trail */}
+              <nav aria-label="Breadcrumb" className="flex items-center gap-1 sm:gap-1.5 text-xs sm:text-sm min-w-0">
+                <Link
+                  to="/admin/dashboard"
+                  className="hidden sm:inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high/60 transition-colors font-medium"
+                >
+                  <HugeiconsIcon icon="dashboard" size={15} className="text-on-surface-variant shrink-0" strokeWidth={1.75} />
+                  <span>Admin</span>
+                </Link>
+
+                <span className="hidden sm:inline text-outline-variant select-none">/</span>
+
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-surface-container-low/90 border border-outline-variant/50 text-on-surface font-semibold shadow-2xs min-w-0">
+                  {current.coin ? (
+                    <img src={creditCoin} alt="" className="h-3.5 w-3.5 shrink-0" />
+                  ) : (
+                    <HugeiconsIcon icon={current.icon} size={14} className="text-primary shrink-0" strokeWidth={1.8} />
+                  )}
+                  <span className="truncate max-w-[150px] sm:max-w-[220px]">{current.label}</span>
+                </div>
+              </nav>
+
+              {/* Live Status Pill */}
+              <div className="hidden md:flex items-center ml-1">
+                <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium text-secondary bg-secondary/10 border border-secondary/20">
+                  <span className="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse shrink-0" />
+                  <span>Live</span>
+                </div>
               </div>
             </div>
             <div className="flex items-center gap-1.5">

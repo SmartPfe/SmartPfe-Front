@@ -202,28 +202,45 @@ export default function AdminUsers() {
 
   const hasActiveFilters = query.trim() !== "" || roleFilter !== "all" || onboardingFilter !== "all";
 
-  // CSV Export
+  // Excel / CSV Export
   const exportCsv = () => {
     if (!users.length) return;
-    const headers = ["Full Name", "Email", "Role", "Onboarding Completed", "Total Credits", "Promotional Credits", "Purchased Credits", "Joined Date"];
-    const rows = filteredUsers.map((u) => [
-      `"${u.fullName.replace(/"/g, '""')}"`,
-      `"${u.email.replace(/"/g, '""')}"`,
-      u.walletEligible ? "Student" : "Admin",
-      u.hasCompletedOnboarding ? "Yes" : "No",
-      u.credits?.total ?? 0,
-      u.credits?.promotional ?? 0,
-      u.credits?.purchased ?? 0,
-      `"${new Date(u.createdAt).toISOString().slice(0, 10)}"`,
-    ]);
-    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
-    const encodedUri = encodeURI(csvContent);
+    const headers = [
+      "Full Name",
+      "Email",
+      "Role",
+      "Onboarding Completed",
+      "Total Credits",
+      "Promotional Credits",
+      "Purchased Credits",
+      "Joined Date",
+    ];
+    const rows = filteredUsers.map((u) => {
+      const d = new Date(u.createdAt);
+      const dateFormatted = d.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+      return [
+        `"${u.fullName.replace(/"/g, '""')}"`,
+        `"${u.email.replace(/"/g, '""')}"`,
+        u.walletEligible ? "Student" : "Admin",
+        u.hasCompletedOnboarding ? "Completed" : "Pending",
+        u.credits?.total ?? 0,
+        u.credits?.promotional ?? 0,
+        u.credits?.purchased ?? 0,
+        `"${dateFormatted}"`,
+      ];
+    });
+
+    // Prepend UTF-8 BOM (\uFEFF) so Excel opens UTF-8 text with correct encoding without clipping dates
+    const csvContent = "\uFEFF" + [headers.join(","), ...rows.map((e) => e.join(","))].join("\r\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `smartpfe_users_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `smartpfe_students_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -392,16 +409,16 @@ export default function AdminUsers() {
                 </span>
               </div>
 
-              {/* CSV Export Button */}
+              {/* Excel Export Button */}
               <button
                 type="button"
                 onClick={exportCsv}
                 disabled={!filteredUsers.length}
-                className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-outline-variant/80 bg-surface px-3 text-xs font-semibold text-on-surface-variant shadow-2xs transition-all hover:bg-surface-container-low hover:text-on-surface active:scale-[.98] disabled:opacity-40"
-                title="Export filtered accounts to CSV"
+                className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-outline-variant/80 bg-surface px-3 text-xs font-semibold text-on-surface shadow-2xs transition-all hover:border-emerald-500/40 hover:bg-emerald-500/5 hover:text-emerald-600 dark:hover:text-emerald-400 active:scale-[.98] disabled:opacity-40"
+                title="Export filtered accounts to Excel (.csv with UTF-8 BOM)"
               >
-                <HugeiconsIcon icon="download-01" size={14} strokeWidth={1.8} />
-                <span className="hidden sm:inline">Export CSV</span>
+                <HugeiconsIcon icon="file-excel" size={15} className="text-emerald-600 dark:text-emerald-400" strokeWidth={1.8} />
+                <span className="hidden sm:inline">Export Excel</span>
               </button>
 
               {/* Reset Filters Chip (if active) */}

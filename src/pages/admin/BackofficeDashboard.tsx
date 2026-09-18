@@ -17,6 +17,8 @@ type DashboardData = {
     creditsSpent: number;
     purchasedFulfilled: number;
     walletCredits: number;
+    promotionalCredits?: number;
+    purchasedCredits?: number;
   };
   charts: {
     studentGrowth: Item[];
@@ -25,6 +27,7 @@ type DashboardData = {
     domains: Item[];
     actionDemand: Item[];
     creditActivity: Day[];
+    creditMonthly?: Day[];
   };
   recentUsers: Array<{
     _id: string;
@@ -59,6 +62,8 @@ const emptyDashboard: DashboardData = {
     creditsSpent: 0,
     purchasedFulfilled: 0,
     walletCredits: 0,
+    promotionalCredits: 0,
+    purchasedCredits: 0,
   },
   charts: {
     studentGrowth: [],
@@ -67,11 +72,16 @@ const emptyDashboard: DashboardData = {
     domains: [],
     actionDemand: [],
     creditActivity: [],
+    creditMonthly: [],
   },
   recentUsers: [],
   recentProjects: [],
   recentFulfillments: [],
 };
+
+type CreditTimeRange = "24h" | "7d" | "30d" | "12m";
+type CreditGranularity = "day" | "week" | "month";
+type MomentumTimeRange = "12m" | "6m" | "3m";
 
 const formatRelativeTime = (dateStr: string) => {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -90,10 +100,26 @@ export default function BackofficeDashboard() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
+
+  // Credit Filter Controls (As shown in reference photo)
+  const [creditRange, setCreditRange] = useState<CreditTimeRange>("30d");
+  const [creditGranularity, setCreditGranularity] = useState<CreditGranularity>("day");
+  const [activeCreditBar, setActiveCreditBar] = useState<number | null>(null);
+
+  const handleCreditRangeChange = (range: CreditTimeRange) => {
+    setCreditRange(range);
+    setActiveCreditBar(null);
+    if (range === "12m") {
+      setCreditGranularity("month");
+    } else if (creditGranularity === "month") {
+      setCreditGranularity("day");
+    }
+  };
+
+  // Momentum Filter Controls
+  const [momentumRange, setMomentumRange] = useState<MomentumTimeRange>("12m");
   const [activeSeries, setActiveSeries] = useState<"both" | "students" | "projects">("both");
   const [activeGrowthPoint, setActiveGrowthPoint] = useState<number | null>(null);
-  const [activeCreditBar, setActiveCreditBar] = useState<number | null>(null);
-  const [timeHorizon, setTimeHorizon] = useState<"6m" | "30d">("6m");
 
   const loadData = async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -114,16 +140,100 @@ export default function BackofficeDashboard() {
     loadData();
   }, []);
 
-  // Calculated operational insights
-  const activationRate = useMemo(() => {
-    if (!data.totals.students) return 0;
-    return Math.round((data.totals.completedOnboarding / data.totals.students) * 100);
-  }, [data.totals.students, data.totals.completedOnboarding]);
+  // Filtered and aggregated Credit Activity
+  const processedCreditActivity = useMemo(() => {
+    if (creditRange === "12m") {
+      if (data.charts.creditMonthly && data.charts.creditMonthly.length > 0) {
+        return data.charts.creditMonthly;
+      }
+    }
 
-  const projectsPerStudent = useMemo(() => {
-    if (!data.totals.students) return "0";
-    return (data.totals.projects / data.totals.students).toFixed(1);
-  }, [data.totals.projects, data.totals.students]);
+    const rawDays = data.charts.creditActivity || [];
+    if (!rawDays.length) return [];
+
+    // Slice based on creditRange
+    let sliced = rawDays;
+    if (creditRange === "24h") {
+      sliced = rawDays.slice(-1);
+    } else if (creditRange === "7d") {
+      sliced = rawDays.slice(-7);
+    } else if (creditRange === "30d") {
+      sliced = rawDays.slice(-30);
+    } else if (creditRange === "12m") {
+      sliced = rawDays;
+    }
+
+    if (creditGranularity === "day") {
+      return sliced;
+    }
+
+    if (creditGranularity === "week") {
+      // Group into 7-day chunks
+      const weeks: Day[] = [];
+      for (let i = 0; i < sliced.length; i += 7) {
+        const chunk = sliced.slice(i, i + 7);
+        const spent = chunk.reduce((sum, d) => sum + d.spent, 0);
+        const fulfilled = chunk.reduce((sum, d) => sum + d.fulfilled, 0);
+        const label = `W${Math.floor(i / 7) + 1} (${chunk[0]?.label || ""})`;
+        weeks.push({ label, spent, fulfilled });
+      }
+      return weeks;
+    }
+
+    if (creditGranularity === "month") {
+      if (data.charts.creditMonthly && data.charts.creditMonthly.length > 0) {
+        return data.charts.creditMonthly;
+      }
+      const spent = sliced.reduce((sum, d) => sum + d.spent, 0);
+      const fulfilled = sliced.reduce((sum, d) => sum + d.fulfilled, 0);
+      return [{ label: "Selected Period", spent, fulfilled }];
+    }
+
+    return sliced;
+  }, [data.charts.creditActivity, data.charts.creditMonthly, creditRange, creditGranularity]);
+
+  // Date range formatted label for Credit Telemetry
+  const creditDateRangeLabel = useMemo(() => {
+    const now = new Date();
+    const endStr = new Intl.DateTimeFormat("en", { month: "short", day: "numeric", year: "numeric" }).format(now);
+    let daysBack = 30;
+    if (creditRange === "24h") daysBack = 1;
+    if (creditRange === "7d") daysBack = 7;
+    if (creditRange === "30d") daysBack = 30;
+    if (creditRange === "12m") daysBack = 365;
+
+    const start = new Date(now.getTime() - daysBack * 24 * 60 * 60 * 1000);
+    const startStr = new Intl.DateTimeFormat("en", { month: "short", day: "numeric", year: "numeric" }).format(start);
+    return `${startStr} – ${endStr}`;
+  }, [creditRange]);
+
+  // Filtered Student & Project Growth Momentum
+  const processedMomentum = useMemo(() => {
+    const count = momentumRange === "12m" ? 12 : momentumRange === "6m" ? 6 : 3;
+    return {
+      students: (data.charts.studentGrowth || []).slice(-count),
+      projects: (data.charts.projectGrowth || []).slice(-count),
+    };
+  }, [data.charts.studentGrowth, data.charts.projectGrowth, momentumRange]);
+
+  // Key Credit Economics & Insights
+  const creditMetrics = useMemo(() => {
+    const studentsCount = data.totals.students || 1;
+    const avgBurnPerStudent = Math.round(data.totals.creditsSpent / studentsCount);
+    const activationRate = Math.round(((data.totals.completedOnboarding || 0) / studentsCount) * 100);
+    const totalCirculating = data.totals.walletCredits || 0;
+    const purchased = data.totals.purchasedCredits || 0;
+    const purchasedRatio = totalCirculating > 0 ? Math.round((purchased / totalCirculating) * 100) : 0;
+
+    return {
+      avgBurnPerStudent,
+      activationRate,
+      purchasedRatio,
+      totalSpent: data.totals.creditsSpent,
+      totalFulfilled: data.totals.purchasedFulfilled,
+      circulating: totalCirculating,
+    };
+  }, [data.totals]);
 
   const totalActionDemand = useMemo(() => {
     return data.charts.actionDemand.reduce((acc, curr) => acc + curr.value, 0);
@@ -135,64 +245,46 @@ export default function BackofficeDashboard() {
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 pb-20">
-      {/* Top Bar: Operational Pulse & Executive Header */}
+      {/* Top Bar: Live Operational Status & Header */}
       <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <div className="flex items-center gap-2.5">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-secondary/30 bg-secondary/10 px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-secondary">
-              <span className="h-1.5 w-1.5 rounded-full bg-secondary animate-pulse" />
-              Live Telemetry
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              Production Telemetry
             </span>
-            <span className="text-[11px] font-semibold text-on-surface-variant">SmartPFE Central Operations</span>
+            <span className="text-[11px] font-semibold text-on-surface-variant">SmartPFE Financial & Adoption Pulse</span>
           </div>
           <h1 className="mt-1.5 text-2xl font-extrabold tracking-tight text-on-surface sm:text-3xl">
             Executive Overview
           </h1>
           <p className="mt-1 text-sm text-on-surface-variant max-w-2xl leading-relaxed">
-            Real-time telemetry across student adoption, AI generation velocity, and credit economic health.
+            Credit monetization velocity, generative AI burn telemetry, and student adoption trajectory.
           </p>
         </div>
 
-        {/* Quick Action Controls */}
+        {/* Global Action Controls */}
         <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
-          {/* Timeframe Selector */}
-          <div className="inline-flex rounded-xl border border-outline-variant/80 bg-surface p-1 shadow-2xs">
-            <button
-              type="button"
-              onClick={() => setTimeHorizon("6m")}
-              className={`rounded-lg px-3 py-1 text-xs font-bold transition-all ${
-                timeHorizon === "6m"
-                  ? "bg-primary text-on-primary shadow-xs"
-                  : "text-on-surface-variant hover:text-on-surface"
-              }`}
-            >
-              Last 6 Months
-            </button>
-            <button
-              type="button"
-              onClick={() => setTimeHorizon("30d")}
-              className={`rounded-lg px-3 py-1 text-xs font-bold transition-all ${
-                timeHorizon === "30d"
-                  ? "bg-primary text-on-primary shadow-xs"
-                  : "text-on-surface-variant hover:text-on-surface"
-              }`}
-            >
-              Recent 14–30 Days
-            </button>
-          </div>
-
           <button
             type="button"
             onClick={() => loadData(true)}
             disabled={refreshing}
             className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-outline-variant bg-surface px-3 text-xs font-bold text-on-surface shadow-2xs transition-all hover:bg-surface-container-low active:scale-[.98] disabled:opacity-50"
-            title="Refresh dashboard metrics"
+            title="Refresh administrative metrics"
           >
             <span className={refreshing ? "animate-spin" : ""}>
               <HugeiconsIcon icon="refresh" size={14} strokeWidth={1.8} />
             </span>
             <span>Refresh</span>
           </button>
+
+          <Link
+            to="/admin/credits"
+            className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-amber-400/40 bg-amber-400/10 px-3 text-xs font-bold text-amber-700 dark:text-amber-300 shadow-2xs transition-all hover:bg-amber-400/20 active:scale-[.98]"
+          >
+            <img src={creditCoin} alt="" className="h-4 w-4" />
+            <span>Economy Policies</span>
+          </Link>
 
           <Link
             to="/admin/users"
@@ -215,63 +307,287 @@ export default function BackofficeDashboard() {
       {loading ? (
         <div className="flex flex-col items-center justify-center rounded-3xl border border-outline-variant/80 bg-surface-container-lowest p-20 text-center shadow-2xs">
           <div className="h-10 w-10 animate-spin rounded-full border-3 border-primary border-t-transparent" />
-          <p className="mt-4 text-sm font-bold text-on-surface">Loading platform analytics…</p>
-          <p className="mt-1 text-xs text-on-surface-variant">Aggregating student workspaces, telemetry, and transactions</p>
+          <p className="mt-4 text-sm font-bold text-on-surface">Aggregating production telemetry…</p>
+          <p className="mt-1 text-xs text-on-surface-variant">Connecting student wallets, AI burn ledger, and workspaces</p>
         </div>
       ) : (
         <>
-          {/* SECTION 1: HERO EXECUTIVE KPI RIBBON */}
+          {/* =========================================================================
+              CREDIT-FIRST HERO KPI RIBBON (Oriented around Revenue & Credit Economy)
+             ========================================================================= */}
           <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {/* KPI 1: Students */}
-            <KpiCard
-              label="Total Students"
-              value={data.totals.students.toLocaleString()}
-              sublabel={`${activationRate}% Onboarded`}
-              sublabelColor="text-secondary bg-secondary/10"
-              helper={`${data.totals.completedOnboarding} active workspace set-ups`}
-              icon="group"
+            {/* KPI 1: Purchased Credits Fulfilled (Main Revenue Driver) */}
+            <CreditKpiCard
+              label="Purchased Credits Fulfilled"
+              value={data.totals.purchasedFulfilled.toLocaleString()}
+              badge="Direct Revenue"
+              badgeColor="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+              helper="Confirmed student credit purchases"
+              icon="wallet-02"
+              coin
+              accentColor="emerald"
+            />
+
+            {/* KPI 2: Total AI Credits Spent (Demand & Value Capture) */}
+            <CreditKpiCard
+              label="Total AI Credits Burned"
+              value={data.totals.creditsSpent.toLocaleString()}
+              badge="Action Demand"
+              badgeColor="bg-primary/10 text-primary border-primary/20"
+              helper="Completed thesis AI generations"
+              icon="coin"
+              coin
               accentColor="primary"
             />
 
-            {/* KPI 2: Projects */}
-            <KpiCard
-              label="Active Workspaces"
-              value={data.totals.projects.toLocaleString()}
-              sublabel={`${projectsPerStudent} per student`}
-              sublabelColor="text-tertiary bg-tertiary/10"
-              helper="PFE theses currently in flight"
-              icon="folder-01"
-              accentColor="tertiary"
-            />
-
-            {/* KPI 3: AI Credits Spent */}
-            <KpiCard
-              label="AI Credits Consumed"
-              value={data.totals.creditsSpent.toLocaleString()}
-              sublabel="Completed generations"
-              sublabelColor="text-amber-600 dark:text-amber-400 bg-amber-500/10"
-              helper="Total intelligence demand"
+            {/* KPI 3: Circulating Wallet Pool (Student Liabilities) */}
+            <CreditKpiCard
+              label="Circulating Wallet Balance"
+              value={data.totals.walletCredits.toLocaleString()}
+              badge={`${creditMetrics.purchasedRatio}% Purchased Buffer`}
+              badgeColor="bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20"
+              helper="Promotional + purchased held by students"
               icon="coin"
               coin
               accentColor="amber"
             />
 
-            {/* KPI 4: Purchased Fulfillment */}
-            <KpiCard
-              label="Purchased Credits Fulfilled"
-              value={data.totals.purchasedFulfilled.toLocaleString()}
-              sublabel={`${data.totals.walletCredits.toLocaleString()} held in wallets`}
-              sublabelColor="text-secondary bg-secondary/10"
-              helper="Monetized student top-ups"
-              icon="wallet-02"
-              coin
-              accentColor="emerald"
+            {/* KPI 4: Student Unit Economics (Burn / Student) */}
+            <CreditKpiCard
+              label="Avg. Burn / Student"
+              value={`${creditMetrics.avgBurnPerStudent} cr`}
+              badge={`${creditMetrics.activationRate}% Onboarded`}
+              badgeColor="bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20"
+              helper={`${data.totals.students} active student workspaces`}
+              icon="group"
+              accentColor="tertiary"
             />
           </section>
 
-          {/* SECTION 2: THE MAIN VISUAL STAGE (MOMENTUM CHART & ONBOARDING FUNNEL) */}
-          <section className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.8fr)_minmax(19rem,0.9fr)]">
-            {/* Visual Spline Growth Chart */}
+          {/* =========================================================================
+              SECTION 1 (TOP STAGE - NO SCROLLING): CREDIT ECONOMY VELOCITY & AI DEMAND
+             ========================================================================= */}
+          <section className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.75fr)_minmax(20rem,0.85fr)]">
+            {/* 1. Credit Economy Velocity Chart with Full Date Filter System */}
+            <div className="overflow-hidden rounded-2xl border border-outline-variant/80 bg-surface-container-lowest shadow-2xs">
+              {/* Header with Date Filter System (Matching the reference screenshot) */}
+              <div className="flex flex-col gap-3.5 border-b border-outline-variant/60 bg-surface-container-low/30 p-5">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-sm font-extrabold text-on-surface">
+                        Credit Economy Velocity & Telemetry
+                      </h2>
+                      <span className="rounded-md bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-300">
+                        Primary Income Engine
+                      </span>
+                    </div>
+                    <p className="mt-0.5 text-xs text-on-surface-variant">
+                      Compare AI credits spent (burn) vs purchased credits fulfilled (replenishment).
+                    </p>
+                  </div>
+
+                  <img src={creditCoin} alt="" className="hidden sm:block h-7 w-7 drop-shadow-xs" />
+                </div>
+
+                {/* Filter Toolbar matching the user's reference photo */}
+                <div className="flex flex-wrap items-center justify-between gap-2.5 pt-1">
+                  {/* Left: Range Preset Pills: [ 12 months ] [ 30 days ] [ 7 days ] [ 24 hours ] */}
+                  <div className="inline-flex rounded-xl border border-outline-variant/80 bg-surface p-1 shadow-2xs">
+                    <button
+                      type="button"
+                      onClick={() => handleCreditRangeChange("12m")}
+                      className={`rounded-lg px-2.5 py-1 text-xs font-bold transition-all ${
+                        creditRange === "12m"
+                          ? "bg-primary text-on-primary shadow-xs"
+                          : "text-on-surface-variant hover:text-on-surface"
+                      }`}
+                    >
+                      12 months
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleCreditRangeChange("30d")}
+                      className={`rounded-lg px-2.5 py-1 text-xs font-bold transition-all ${
+                        creditRange === "30d"
+                          ? "bg-primary text-on-primary shadow-xs"
+                          : "text-on-surface-variant hover:text-on-surface"
+                      }`}
+                    >
+                      30 days
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleCreditRangeChange("7d")}
+                      className={`rounded-lg px-2.5 py-1 text-xs font-bold transition-all ${
+                        creditRange === "7d"
+                          ? "bg-primary text-on-primary shadow-xs"
+                          : "text-on-surface-variant hover:text-on-surface"
+                      }`}
+                    >
+                      7 days
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleCreditRangeChange("24h")}
+                      className={`rounded-lg px-2.5 py-1 text-xs font-bold transition-all ${
+                        creditRange === "24h"
+                          ? "bg-primary text-on-primary shadow-xs"
+                          : "text-on-surface-variant hover:text-on-surface"
+                      }`}
+                    >
+                      24 hours
+                    </button>
+                  </div>
+
+                  {/* Right: Date Range Pill + Granularity (Per Day / Per Week / Per Month) */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    {/* Date Range Badge Pill */}
+                    <div className="inline-flex items-center gap-1.5 rounded-xl border border-outline-variant/80 bg-surface px-3 py-1 text-xs font-semibold text-on-surface shadow-2xs">
+                      <HugeiconsIcon icon="calendar" size={13} strokeWidth={1.8} className="text-on-surface-variant" />
+                      <span>{creditDateRangeLabel}</span>
+                    </div>
+
+                    {/* Granularity Selector: Locked to Per Month on 12m, Per Day/Week otherwise */}
+                    <div className="inline-flex rounded-xl border border-outline-variant/80 bg-surface p-1 shadow-2xs">
+                      {creditRange === "12m" ? (
+                        <div className="flex items-center gap-1.5 rounded-lg bg-surface-container-high px-2.5 py-1 text-[11px] font-extrabold text-on-surface">
+                          <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+                          <span>Per Month</span>
+                        </div>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => setCreditGranularity("day")}
+                            className={`rounded-lg px-2 py-1 text-[11px] font-bold transition-all ${
+                              creditGranularity === "day"
+                                ? "bg-surface-container-high text-on-surface font-extrabold"
+                                : "text-on-surface-variant hover:text-on-surface"
+                            }`}
+                          >
+                            Per Day
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setCreditGranularity("week")}
+                            className={`rounded-lg px-2 py-1 text-[11px] font-bold transition-all ${
+                              creditGranularity === "week"
+                                ? "bg-surface-container-high text-on-surface font-extrabold"
+                                : "text-on-surface-variant hover:text-on-surface"
+                            }`}
+                          >
+                            Per Week
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Grouped Bar Chart */}
+              <div className="p-5">
+                <DailyCreditBarChart
+                  days={processedCreditActivity}
+                  hoverIndex={activeCreditBar}
+                  onHoverIndex={setActiveCreditBar}
+                />
+              </div>
+
+              {/* Chart Legend & Telemetry Insights */}
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-outline-variant/60 bg-surface-container-low/20 px-5 py-3 text-xs text-on-surface-variant">
+                <div className="flex items-center gap-4">
+                  <span className="inline-flex items-center gap-1.5 font-bold text-on-surface">
+                    <span className="h-2.5 w-2.5 rounded bg-primary" />
+                    AI Credits Spent ({processedCreditActivity.reduce((acc, d) => acc + d.spent, 0).toLocaleString()})
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 font-bold text-amber-700 dark:text-amber-300">
+                    <span className="h-2.5 w-2.5 rounded bg-amber-400" />
+                    Purchased Fulfilled ({processedCreditActivity.reduce((acc, d) => acc + d.fulfilled, 0).toLocaleString()})
+                  </span>
+                </div>
+                <span className="text-[11px] text-on-surface-variant/75">
+                  Hover over bars for detailed volume
+                </span>
+              </div>
+            </div>
+
+            {/* 2. Most Requested AI Capabilities (Action Demand) */}
+            <div className="flex flex-col justify-between rounded-2xl border border-outline-variant/80 bg-surface-container-lowest p-5 shadow-2xs">
+              <div>
+                <div className="border-b border-outline-variant/60 pb-3">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-sm font-extrabold text-on-surface">
+                      AI Actions Demand
+                    </h2>
+                    <span className="rounded-md bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
+                      Top Requested
+                    </span>
+                  </div>
+                  <p className="mt-0.5 text-xs text-on-surface-variant">
+                    Action consumption informing credit policy pricing.
+                  </p>
+                </div>
+
+                <div className="mt-4 space-y-3.5">
+                  {data.charts.actionDemand.length ? (
+                    data.charts.actionDemand.map((item, idx) => {
+                      const percentage = totalActionDemand
+                        ? Math.round((item.value / totalActionDemand) * 100)
+                        : 0;
+                      const cleanLabel = item.label.replaceAll("_", " ");
+
+                      return (
+                        <div key={item.label} className="group">
+                          <div className="flex items-center justify-between text-xs">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="grid h-5 w-5 shrink-0 place-items-center rounded-md bg-surface-container-high font-mono text-[10px] font-bold text-on-surface-variant">
+                                #{idx + 1}
+                              </span>
+                              <span className="truncate font-semibold capitalize text-on-surface group-hover:text-primary transition-colors">
+                                {cleanLabel}
+                              </span>
+                            </div>
+                            <div className="flex shrink-0 items-center gap-2">
+                              <span className="font-mono font-bold text-on-surface">{item.value}</span>
+                              <span className="text-[11px] font-medium text-on-surface-variant/75">
+                                ({percentage}%)
+                              </span>
+                            </div>
+                          </div>
+                          <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-surface-container-high">
+                            <div
+                              className="h-full rounded-full bg-gradient-to-r from-primary to-tertiary transition-all duration-300 group-hover:brightness-110"
+                              style={{ width: `${Math.max(percentage, 5)}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <p className="py-8 text-center text-xs text-on-surface-variant">No AI actions logged yet.</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="mt-5 border-t border-outline-variant/60 pt-3">
+                <Link
+                  to="/admin/credits"
+                  className="flex items-center justify-between text-xs font-bold text-primary hover:underline"
+                >
+                  <span>Configure credit prices for actions</span>
+                  <HugeiconsIcon icon="arrow-right-01" size={14} strokeWidth={2} />
+                </Link>
+              </div>
+            </div>
+          </section>
+
+          {/* =========================================================================
+              SECTION 2: PLATFORM MOMENTUM & STUDENT ONBOARDING FUNNEL
+             ========================================================================= */}
+          <section className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.75fr)_minmax(20rem,0.85fr)]">
+            {/* Visual Spline Growth Chart with 12m / 6m / 3m Filter */}
             <div className="overflow-hidden rounded-2xl border border-outline-variant/80 bg-surface-container-lowest shadow-2xs">
               <div className="flex flex-col gap-3 border-b border-outline-variant/60 bg-surface-container-low/30 p-5 sm:flex-row sm:items-center sm:justify-between">
                 <div>
@@ -280,50 +596,88 @@ export default function BackofficeDashboard() {
                       Platform Momentum
                     </span>
                     <span className="rounded-md bg-primary/10 px-2 py-0.5 text-[10px] font-extrabold text-primary">
-                      6-Month Horizon
+                      Adoption Curve
                     </span>
                   </div>
                   <p className="mt-0.5 text-xs text-on-surface-variant">
-                    Monthly student acquisition and project creation trajectory.
+                    Cumulative student acquisition and workspace creation trajectory.
                   </p>
                 </div>
 
-                {/* Series Toggle Pills */}
-                <div className="flex items-center gap-2">
+                {/* Filter Controls for Momentum */}
+                <div className="flex flex-wrap items-center gap-2">
+                  {/* Range Pills */}
+                  <div className="inline-flex rounded-xl border border-outline-variant/80 bg-surface p-1 shadow-2xs">
+                    <button
+                      type="button"
+                      onClick={() => setMomentumRange("12m")}
+                      className={`rounded-lg px-2.5 py-1 text-[11px] font-bold transition-all ${
+                        momentumRange === "12m"
+                          ? "bg-primary text-on-primary shadow-xs"
+                          : "text-on-surface-variant hover:text-on-surface"
+                      }`}
+                    >
+                      12 Months
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setMomentumRange("6m")}
+                      className={`rounded-lg px-2.5 py-1 text-[11px] font-bold transition-all ${
+                        momentumRange === "6m"
+                          ? "bg-primary text-on-primary shadow-xs"
+                          : "text-on-surface-variant hover:text-on-surface"
+                      }`}
+                    >
+                      6 Months
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setMomentumRange("3m")}
+                      className={`rounded-lg px-2.5 py-1 text-[11px] font-bold transition-all ${
+                        momentumRange === "3m"
+                          ? "bg-primary text-on-primary shadow-xs"
+                          : "text-on-surface-variant hover:text-on-surface"
+                      }`}
+                    >
+                      3 Months
+                    </button>
+                  </div>
+
+                  {/* Series Toggle Pills */}
                   <div className="inline-flex rounded-xl border border-outline-variant/80 bg-surface p-1 shadow-2xs">
                     <button
                       type="button"
                       onClick={() => setActiveSeries("both")}
-                      className={`rounded-lg px-2.5 py-1 text-[11px] font-bold transition-all ${
+                      className={`rounded-lg px-2 py-1 text-[11px] font-bold transition-all ${
                         activeSeries === "both"
                           ? "bg-surface-container-high text-on-surface"
                           : "text-on-surface-variant hover:text-on-surface"
                       }`}
                     >
-                      All Series
+                      All
                     </button>
                     <button
                       type="button"
                       onClick={() => setActiveSeries("students")}
-                      className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-bold transition-all ${
+                      className={`inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-bold transition-all ${
                         activeSeries === "students"
                           ? "bg-primary text-on-primary shadow-xs"
                           : "text-on-surface-variant hover:text-on-surface"
                       }`}
                     >
-                      <span className="h-2 w-2 rounded-full bg-primary" />
+                      <span className="h-1.5 w-1.5 rounded-full bg-primary" />
                       Students
                     </button>
                     <button
                       type="button"
                       onClick={() => setActiveSeries("projects")}
-                      className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-bold transition-all ${
+                      className={`inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-bold transition-all ${
                         activeSeries === "projects"
                           ? "bg-tertiary text-on-primary shadow-xs"
                           : "text-on-surface-variant hover:text-on-surface"
                       }`}
                     >
-                      <span className="h-2 w-2 rounded-full bg-tertiary" />
+                      <span className="h-1.5 w-1.5 rounded-full bg-tertiary" />
                       Projects
                     </button>
                   </div>
@@ -333,8 +687,8 @@ export default function BackofficeDashboard() {
               {/* Interactive SVG Chart Container */}
               <div className="p-5">
                 <SmoothSplineChart
-                  students={data.charts.studentGrowth}
-                  projects={data.charts.projectGrowth}
+                  students={processedMomentum.students}
+                  projects={processedMomentum.projects}
                   activeSeries={activeSeries}
                   hoverIndex={activeGrowthPoint}
                   onHoverIndex={setActiveGrowthPoint}
@@ -342,7 +696,7 @@ export default function BackofficeDashboard() {
               </div>
             </div>
 
-            {/* Student Activation & Onboarding Conversion Meter */}
+            {/* Student Activation & Onboarding Funnel */}
             <div className="flex flex-col justify-between rounded-2xl border border-outline-variant/80 bg-surface-container-lowest p-5 shadow-2xs">
               <div>
                 <div className="flex items-center justify-between">
@@ -351,7 +705,7 @@ export default function BackofficeDashboard() {
                   </span>
                   <span className="inline-flex items-center gap-1 rounded-full bg-secondary/10 px-2 py-0.5 text-[10px] font-extrabold text-secondary">
                     <HugeiconsIcon icon="checkmark-circle-02" size={12} strokeWidth={2} />
-                    {activationRate}% Completed
+                    {creditMetrics.activationRate}% Completed
                   </span>
                 </div>
                 <h3 className="mt-2 text-base font-extrabold text-on-surface">
@@ -372,7 +726,7 @@ export default function BackofficeDashboard() {
                   <div className="h-3 overflow-hidden rounded-full bg-surface-container-high">
                     <div
                       className="h-full rounded-full bg-gradient-to-r from-secondary to-primary transition-all duration-500"
-                      style={{ width: `${activationRate}%` }}
+                      style={{ width: `${creditMetrics.activationRate}%` }}
                     />
                   </div>
                 </div>
@@ -427,118 +781,9 @@ export default function BackofficeDashboard() {
             </div>
           </section>
 
-          {/* SECTION 3: AI INTELLIGENCE DEMAND & CREDIT VELOCITY */}
-          <section className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(19rem,0.9fr)]">
-            {/* 14-Day Credit Burn & Fulfilment Bar Chart */}
-            <div className="rounded-2xl border border-outline-variant/80 bg-surface-container-lowest p-5 shadow-2xs">
-              <div className="flex items-start justify-between gap-3 border-b border-outline-variant/60 pb-4">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-sm font-extrabold text-on-surface">
-                      14-Day Credit Economy Velocity
-                    </h2>
-                    <span className="rounded-md bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-300">
-                      Telemetry
-                    </span>
-                  </div>
-                  <p className="mt-1 text-xs text-on-surface-variant">
-                    Daily AI credits spent (burn) versus purchased credits fulfilled (replenishment).
-                  </p>
-                </div>
-                <img src={creditCoin} alt="" className="h-7 w-7 drop-shadow-xs" />
-              </div>
-
-              {/* Grouped Bar Chart */}
-              <div className="mt-5">
-                <DailyCreditBarChart
-                  days={data.charts.creditActivity}
-                  hoverIndex={activeCreditBar}
-                  onHoverIndex={setActiveCreditBar}
-                />
-              </div>
-
-              {/* Chart Legend */}
-              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-outline-variant/60 pt-3 text-xs text-on-surface-variant">
-                <div className="flex items-center gap-4">
-                  <span className="inline-flex items-center gap-1.5 font-medium">
-                    <span className="h-2.5 w-2.5 rounded bg-primary" />
-                    AI Credits Spent
-                  </span>
-                  <span className="inline-flex items-center gap-1.5 font-medium">
-                    <span className="h-2.5 w-2.5 rounded bg-amber-400" />
-                    Purchased Fulfilled
-                  </span>
-                </div>
-                <span className="text-[11px] text-on-surface-variant/70">
-                  Hover bars for daily details
-                </span>
-              </div>
-            </div>
-
-            {/* Top Requested AI Actions */}
-            <div className="rounded-2xl border border-outline-variant/80 bg-surface-container-lowest p-5 shadow-2xs">
-              <div className="border-b border-outline-variant/60 pb-4">
-                <h2 className="text-sm font-extrabold text-on-surface">
-                  Most Requested AI Actions
-                </h2>
-                <p className="mt-0.5 text-xs text-on-surface-variant">
-                  Action volume distribution across the 3-tier Gemini model pipeline.
-                </p>
-              </div>
-
-              <div className="mt-4 space-y-3.5">
-                {data.charts.actionDemand.length ? (
-                  data.charts.actionDemand.map((item, idx) => {
-                    const percentage = totalActionDemand
-                      ? Math.round((item.value / totalActionDemand) * 100)
-                      : 0;
-                    const cleanLabel = item.label.replaceAll("_", " ");
-
-                    return (
-                      <div key={item.label} className="group">
-                        <div className="flex items-center justify-between text-xs">
-                          <div className="flex items-center gap-2">
-                            <span className="grid h-5 w-5 place-items-center rounded-md bg-surface-container-high font-mono text-[10px] font-bold text-on-surface-variant">
-                              #{idx + 1}
-                            </span>
-                            <span className="font-semibold capitalize text-on-surface group-hover:text-primary transition-colors">
-                              {cleanLabel}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono font-bold text-on-surface">{item.value}</span>
-                            <span className="text-[11px] font-medium text-on-surface-variant/75">
-                              ({percentage}%)
-                            </span>
-                          </div>
-                        </div>
-                        <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-surface-container-high">
-                          <div
-                            className="h-full rounded-full bg-primary transition-all duration-300 group-hover:bg-primary/80"
-                            style={{ width: `${Math.max(percentage, 5)}%` }}
-                          />
-                        </div>
-                      </div>
-                    );
-                  })
-                ) : (
-                  <p className="py-8 text-center text-xs text-on-surface-variant">No AI actions logged yet.</p>
-                )}
-              </div>
-
-              <div className="mt-5 border-t border-outline-variant/60 pt-3">
-                <Link
-                  to="/admin/credits"
-                  className="flex items-center justify-between text-xs font-bold text-primary hover:underline"
-                >
-                  <span>Adjust AI action credit pricing</span>
-                  <HugeiconsIcon icon="arrow-right-01" size={14} strokeWidth={2} />
-                </Link>
-              </div>
-            </div>
-          </section>
-
-          {/* SECTION 4: DOMAIN CONCENTRATION & RECENT FULFILLMENTS */}
+          {/* =========================================================================
+              SECTION 3: DOMAIN CONCENTRATION & RECENT FULFILLMENTS
+             ========================================================================= */}
           <section className="grid grid-cols-1 gap-4 xl:grid-cols-2">
             {/* Projects by Academic Domain */}
             <div className="rounded-2xl border border-outline-variant/80 bg-surface-container-lowest p-5 shadow-2xs">
@@ -615,7 +860,9 @@ export default function BackofficeDashboard() {
             </div>
           </section>
 
-          {/* SECTION 5: REAL-TIME OPERATIONAL ACTIVITY STREAMS */}
+          {/* =========================================================================
+              SECTION 4: REAL-TIME OPERATIONAL ACTIVITY STREAMS
+             ========================================================================= */}
           <section className="grid grid-cols-1 gap-4 xl:grid-cols-2">
             {/* Newest Students */}
             <div className="rounded-2xl border border-outline-variant/80 bg-surface-container-lowest p-5 shadow-2xs">
@@ -705,13 +952,13 @@ export default function BackofficeDashboard() {
 }
 
 /* =========================================================================
-   REUSABLE KPI CARD COMPONENT
+   REUSABLE CREDIT-FOCUSED KPI CARD COMPONENT
    ========================================================================= */
-function KpiCard({
+function CreditKpiCard({
   label,
   value,
-  sublabel,
-  sublabelColor,
+  badge,
+  badgeColor,
   helper,
   icon,
   coin,
@@ -719,8 +966,8 @@ function KpiCard({
 }: {
   label: string;
   value: string | number;
-  sublabel: string;
-  sublabelColor: string;
+  badge: string;
+  badgeColor: string;
   helper: string;
   icon?: string;
   coin?: boolean;
@@ -730,7 +977,7 @@ function KpiCard({
     primary: "bg-primary/10 text-primary border border-primary/20",
     tertiary: "bg-tertiary/10 text-tertiary border border-tertiary/20",
     amber: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20",
-    emerald: "bg-secondary/10 text-secondary border border-secondary/20",
+    emerald: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20",
   };
 
   return (
@@ -740,8 +987,8 @@ function KpiCard({
           <p className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">{label}</p>
           <p className="mt-2 font-mono text-3xl font-extrabold tracking-tight text-on-surface">{value}</p>
           <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-            <span className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-extrabold ${sublabelColor}`}>
-              {sublabel}
+            <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-extrabold border ${badgeColor}`}>
+              {badge}
             </span>
             <span className="text-[11px] text-on-surface-variant/70">{helper}</span>
           </div>
@@ -798,7 +1045,6 @@ function SmoothSplineChart({
   const studentCoords = getCoordinates(students);
   const projectCoords = getCoordinates(projects);
 
-  // Generate smooth cubic bezier SVG path
   const createSmoothPath = (coords: Array<{ x: number; y: number }>) => {
     if (!coords.length) return "";
     return coords.reduce((acc, point, i, arr) => {
@@ -894,7 +1140,6 @@ function SmoothSplineChart({
           const isHovered = hoverIndex === i;
           return (
             <g key={pt.label}>
-              {/* Invisible touch/hover target column */}
               <rect
                 x={pt.x - 20}
                 y={0}
@@ -905,7 +1150,6 @@ function SmoothSplineChart({
                 onMouseEnter={() => onHoverIndex(i)}
               />
 
-              {/* Vertical Crosshair Line */}
               {isHovered && (
                 <line
                   x1={pt.x}
@@ -918,7 +1162,6 @@ function SmoothSplineChart({
                 />
               )}
 
-              {/* Student Point */}
               {showStudents && (
                 <circle
                   cx={pt.x}
@@ -931,7 +1174,6 @@ function SmoothSplineChart({
                 />
               )}
 
-              {/* Project Point */}
               {showProjects && projectCoords[i] && (
                 <circle
                   cx={projectCoords[i].x}
@@ -986,7 +1228,7 @@ function SmoothSplineChart({
 }
 
 /* =========================================================================
-   DAILY CREDIT TELEMETRY GROUPED BAR CHART
+   DAILY / WEEKLY CREDIT TELEMETRY GROUPED BAR CHART
    ========================================================================= */
 function DailyCreditBarChart({
   days,
@@ -1002,7 +1244,7 @@ function DailyCreditBarChart({
   return (
     <div className="relative">
       <div
-        className="flex h-44 items-end gap-1.5 border-b border-outline-variant/60 pb-1"
+        className="flex h-48 items-end gap-1 sm:gap-1.5 border-b border-outline-variant/60 pb-1"
         onMouseLeave={() => onHoverIndex(null)}
       >
         {days.map((day, idx) => {
@@ -1012,7 +1254,7 @@ function DailyCreditBarChart({
 
           return (
             <div
-              key={day.label}
+              key={`${day.label}-${idx}`}
               className={`relative flex min-w-0 flex-1 cursor-pointer items-end gap-0.5 rounded-lg transition-colors ${
                 isHovered ? "bg-surface-container-high/60" : "hover:bg-surface-container-low/50"
               }`}
@@ -1032,10 +1274,10 @@ function DailyCreditBarChart({
 
               {/* Day Hover Tooltip */}
               {isHovered && (
-                <div className="pointer-events-none absolute -top-14 left-1/2 z-20 -translate-x-1/2 whitespace-nowrap rounded-xl border border-outline-variant bg-surface/95 px-2.5 py-1.5 text-[11px] shadow-xl backdrop-blur-md">
+                <div className="pointer-events-none absolute -top-16 left-1/2 z-20 -translate-x-1/2 whitespace-nowrap rounded-xl border border-outline-variant bg-surface/95 px-3 py-2 text-[11px] shadow-xl backdrop-blur-md">
                   <p className="font-extrabold text-on-surface">{day.label}</p>
-                  <p className="text-primary font-bold">{day.spent} spent</p>
-                  <p className="text-amber-600 dark:text-amber-400 font-bold">{day.fulfilled} fulfilled</p>
+                  <p className="text-primary font-bold">{day.spent.toLocaleString()} spent</p>
+                  <p className="text-amber-600 dark:text-amber-400 font-bold">{day.fulfilled.toLocaleString()} fulfilled</p>
                 </div>
               )}
             </div>
@@ -1045,9 +1287,25 @@ function DailyCreditBarChart({
 
       {/* X-Axis dates */}
       <div className="mt-2 flex justify-between px-1 text-[10px] font-medium text-on-surface-variant/75">
-        <span>{days[0]?.label}</span>
-        <span>{days[Math.floor(days.length / 2)]?.label}</span>
-        <span>{days[days.length - 1]?.label}</span>
+        {days.length <= 14 ? (
+          days.map((day, idx) => (
+            <span
+              key={`${day.label}-${idx}`}
+              className={`truncate text-center ${
+                days.length > 7 && idx % 2 !== 0 && idx !== days.length - 1 ? "hidden sm:block" : "block"
+              }`}
+              style={{ flex: 1 }}
+            >
+              {day.label}
+            </span>
+          ))
+        ) : (
+          <>
+            <span>{days[0]?.label || ""}</span>
+            {days.length > 2 && <span>{days[Math.floor(days.length / 2)]?.label || ""}</span>}
+            <span>{days[days.length - 1]?.label || ""}</span>
+          </>
+        )}
       </div>
     </div>
   );
