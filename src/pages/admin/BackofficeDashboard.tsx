@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { fetchApi } from "@/lib/api";
+import HugeiconsIcon from "@/components/ui/HugeiconsIcon";
 
 type AdminUser = {
   _id: string;
@@ -79,14 +80,14 @@ function formatDate(value: string) {
 
 function StatCard({ icon, label, value, helper }: { icon: string; label: string; value: number; helper: string }) {
   return (
-    <section className="rounded-lg border border-outline-variant bg-surface p-lg flex items-start justify-between gap-md">
+    <section className="rounded-2xl border border-outline-variant/80 bg-surface p-5 flex items-start justify-between gap-md shadow-2xs">
       <div>
         <p className="font-label-md text-label-md text-on-surface-variant">{label}</p>
         <p className="font-headline-lg text-headline-lg text-on-surface mt-xs">{value}</p>
         <p className="font-body-sm text-body-sm text-on-surface-variant mt-base">{helper}</p>
       </div>
-      <div className="w-11 h-11 rounded-lg bg-primary-container text-primary flex items-center justify-center">
-        <span className="material-symbols-outlined text-[24px]">{icon}</span>
+      <div className="w-11 h-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center border border-primary/15">
+        <HugeiconsIcon icon={icon} size={22} strokeWidth={1.8} />
       </div>
     </section>
   );
@@ -217,11 +218,11 @@ export default function BackofficeDashboard() {
     : 0;
 
   return (
-    <div className="flex flex-col gap-xl">
-      <header className="flex flex-col gap-xs">
-        <span className="font-label-md text-label-md text-primary uppercase tracking-wider">Backoffice</span>
-        <h1 className="font-headline-lg text-headline-lg text-on-surface">Dashboard</h1>
-        <p className="font-body-lg text-body-lg text-on-surface-variant max-w-3xl">
+    <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 pb-16">
+      <header className="flex flex-col gap-1">
+        <span className="text-[10px] font-extrabold text-primary uppercase tracking-[0.18em]">Administration</span>
+        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-on-surface">Platform overview</h1>
+        <p className="text-sm text-on-surface-variant max-w-3xl">
           Monitor students, onboarding progress, and created PFE projects.
         </p>
       </header>
@@ -242,8 +243,8 @@ export default function BackofficeDashboard() {
               <StatCard icon="group" label="Total Users" value={dashboard.totals.users} helper="All registered accounts" />
               <StatCard icon="school" label="Students" value={dashboard.totals.students} helper="Role: etudiant" />
               <StatCard icon="admin_panel_settings" label="Admins" value={dashboard.totals.admins} helper="Backoffice access" />
-              <StatCard icon="folder_managed" label="Projects" value={dashboard.totals.projects} helper="Created workspaces" />
-              <StatCard icon="task_alt" label="Completion" value={completionRate} helper="Onboarding completion %" />
+              <StatCard icon="folder-01" label="Projects" value={dashboard.totals.projects} helper="Created workspaces" />
+              <StatCard icon="checkmark-circle-02" label="Completion" value={completionRate} helper="Onboarding completion %" />
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-lg">
@@ -286,7 +287,7 @@ export default function BackofficeDashboard() {
                     <h2 className="font-headline-sm text-headline-sm text-on-surface">Recent Users</h2>
                     <p className="font-body-md text-body-md text-on-surface-variant">Latest registered accounts.</p>
                   </div>
-                  <span className="material-symbols-outlined text-primary">person_add</span>
+                  <HugeiconsIcon icon="user" size={19} className="text-primary" />
                 </div>
 
                 <div className="overflow-x-auto">
@@ -328,7 +329,7 @@ export default function BackofficeDashboard() {
                     <h2 className="font-headline-sm text-headline-sm text-on-surface">Recent Projects</h2>
                     <p className="font-body-md text-body-md text-on-surface-variant">Latest PFE workspaces.</p>
                   </div>
-                  <span className="material-symbols-outlined text-primary">dashboard</span>
+                  <HugeiconsIcon icon="dashboard" size={19} className="text-primary" />
                 </div>
 
                 <div className="flex flex-col divide-y divide-outline-variant">

@@ -14,7 +14,15 @@ type AccountForm = {
   confirmPassword: string;
 };
 
-export default function AccountSettings() {
+export default function AccountSettings({
+  backTo = "/workspace/settings",
+  backLabel = "Back to Settings",
+  memberLabel = "Student Member",
+}: {
+  backTo?: string;
+  backLabel?: string;
+  memberLabel?: string;
+} = {}) {
   const [form, setForm] = useState<AccountForm>({
     fullName: "",
     email: "",
@@ -158,11 +166,11 @@ export default function AccountSettings() {
       {/* Header & Notion Back Navigation */}
       <header className="mb-6 flex flex-col gap-2">
         <Link
-          to="/workspace/settings"
+          to={backTo}
           className="inline-flex items-center gap-1.5 text-xs font-semibold text-on-surface-variant hover:text-primary transition-colors cursor-pointer w-fit"
         >
           <HugeiconsIcon icon="arrow-left" size={14} strokeWidth={2} />
-          <span>Back to Settings</span>
+          <span>{backLabel}</span>
         </Link>
 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-1">
@@ -222,7 +230,7 @@ export default function AccountSettings() {
             <p className="text-base font-bold text-on-surface truncate">{form.fullName || "Student Account"}</p>
             <p className="text-xs text-on-surface-variant truncate mt-0.5">{form.email}</p>
             <span className="inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded bg-surface border border-outline-variant text-[10px] font-semibold text-outline-variant uppercase tracking-wide">
-              <span>{isGoogleAccount ? "Google Verified" : "Student Member"}</span>
+              <span>{isGoogleAccount ? "Google Verified" : memberLabel}</span>
             </span>
           </div>
         </div>

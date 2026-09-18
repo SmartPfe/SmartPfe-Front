@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { API_BASE_URL, fetchApi } from "@/lib/api";
+import { fetchApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { useWorkflow } from "@/context/WorkflowContext";
 import { normalizePresentation, PresentationDeck, PresentationSlide } from "./Presentation/hooks/usePresentation";
@@ -9,6 +9,7 @@ import HugeiconsIcon from "@/components/ui/HugeiconsIcon";
 import InfoTooltip from "@/components/ui/InfoTooltip";
 import JuryQASession from "./JuryQA/JuryQASession";
 import type { JuryQASessionRecord } from "./JuryQA/types";
+import CreditBadge from "@/components/credits/CreditBadge";
 
 type JuryStage = "loading" | "prepare" | "presenting" | "analyzing" | "results" | "qa";
 type MicStatus = "unknown" | "checking" | "ready" | "denied" | "unavailable";
@@ -611,22 +612,10 @@ export default function JurySimulation() {
       formData.append("presentation", JSON.stringify(presentation));
       formData.append("pitch", JSON.stringify(pitch));
 
-      const response = await fetch(`${API_BASE_URL}/ai/jury-simulation/analyze`, {
+      const data = await fetchApi("/ai/jury-simulation/analyze", {
         method: "POST",
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         body: formData,
       });
-
-      let data: any = {};
-      try {
-        data = await response.json();
-      } catch {
-        throw new Error("Invalid response received from the jury evaluation service. Please retry.");
-      }
-
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to analyze the jury simulation.");
-      }
 
       const attempt = data.attempt;
       setAttempts((current) => [attempt, ...current.filter((item) => item._id !== attempt._id)]);
@@ -788,6 +777,7 @@ export default function JurySimulation() {
           >
             <HugeiconsIcon icon="play-circle" size={20} strokeWidth={2} />
             <span>Enter Defense Podium</span>
+            <CreditBadge actionKey="jury_simulation" />
           </button>
         </div>
       </div>
@@ -1478,6 +1468,7 @@ function ResultsView({
                 >
                   <HugeiconsIcon icon={qaSession?.status === "completed" ? "analytics" : "arrow-right"} size={15} strokeWidth={2} />
                   <span>{qaSession?.status === "completed" ? "View Final Report" : qaSession ? "Resume Jury Questions" : "Continue to Jury Questions"}</span>
+                  {!qaSession && <CreditBadge actionKey="jury_qa_session" className="border-white/25 bg-white/15 text-white" />}
                 </button>
                 <button
                   type="button"

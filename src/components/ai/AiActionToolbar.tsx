@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import HugeiconsIcon from "@/components/ui/HugeiconsIcon";
+import CreditBadge from "@/components/credits/CreditBadge";
+import { useLocation } from "react-router-dom";
 
 export interface AiActionToolbarProps {
   onGenerate: () => void | Promise<void>;
@@ -21,7 +23,23 @@ export interface AiActionToolbarProps {
   translateLabel?: string;
   primaryAction?: React.ReactNode;
   className?: string;
+  generateCreditActionKey?: string;
+  refineCreditActionKey?: string;
 }
+
+const WORKSPACE_CREDIT_ACTIONS: Record<string, string> = {
+  "/workspace/problem-statement": "problem_statement",
+  "/workspace/actors": "actors",
+  "/workspace/solutions": "existing_solutions",
+  "/workspace/functional-requirements": "functional_requirements",
+  "/workspace/non-functional-requirements": "nonfunctional_requirements",
+  "/workspace/backlog": "product_backlog",
+  "/workspace/uml-preparation": "uml_preparation",
+  "/workspace/report-structure": "report_structure",
+  "/workspace/report-builder": "report_section",
+  "/workspace/presentation": "presentation_full",
+  "/workspace/pitch": "pitch_full",
+};
 
 export const aiButtonClass =
   "inline-flex items-center justify-center gap-2 h-9 px-3.5 rounded-lg border border-primary/25 bg-gradient-to-r from-primary/10 via-primary/5 to-secondary/10 text-primary text-[13px] font-medium tracking-tight hover:from-primary/15 hover:to-secondary/15 hover:border-primary/40 transition-all duration-150 shadow-2xs active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:grayscale select-none cursor-pointer";
@@ -55,7 +73,10 @@ export default function AiActionToolbar({
   translateLabel = "Translate",
   primaryAction,
   className,
+  generateCreditActionKey,
+  refineCreditActionKey,
 }: AiActionToolbarProps) {
+  const location = useLocation();
   const [refineOpen, setRefineOpen] = useState(false);
   const [refineInstructions, setRefineInstructions] = useState("");
   const refinePopoverRef = useRef<HTMLDivElement>(null);
@@ -87,6 +108,15 @@ export default function AiActionToolbar({
   };
 
   const isAnyBusy = isBusy || isGenerating || isRefining || isTranslating;
+  const inferredAction = WORKSPACE_CREDIT_ACTIONS[location.pathname];
+  const generateAction = generateCreditActionKey || inferredAction;
+  const refineAction = refineCreditActionKey || (
+    location.pathname === "/workspace/report-builder"
+      ? "report_polish_contextual"
+      : location.pathname === "/workspace/presentation"
+        ? "presentation_slide"
+        : inferredAction
+  );
 
   return (
     <div
@@ -120,6 +150,7 @@ export default function AiActionToolbar({
             <>
               <HugeiconsIcon icon="ai-beautify" size={17} strokeWidth={1.65} />
               <span>{generateLabel}</span>
+              <CreditBadge actionKey={generateAction} />
             </>
           )}
         </button>
@@ -142,6 +173,7 @@ export default function AiActionToolbar({
               <>
                 <HugeiconsIcon icon="ai-refine" size={17} strokeWidth={1.65} />
                 <span>{refineLabel}</span>
+                <CreditBadge actionKey={refineAction} />
               </>
             )}
           </button>

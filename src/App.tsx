@@ -41,11 +41,14 @@ import BackofficeDashboard from "./pages/admin/BackofficeDashboard";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminProjects from "./pages/admin/AdminProjects";
+import AdminCredits from "./pages/admin/AdminCredits";
+import { CreditProvider } from "./context/CreditContext";
   
 export default function App() {
   return (
     <BrowserRouter>
-      <Routes>
+      <CreditProvider>
+       <Routes>
         <Route path="/" element={<Landing />} />
         
         <Route element={<AuthLayout />}>
@@ -98,10 +101,12 @@ export default function App() {
           <Route path="dashboard" element={<BackofficeDashboard />} />
           <Route path="users" element={<AdminUsers />} />
           <Route path="projects" element={<AdminProjects />} />
+          <Route path="credits" element={<AdminCredits />} />
           <Route path="settings" element={<AdminSettings />} />
           <Route path="*" element={<BackofficeDashboard />} />
         </Route>
-      </Routes>
+       </Routes>
+      </CreditProvider>
     </BrowserRouter>
   );
 }

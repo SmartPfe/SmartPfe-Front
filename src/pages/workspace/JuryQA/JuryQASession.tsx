@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { API_BASE_URL, fetchApi } from "@/lib/api";
+import { fetchApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import HugeiconsIcon from "@/components/ui/HugeiconsIcon";
 import { formatDuration } from "../Pitch/hooks/usePitch";
@@ -38,11 +38,6 @@ const recordingExtension = (mimeType = "") => {
   if (value.includes("ogg")) return "ogg";
   if (value.includes("mp4")) return "m4a";
   return "webm";
-};
-
-const authHeaders = () => {
-  const token = localStorage.getItem("token");
-  return token ? { Authorization: `Bearer ${token}` } : {};
 };
 
 const questionAnswered = (question: JuryQuestion) => Boolean(question.answer?.transcript && question.evaluation);
@@ -217,13 +212,10 @@ export default function JuryQASession({
       formData.append("durationSeconds", String(answerSeconds));
       formData.append("audio", recordedBlob, `jury-answer-${activeQuestion.id}.${ext}`);
 
-      const response = await fetch(`${API_BASE_URL}/ai/jury-qa/${session._id}/answer`, {
+      const data = await fetchApi(`/ai/jury-qa/${session._id}/answer`, {
         method: "POST",
-        headers: authHeaders(),
         body: formData,
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message || "Failed to evaluate this answer.");
 
       setSessionAndNotify(data.session);
       setSavedQuestionId(activeQuestion.id);

@@ -7,6 +7,7 @@ import HugeiconsIcon, { Folder01Icon } from "@/components/ui/HugeiconsIcon";
 import { useOnboarding } from "@/context/OnboardingContext";
 import { WORKSPACE_PHASES } from "@/lib/constants";
 import { cn } from "@/lib/utils";
+import CreditWalletButton from "@/components/credits/CreditWalletButton";
 
 interface TopbarProps {
   toggleSidebar: () => void;
@@ -207,6 +208,7 @@ export default function Topbar({ toggleSidebar }: TopbarProps) {
 
         {/* Right: Quick Search, Revision History, Notifications, Profile */}
         <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+          <CreditWalletButton />
           {/* Notion-Style Quick Search Trigger */}
           <button
             onClick={() => setIsSearchOpen(true)}

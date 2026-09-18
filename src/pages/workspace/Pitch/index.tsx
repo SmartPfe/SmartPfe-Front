@@ -14,6 +14,7 @@ import AiBackgroundBanner from "@/components/ai/AiBackgroundBanner";
 import HugeiconsIcon from "@/components/ui/HugeiconsIcon";
 import SaveStatusHeader from "@/components/ui/SaveStatusHeader";
 import AiActionToolbar from "@/components/ai/AiActionToolbar";
+import CreditBadge from "@/components/credits/CreditBadge";
 
 const escapeHtml = (value = "") =>
   value
@@ -295,6 +296,7 @@ export default function PitchPage() {
             >
               <HugeiconsIcon icon="refresh" size={15} strokeWidth={2} />
               <span>Regenerate Slide</span>
+              <CreditBadge actionKey="pitch_slide" className="border-white/25 bg-white/15 text-white" />
             </button>
           ) : undefined
         }

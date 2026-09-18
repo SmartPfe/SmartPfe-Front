@@ -21,6 +21,7 @@ import { ReportSection } from "../ReportStructure/hooks/useReportStructure";
 import HugeiconsIcon from "@/components/ui/HugeiconsIcon";
 import SaveStatusHeader from "@/components/ui/SaveStatusHeader";
 import AiActionToolbar from "@/components/ai/AiActionToolbar";
+import CreditBadge from "@/components/credits/CreditBadge";
 
 type StudioTab = "rich" | "markdown" | "latex";
 
@@ -57,6 +58,15 @@ export const DEFAULT_PINNED_TOOLS: AiAction[] = [
   "Shorten",
   "Make More Technical",
 ];
+
+const CONTEXTUAL_POLISH_ACTIONS = new Set<AiAction>([
+  "Expand",
+  "Improve Academic Style",
+  "Make More Technical",
+  "Explain Better",
+  "Continue Writing",
+  "Rewrite Selection",
+]);
 
 export default function ReportBuilder() {
   const {
@@ -635,6 +645,7 @@ export default function ReportBuilder() {
                           >
                             <HugeiconsIcon icon={tool.icon} size={14} strokeWidth={2} className={cn(tool.iconColor, "transition-transform group-hover:scale-110")} />
                             <span>{tool.label}</span>
+                            {!selectedText.trim() && CONTEXTUAL_POLISH_ACTIONS.has(tool.id) && <CreditBadge actionKey="report_polish_contextual" />}
                           </button>
                         ))}
                       </div>
@@ -942,6 +953,7 @@ function EmptyChapter({
       >
         <HugeiconsIcon icon={loading ? "sync-alt" : "edit"} size={15} strokeWidth={2} className={loading ? "animate-spin" : undefined} />
         <span>{loading ? "Generating Draft..." : `Generate ${detailLabels[detailLevel]} Draft`}</span>
+        <CreditBadge actionKey="report_section" />
       </button>
     </div>
   );
@@ -1555,6 +1567,7 @@ function ReportOverviewDashboard({
           >
             <HugeiconsIcon icon={aiState === "finalizing" ? "sync-alt" : "book-open"} size={14} strokeWidth={2} className={aiState === "finalizing" ? "animate-spin" : undefined} />
             <span>{aiState === "finalizing" ? "Compiling..." : "Compile Complete Report"}</span>
+            {aiState !== "finalizing" && <CreditBadge actionKey="final_report_compile" showFree />}
           </button>
         </div>
       </div>
@@ -1842,6 +1855,7 @@ function ReportOverviewDashboard({
             >
               <HugeiconsIcon icon={aiState === "finalizing" ? "sync-alt" : "book-open"} size={15} strokeWidth={2} className={aiState === "finalizing" ? "animate-spin" : undefined} />
               <span>{aiState === "finalizing" ? "Compiling..." : finalReport?.contentMarkdown ? "Recompile Full Report" : "Compile Full Report"}</span>
+              {aiState !== "finalizing" && <CreditBadge actionKey="final_report_compile" showFree />}
             </button>
 
             {finalReport?.contentMarkdown && (

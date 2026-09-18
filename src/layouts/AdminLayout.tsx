@@ -1,23 +1,28 @@
-import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import NotificationBell from "@/components/layout/NotificationBell";
 import { NotificationProvider } from "@/context/NotificationContext";
+import HugeiconsIcon from "@/components/ui/HugeiconsIcon";
+import creditCoin from "@/assets/credit-coin.png";
+import { cn } from "@/lib/utils";
 
 const ADMIN_NAV_ITEMS = [
-  { label: "Dashboard", icon: "dashboard", path: "/admin/dashboard" },
-  { label: "Users", icon: "group", path: "/admin/users" },
-  { label: "Projects", icon: "folder_managed", path: "/admin/projects" },
-  { label: "Settings", icon: "settings", path: "/admin/settings" },
+  { label: "Overview", icon: "dashboard", path: "/admin/dashboard", helper: "Platform pulse" },
+  { label: "Users", icon: "group", path: "/admin/users", helper: "Accounts & wallets" },
+  { label: "Projects", icon: "folder-01", path: "/admin/projects", helper: "Student workspaces" },
+  { label: "Credit Economy", icon: "coin", path: "/admin/credits", helper: "Pricing & allowances", coin: true },
+  { label: "Admin Account", icon: "settings-02", path: "/admin/settings", helper: "Profile & security" },
 ];
-
-function isActive(pathname: string, path: string) {
-  return pathname === path;
-}
 
 export default function AdminLayout() {
   const navigate = useNavigate();
   const location = useLocation();
+  const [mobileOpen, setMobileOpen] = useState(false);
   const user = JSON.parse(localStorage.getItem("user") || "{}");
-  const initials = (user.fullName || "A").substring(0, 2).toUpperCase();
+  const initials = (user.fullName || "Admin").split(" ").map((part: string) => part[0]).join("").slice(0, 2).toUpperCase();
+  const current = useMemo(() => ADMIN_NAV_ITEMS.find((item) => location.pathname === item.path) || ADMIN_NAV_ITEMS[0], [location.pathname]);
+
+  useEffect(() => setMobileOpen(false), [location.pathname]);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -25,94 +30,89 @@ export default function AdminLayout() {
     navigate("/");
   };
 
+  const sidebar = (
+    <aside className="flex h-full w-[272px] flex-col border-r border-outline-variant/70 bg-surface">
+      <div className="flex h-16 items-center gap-3 border-b border-outline-variant/60 px-4">
+        <div className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-primary to-tertiary text-sm font-extrabold text-white shadow-sm">S</div>
+        <div className="min-w-0">
+          <p className="truncate text-sm font-extrabold tracking-tight text-on-surface">SmartPFE</p>
+          <p className="truncate text-[10px] font-bold uppercase tracking-[0.16em] text-primary">Administration</p>
+        </div>
+        <button type="button" onClick={() => setMobileOpen(false)} className="ml-auto grid h-8 w-8 place-items-center rounded-lg text-on-surface-variant hover:bg-surface-container lg:hidden" aria-label="Close admin menu">
+          <HugeiconsIcon icon="close" size={17} />
+        </button>
+      </div>
+
+      <nav className="flex-1 space-y-1 overflow-y-auto p-3">
+        <p className="px-2 pb-2 pt-1 text-[9px] font-extrabold uppercase tracking-[0.18em] text-on-surface-variant/70">Management</p>
+        {ADMIN_NAV_ITEMS.map((item) => (
+          <NavLink key={item.path} to={item.path} className={({ isActive }) => cn(
+            "group flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors",
+            isActive ? "bg-primary/10 text-primary" : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface"
+          )}>
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-surface-container-low group-hover:bg-surface">
+              {item.coin ? <img src={creditCoin} alt="" className="h-5 w-5" /> : <HugeiconsIcon icon={item.icon} size={17} strokeWidth={1.8} />}
+            </span>
+            <span className="min-w-0">
+              <span className="block truncate text-xs font-bold">{item.label}</span>
+              <span className="block truncate text-[10px] font-medium opacity-70">{item.helper}</span>
+            </span>
+          </NavLink>
+        ))}
+      </nav>
+
+      <div className="border-t border-outline-variant/60 p-3">
+        <div className="mb-2 flex items-center gap-3 rounded-xl bg-surface-container-low p-2.5">
+          <div className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-xl bg-primary/10 text-xs font-extrabold text-primary">
+            {user.avatar ? <img src={user.avatar} alt="" className="h-full w-full object-cover" referrerPolicy="no-referrer" /> : initials}
+          </div>
+          <div className="min-w-0"><p className="truncate text-xs font-bold text-on-surface">{user.fullName || "Administrator"}</p><p className="truncate text-[10px] text-on-surface-variant">{user.email}</p></div>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <Link to="/workspace/overview" className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-outline-variant bg-surface text-[10px] font-bold text-on-surface hover:bg-surface-container-low" title="Open the student workspace">
+            <HugeiconsIcon icon="arrow-left" size={13} /> Student app
+          </Link>
+          <button type="button" onClick={handleLogout} className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-outline-variant bg-surface text-[10px] font-bold text-error hover:bg-error/5">
+            <HugeiconsIcon icon="logout-01" size={13} /> Log out
+          </button>
+        </div>
+      </div>
+    </aside>
+  );
+
   return (
     <NotificationProvider>
-      <div className="min-h-screen bg-surface-container-lowest text-on-surface lg:flex">
-        <aside className="w-full lg:w-72 lg:h-dvh lg:sticky lg:top-0 bg-surface border-b lg:border-b-0 lg:border-r border-outline-variant flex flex-col">
-          <div className="h-16 px-md sm:px-lg border-b border-outline-variant flex items-center gap-sm">
-            <div className="w-10 h-10 rounded-lg bg-primary text-on-primary flex items-center justify-center font-bold">
-              A
-            </div>
-            <div className="min-w-0">
-              <p className="font-headline-sm text-headline-sm text-on-surface truncate">PFE Backoffice</p>
-              <p className="font-body-sm text-body-sm text-on-surface-variant truncate">Admin Panel</p>
-            </div>
+      <div className="min-h-dvh bg-surface-container-lowest text-on-surface">
+        <div className="fixed inset-y-0 left-0 z-40 hidden lg:block">{sidebar}</div>
+        {mobileOpen && (
+          <div className="fixed inset-0 z-50 lg:hidden">
+            <button type="button" className="absolute inset-0 bg-black/35 backdrop-blur-[1px]" onClick={() => setMobileOpen(false)} aria-label="Close admin menu" />
+            <div className="relative h-full w-[272px] shadow-2xl">{sidebar}</div>
           </div>
+        )}
 
-          <nav className="p-md flex lg:flex-col gap-xs overflow-x-auto lg:overflow-visible">
-            {ADMIN_NAV_ITEMS.map((item) => {
-              const active = isActive(location.pathname, item.path);
-              return (
-                <Link
-                  key={item.label}
-                  to={item.path}
-                  className={`flex items-center gap-sm px-md py-sm rounded-lg font-label-md text-label-md whitespace-nowrap transition-colors ${
-                    active
-                      ? "bg-primary-container text-primary"
-                      : "text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
-                  }`}
-                >
-                  <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
-                  {item.label}
-                </Link>
-              );
-            })}
-          </nav>
-
-          <div className="mt-auto p-md border-t border-outline-variant hidden lg:flex flex-col gap-md">
-            <div className="rounded-lg bg-surface-container-low border border-outline-variant p-md">
-              <p className="font-label-md text-label-md text-on-surface truncate">{user.fullName || "Admin"}</p>
-              <p className="font-body-sm text-body-sm text-on-surface-variant truncate">{user.email}</p>
-              <span className="inline-flex mt-sm px-sm py-base rounded-full bg-primary-container text-primary font-label-sm text-label-sm">
-                admin
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="w-full px-md py-sm rounded-DEFAULT border border-outline-variant bg-surface text-on-surface font-label-md text-label-md hover:bg-surface-container transition-colors flex items-center justify-center gap-xs"
-            >
-              <span className="material-symbols-outlined text-[18px]">logout</span>
-              Log Out
-            </button>
-          </div>
-        </aside>
-
-        <div className="flex-1 min-w-0 flex flex-col">
-          <header className="min-h-16 bg-surface border-b border-outline-variant px-md sm:px-lg py-2 flex items-center justify-between gap-sm sticky top-0 z-30">
-            <div className="min-w-0">
-              <p className="font-label-md text-label-md text-primary uppercase tracking-wider">Admin</p>
-              <p className="font-body-md text-body-md text-on-surface-variant">Backoffice management</p>
-            </div>
-            <div className="flex items-center gap-xs sm:gap-sm shrink-0">
-              <NotificationBell label="Live system updates" />
-              <Link
-                to="/admin/settings"
-                className="w-9 h-9 rounded-lg border border-outline-variant bg-surface flex items-center justify-center text-on-surface-variant hover:text-primary hover:bg-surface-container transition-colors"
-                title="Admin settings"
-              >
-                <span className="material-symbols-outlined text-[20px]">settings</span>
-              </Link>
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="hidden sm:flex px-md py-sm rounded-DEFAULT border border-outline-variant bg-surface text-on-surface font-label-md text-label-md hover:bg-surface-container transition-colors"
-              >
-                Log Out
+        <div className="min-h-dvh lg:pl-[272px]">
+          <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-outline-variant/60 bg-surface/90 px-3 backdrop-blur-md sm:px-5">
+            <div className="flex min-w-0 items-center gap-2.5">
+              <button type="button" onClick={() => setMobileOpen(true)} className="grid h-8 w-8 place-items-center rounded-lg text-on-surface-variant hover:bg-surface-container lg:hidden" aria-label="Open admin menu">
+                <HugeiconsIcon icon="menu-01" size={17} />
               </button>
-              <div className="w-9 h-9 rounded-full bg-primary text-on-primary flex items-center justify-center font-bold text-sm overflow-hidden">
-                {user.avatar ? (
-                  <img src={user.avatar} alt="Admin avatar" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                ) : (
-                  initials
-                )}
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5 text-[10px] font-bold text-on-surface-variant"><span>Admin</span><span>/</span></div>
+                <p className="truncate text-sm font-extrabold text-on-surface">{current.label}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <NotificationBell label="Live system updates" />
+              <Link to="/admin/settings" className="grid h-8 w-8 place-items-center rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface" title="Admin account">
+                <HugeiconsIcon icon="settings-02" size={17} />
+              </Link>
+              <div className="ml-1 grid h-8 w-8 place-items-center overflow-hidden rounded-full border border-primary/20 bg-primary/10 text-[10px] font-extrabold text-primary">
+                {user.avatar ? <img src={user.avatar} alt="Admin avatar" className="h-full w-full object-cover" referrerPolicy="no-referrer" /> : initials}
               </div>
             </div>
           </header>
-
-          <main className="flex-1 min-w-0 overflow-x-hidden px-md sm:px-lg py-lg sm:py-xl">
-            <Outlet />
-          </main>
+          <main className="min-w-0 overflow-x-hidden p-4 sm:p-6 lg:p-8"><Outlet /></main>
         </div>
       </div>
     </NotificationProvider>
