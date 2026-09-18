@@ -85,8 +85,8 @@ const ENFORCEMENT_CARDS = [
       "Blocks students with HTTP 402 if their credit wallet is depleted. Checks daily free quota first, then deducts from promotional and purchased balance.",
     financialImpact: "Protects your LLM API bill from runaway costs and drives credit top-up sales.",
     colorClasses: {
-      activeBorder: "border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-500/5",
-      badge: "text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40",
+      activeBorder: "border-emerald-500/80 ring-2 ring-emerald-500/15 shadow-sm",
+      iconBg: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
     },
   },
   {
@@ -100,23 +100,23 @@ const ENFORCEMENT_CARDS = [
       "Students are never blocked, even with 0 credits. Quoted credit costs are silently recorded in the database to observe student demand.",
     financialImpact: "Zero user friction, but the platform absorbs 100% of LLM costs without receiving payments.",
     colorClasses: {
-      activeBorder: "border-amber-500 ring-2 ring-amber-500/20 bg-amber-500/5",
-      badge: "text-amber-600 bg-amber-50 dark:bg-amber-950/40",
+      activeBorder: "border-amber-500/80 ring-2 ring-amber-500/15 shadow-sm",
+      iconBg: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
     },
   },
   {
     id: "off" as const,
-    title: "Off (Free Tier)",
-    badge: "Full Subsidy",
-    badgeTone: "bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/20",
+    title: "Off (Dangerous)",
+    badge: "Extreme Risk",
+    badgeTone: "bg-error/10 text-error border-error/20",
     icon: "alert-circle",
-    subtitle: "Credit Engine Bypassed",
+    subtitle: "Complete Credit Bypass",
     description:
-      "Credit deduction and checks are completely disabled. All AI actions execute freely for all students at 0 credits.",
-    financialImpact: "High cost exposure: Uncapped consumption with no wallet or quota restrictions.",
+      "Credit deduction and gating are turned off. All AI actions execute completely free with zero balance verification.",
+    financialImpact: "CRITICAL: Uncapped API billing. Only use for closed offline demos; never in production.",
     colorClasses: {
-      activeBorder: "border-rose-500 ring-2 ring-rose-500/20 bg-rose-500/5",
-      badge: "text-rose-600 bg-rose-50 dark:bg-rose-950/40",
+      activeBorder: "border-error/80 ring-2 ring-error/15 shadow-sm",
+      iconBg: "bg-error/10 text-error",
     },
   },
 ];
@@ -491,17 +491,31 @@ export default function AdminCredits() {
       {message && (
         <div
           className={cn(
-            "flex items-center justify-between rounded-xl border px-4 py-3 text-xs font-semibold shadow-xs animate-in fade-in slide-in-from-top-2",
+            "flex items-center justify-between rounded-xl border border-outline-variant/80 bg-surface px-4 py-3 text-xs font-semibold shadow-2xs animate-in fade-in slide-in-from-top-2",
             message.tone === "success"
-              ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-200"
-              : "border-error/30 bg-error/10 text-error"
+              ? "border-l-4 border-l-emerald-500"
+              : "border-l-4 border-l-error"
           )}
         >
-          <div className="flex items-center gap-2">
-            <HugeiconsIcon icon={message.tone === "success" ? "check" : "alert-circle"} size={16} strokeWidth={2} />
-            <span>{message.text}</span>
+          <div className="flex items-center gap-2.5">
+            <div
+              className={cn(
+                "grid h-6 w-6 place-items-center rounded-lg text-xs shrink-0",
+                message.tone === "success"
+                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                  : "bg-error/10 text-error"
+              )}
+            >
+              <HugeiconsIcon icon={message.tone === "success" ? "check" : "alert-circle"} size={14} strokeWidth={2.2} />
+            </div>
+            <span className="font-medium text-on-surface">{message.text}</span>
           </div>
-          <button type="button" onClick={() => setMessage(null)} className="text-current opacity-70 hover:opacity-100">
+          <button
+            type="button"
+            onClick={() => setMessage(null)}
+            className="rounded-md p-1 text-on-surface-variant hover:text-on-surface transition"
+            aria-label="Close notification"
+          >
             ✕
           </button>
         </div>
@@ -547,19 +561,19 @@ export default function AdminCredits() {
                   key={card.id}
                   onClick={() => settings && setSettings({ ...settings, enforcementMode: card.id })}
                   className={cn(
-                    "group relative flex cursor-pointer flex-col justify-between rounded-2xl border p-5 transition-all",
+                    "group relative flex cursor-pointer flex-col justify-between rounded-2xl border p-5 transition-all bg-surface",
                     isSelected
-                      ? cn("shadow-md", card.colorClasses.activeBorder)
-                      : "border-outline-variant/70 bg-surface hover:border-outline-variant hover:bg-surface-container-low/30"
+                      ? card.colorClasses.activeBorder
+                      : "border-outline-variant/70 hover:border-outline-variant hover:bg-surface-container-low/30"
                   )}
                 >
                   <div>
                     <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2.5">
                         <div
                           className={cn(
-                            "grid h-8 w-8 place-items-center rounded-xl",
-                            isSelected ? "bg-primary text-on-primary" : "bg-surface-container-high text-on-surface-variant"
+                            "grid h-8 w-8 place-items-center rounded-xl shrink-0 transition-colors",
+                            card.colorClasses.iconBg
                           )}
                         >
                           <HugeiconsIcon icon={card.icon} size={16} strokeWidth={2} />
@@ -572,7 +586,7 @@ export default function AdminCredits() {
 
                       <div
                         className={cn(
-                          "grid h-5 w-5 place-items-center rounded-full border transition-all",
+                          "grid h-5 w-5 place-items-center rounded-full border transition-all shrink-0",
                           isSelected
                             ? "border-primary bg-primary text-on-primary"
                             : "border-outline-variant bg-surface"
@@ -596,15 +610,59 @@ export default function AdminCredits() {
             })}
           </div>
 
-          {/* Warning Banner when NOT in Enforce mode */}
-          {settings?.enforcementMode !== "enforce" && (
-            <div className="mt-4 flex items-center gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3.5 text-xs text-amber-800 dark:text-amber-200">
-              <HugeiconsIcon icon="alert-circle" size={18} className="shrink-0 text-amber-600" />
-              <div>
-                <p className="font-extrabold">Notice: Monetization is currently bypassed.</p>
-                <p className="opacity-90">
-                  Students will not be prompted to pay or refill credits. Your organization absorbs all LLM API token costs.
+          {/* Elegant Callout: Shadow Mode */}
+          {settings?.enforcementMode === "shadow" && (
+            <div className="mt-4 flex items-start gap-3.5 rounded-2xl border border-outline-variant/80 border-l-4 border-l-amber-500 bg-surface p-4 text-xs shadow-2xs">
+              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                <HugeiconsIcon icon="view" size={17} strokeWidth={2} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-md border border-amber-500/20 bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-300">
+                    Evaluation Mode
+                  </span>
+                  <h4 className="text-xs sm:text-sm font-extrabold text-on-surface">
+                    Shadow Active — AI actions execute without blocking students
+                  </h4>
+                </div>
+                <p className="mt-1 text-xs leading-relaxed text-on-surface-variant">
+                  Students will not encounter payment prompts or 402 barriers even if their wallet balance is zero. Quoted credit costs are silently recorded for analytics. Remember to switch back to <strong className="font-bold text-on-surface">Enforce (Production)</strong> when you are ready to collect revenue.
                 </p>
+              </div>
+            </div>
+          )}
+
+          {/* Elegant Callout: Off Mode */}
+          {settings?.enforcementMode === "off" && (
+            <div className="mt-4 flex items-start gap-3.5 rounded-2xl border border-outline-variant/80 border-l-4 border-l-error bg-surface p-4 text-xs shadow-2xs">
+              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-error/10 text-error">
+                <HugeiconsIcon icon="alert-circle" size={18} strokeWidth={2.2} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-md border border-error/20 bg-error/10 px-2 py-0.5 text-[10px] font-bold text-error">
+                    Dangerous Configuration
+                  </span>
+                  <h4 className="text-xs sm:text-sm font-extrabold text-on-surface">
+                    Credit Engine Disabled — Full Platform Subsidy
+                  </h4>
+                </div>
+                <p className="mt-1 text-xs leading-relaxed text-on-surface-variant">
+                  All balance checks, quotas, and credit deductions are completely bypassed. Students have unrestricted free access to all AI features at your organization&apos;s direct expense.
+                </p>
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-outline-variant/60 pt-2.5">
+                  <p className="text-[11px] font-semibold text-error">
+                    ⚠️ High risk: Your organization absorbs 100% of LLM provider API token costs.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => settings && setSettings({ ...settings, enforcementMode: "enforce" })}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-extrabold text-on-primary shadow-xs transition hover:bg-primary/90"
+                  >
+                    <HugeiconsIcon icon="shield" size={13} strokeWidth={2} />
+                    <span>Switch back to Enforce</span>
+                  </button>
+                </div>
               </div>
             </div>
           )}
