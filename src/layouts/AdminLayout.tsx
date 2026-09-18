@@ -121,14 +121,6 @@ export default function AdminLayout() {
                   <span className="truncate max-w-[150px] sm:max-w-[220px]">{current.label}</span>
                 </div>
               </nav>
-
-              {/* Live Status Pill */}
-              <div className="hidden md:flex items-center ml-1">
-                <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium text-secondary bg-secondary/10 border border-secondary/20">
-                  <span className="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse shrink-0" />
-                  <span>Live</span>
-                </div>
-              </div>
             </div>
             <div className="flex items-center gap-1.5">
               <NotificationBell label="Live system updates" />
