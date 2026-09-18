@@ -1010,14 +1010,23 @@ export default function HugeiconsIcon({
     );
   }
 
-  // Fallback to stroke-rounded Material Symbol
+  // Never fall back to a text glyph: unknown identifiers must still preserve
+  // the vector-only icon contract and never leak their raw name into the UI.
   return (
-    <span
-      className={cn("material-symbols-outlined inline-flex items-center justify-center shrink-0 select-none", className)}
-      style={{ fontSize: typeof size === "number" ? `${size}px` : size, color }}
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={cn("inline-block shrink-0 select-none", className)}
+      style={{ color: color || "currentColor" }}
+      aria-hidden="true"
+      {...props}
     >
-      {icon}
-    </span>
+      <circle cx="12" cy="12" r="8.5" stroke="currentColor" strokeWidth={strokeWidth} />
+      <path d="M12 8V12.5M12 16H12.01" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" />
+    </svg>
   );
 }
 

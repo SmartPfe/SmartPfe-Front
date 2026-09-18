@@ -68,11 +68,8 @@ export default function AdminLayout() {
           </div>
           <div className="min-w-0"><p className="truncate text-xs font-bold text-on-surface">{user.fullName || "Administrator"}</p><p className="truncate text-[10px] text-on-surface-variant">{user.email}</p></div>
         </div>
-        <div className="grid grid-cols-2 gap-2">
-          <Link to="/workspace/overview" className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-outline-variant bg-surface text-[10px] font-bold text-on-surface hover:bg-surface-container-low" title="Open the student workspace">
-            <HugeiconsIcon icon="arrow-left" size={13} /> Student app
-          </Link>
-          <button type="button" onClick={handleLogout} className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-outline-variant bg-surface text-[10px] font-bold text-error hover:bg-error/5">
+        <div>
+          <button type="button" onClick={handleLogout} className="inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-lg border border-outline-variant bg-surface text-[10px] font-bold text-error hover:bg-error/5">
             <HugeiconsIcon icon="logout-01" size={13} /> Log out
           </button>
         </div>

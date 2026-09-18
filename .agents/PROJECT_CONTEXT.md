@@ -114,3 +114,17 @@ The platform is structured into synchronized workspace modules:
 - Preserve idempotency, refunds, policy-version conflicts, audit reasons, limits, separate balance buckets, and server-authoritative pricing.
 - Payments/top-up purchasing are not implemented yet; purchased credits can currently be populated through audited admin adjustments only.
 - Before production rollout, review settings in Admin, confirm enforcement mode, and smoke-test using the production-like MongoDB environment.
+
+### Admin quality-of-life update
+
+- The admin sidebar has no route into the student workspace. Admin accounts are visible but protected/no-wallet and cannot open the wallet drawer.
+- Wallet fulfilment defaults to purchased credits. The drawer confirms success clearly, reports email delivery status, accepts a payment reference, and shows minute-accurate timestamps.
+- Users management includes name/email search, role/onboarding filters, sortable columns, and 10-row pagination.
+- The dashboard is operational rather than decorative: student readiness, project growth, AI demand, credit usage, paid fulfilments, and recent activity replace metadata-heavy charts.
+
+### Visual quality follow-up
+
+- Only use icon keys that exist in the HugeiconsIcon component. Its fallback is vector-only, so an unknown key cannot render raw text in the interface.
+- The Users view deliberately omits onboarding progress. Keep its information architecture limited to account identity, role, credit-wallet status, joined date, and wallet action.
+- Its search control follows the UI handover: a visible placeholder, SVG prefix, rounded-xl surface, and a focused border/ring treatment.
+- The dashboard uses a clean analytics hierarchy: SVG growth trend, compact relevant metrics, credit activity, demand ranking, fulfilment feed, and recent entities. Do not reintroduce metadata-only charts without a concrete admin decision they support.
