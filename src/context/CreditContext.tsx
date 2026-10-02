@@ -29,6 +29,7 @@ export type CreditPolicy = {
 
 type CreditTransaction = {
   _id: string;
+  user?: string | { _id?: string; id?: string };
   kind: string;
   actionKey: string;
   chargedCost: number;
@@ -52,8 +53,24 @@ type CreditContextValue = {
 
 const CreditContext = createContext<CreditContextValue | null>(null);
 
+const readCurrentUserId = () => {
+  try {
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    return String(user._id || user.id || "");
+  } catch {
+    return "";
+  }
+};
+
+const getTransactionUserId = (transaction: CreditTransaction) => {
+  if (!transaction.user) return "";
+  if (typeof transaction.user === "string") return transaction.user;
+  return String(transaction.user._id || transaction.user.id || "");
+};
+
 export function CreditProvider({ children }: { children: React.ReactNode }) {
   const location = useLocation();
+  const [currentUserId, setCurrentUserId] = useState(readCurrentUserId);
   const [wallet, setWallet] = useState<CreditWallet | null>(null);
   const [policies, setPolicies] = useState<CreditPolicy[]>([]);
   const [transactions, setTransactions] = useState<CreditTransaction[]>([]);
@@ -64,10 +81,12 @@ export function CreditProvider({ children }: { children: React.ReactNode }) {
     if (!localStorage.getItem("token") || !location.pathname.startsWith("/workspace")) return;
     setLoading(true);
     try {
+      const userIdAtRequestStart = readCurrentUserId();
       const [walletResult, catalogResult] = await Promise.all([
         fetchApi("/credits/me"),
         fetchApi("/credits/catalog"),
       ]);
+      if (userIdAtRequestStart !== readCurrentUserId()) return;
       setWallet(walletResult.wallet);
       setPolicies(catalogResult.policies || []);
       registerCreditPolicies(catalogResult.policies || []);
@@ -77,14 +96,61 @@ export function CreditProvider({ children }: { children: React.ReactNode }) {
   }, [location.pathname]);
 
   const loadTransactions = useCallback(async () => {
-    if (!localStorage.getItem("token")) return;
-    const result = await fetchApi("/credits/transactions?limit=12");
-    setTransactions(result.items || []);
+    const userIdAtRequestStart = readCurrentUserId();
+    if (!localStorage.getItem("token") || !userIdAtRequestStart) {
+      setTransactions([]);
+      return;
+    }
+    setTransactions([]);
+    try {
+      const result = await fetchApi("/credits/transactions?limit=12");
+      if (userIdAtRequestStart !== readCurrentUserId()) return;
+      const items = (result.items || []) as CreditTransaction[];
+      setTransactions(items.filter((item) => {
+        const transactionUserId = getTransactionUserId(item);
+        return !transactionUserId || transactionUserId === userIdAtRequestStart;
+      }));
+    } catch (error) {
+      if (userIdAtRequestStart === readCurrentUserId()) setTransactions([]);
+      throw error;
+    }
   }, []);
 
   useEffect(() => {
     if (location.pathname.startsWith("/workspace")) refresh().catch(() => undefined);
   }, [location.pathname, refresh]);
+
+  useEffect(() => {
+    const syncCurrentUser = () => {
+      const nextUserId = readCurrentUserId();
+      setCurrentUserId((previousUserId) => {
+        if (previousUserId === nextUserId) return previousUserId;
+        setWallet(null);
+        setTransactions([]);
+        return nextUserId;
+      });
+    };
+
+    syncCurrentUser();
+    window.addEventListener("storage", syncCurrentUser);
+    window.addEventListener("user-updated", syncCurrentUser);
+    window.addEventListener("focus", syncCurrentUser);
+    return () => {
+      window.removeEventListener("storage", syncCurrentUser);
+      window.removeEventListener("user-updated", syncCurrentUser);
+      window.removeEventListener("focus", syncCurrentUser);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (currentUserId && location.pathname.startsWith("/workspace")) {
+      refresh().catch(() => undefined);
+      loadTransactions().catch(() => undefined);
+    } else {
+      setWallet(null);
+      setTransactions([]);
+    }
+  }, [currentUserId, loadTransactions, location.pathname, refresh]);
 
   useEffect(() => {
     const handleUpdate = (event: Event) => {

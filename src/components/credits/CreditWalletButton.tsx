@@ -1,7 +1,35 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import creditCoin from "@/assets/credit-coin.png";
 import { useCredits } from "@/context/CreditContext";
 import HugeiconsIcon from "@/components/ui/HugeiconsIcon";
+import { fetchApi } from "@/lib/api";
+import { cn } from "@/lib/utils";
+
+type PurchasePackage = {
+  key: string;
+  label: string;
+  credits: number;
+  price: number;
+  currency: string;
+};
+
+type CreditRequest = {
+  _id: string;
+  requestedCredits: number;
+  packageLabel: string;
+  price: number;
+  currency: string;
+  status: "PENDING" | "CONFIRMED" | "CANCELLED" | "COMPLETED";
+  createdAt: string;
+};
+
+const statusTone: Record<string, string> = {
+  PENDING: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
+  CONFIRMED: "bg-primary/10 text-primary",
+  COMPLETED: "bg-secondary/10 text-secondary",
+  CANCELLED: "bg-error/10 text-error",
+};
 
 const transactionLabel = (item: any) => {
   if (item.kind === "welcome") return "Welcome credits";
@@ -10,10 +38,50 @@ const transactionLabel = (item: any) => {
   return item.actionKey?.replaceAll("_", " ") || "AI action";
 };
 
+const formatDate = (value: string) =>
+  new Intl.DateTimeFormat("en", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
+
+const readCurrentUser = () => {
+  try {
+    return JSON.parse(localStorage.getItem("user") || "{}");
+  } catch {
+    return {};
+  }
+};
+
+const readCurrentUserId = () => {
+  const user = readCurrentUser();
+  return String(user._id || user.id || "");
+};
+
 export default function CreditWalletButton() {
   const { wallet, transactions, loading, walletOpenRequest, refresh, loadTransactions } = useCredits();
   const [open, setOpen] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [requests, setRequests] = useState<CreditRequest[]>([]);
+  const [options, setOptions] = useState<{ pricePerCredit: number; currency: string; packages: PurchasePackage[] } | null>(null);
+  const [requestLoading, setRequestLoading] = useState(false);
+  const [message, setMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
+
+  const loadRequests = async () => {
+    const userIdAtRequestStart = readCurrentUserId();
+    setRequests([]);
+    const data = await fetchApi("/credits/requests/my?limit=6");
+    if (userIdAtRequestStart !== readCurrentUserId()) return;
+    setRequests(data.requests || []);
+  };
+
+  const loadPurchaseOptions = async () => {
+    const data = await fetchApi("/credits/purchase-options");
+    setOptions(data);
+  };
+
+  const openRequestModal = () => {
+    setOpen(false);
+    setModalOpen(true);
+    if (!options) loadPurchaseOptions().catch(() => undefined);
+  };
 
   useEffect(() => {
     if (walletOpenRequest > 0) setOpen(true);
@@ -23,12 +91,21 @@ export default function CreditWalletButton() {
     if (!open) return;
     refresh().catch(() => undefined);
     loadTransactions().catch(() => undefined);
+    loadRequests().catch(() => undefined);
+    loadPurchaseOptions().catch(() => undefined);
     const close = (event: MouseEvent) => {
+      if (modalOpen) return;
       if (rootRef.current && !rootRef.current.contains(event.target as Node)) setOpen(false);
     };
     document.addEventListener("mousedown", close);
     return () => document.removeEventListener("mousedown", close);
-  }, [open, loadTransactions, refresh]);
+  }, [open, modalOpen, loadTransactions, refresh]);
+
+  const handleSubmitted = async (text: string) => {
+    setMessage({ tone: "success", text });
+    setModalOpen(false);
+    await loadRequests().catch(() => undefined);
+  };
 
   return (
     <div ref={rootRef} className="relative">
@@ -39,11 +116,11 @@ export default function CreditWalletButton() {
         title="Credit wallet"
       >
         <img src={creditCoin} alt="Credits" className="h-5 w-5" />
-        <span>{loading && !wallet ? "—" : wallet?.total ?? 0}</span>
+        <span>{loading && !wallet ? "-" : wallet?.total ?? 0}</span>
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-2 w-[min(22rem,calc(100vw-1.5rem))] overflow-hidden rounded-2xl border border-outline-variant/80 bg-surface shadow-2xl">
+        <div className="absolute right-0 top-full z-50 mt-2 w-[min(24rem,calc(100vw-1.5rem))] overflow-hidden rounded-2xl border border-outline-variant/80 bg-surface shadow-2xl">
           <div className="flex items-center justify-between border-b border-outline-variant/60 bg-gradient-to-br from-amber-400/15 to-primary/5 p-4">
             <div>
               <p className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">Available credits</p>
@@ -56,6 +133,14 @@ export default function CreditWalletButton() {
               <HugeiconsIcon icon="close" size={16} />
             </button>
           </div>
+
+          {message && (
+            <div className={cn("mx-3 mt-3 flex items-start gap-2 rounded-xl border px-3 py-2 text-xs font-semibold", message.tone === "success" ? "border-secondary/30 bg-secondary/10 text-secondary" : "border-error/30 bg-error/10 text-error")}>
+              <HugeiconsIcon icon={message.tone === "success" ? "checkmark-circle-02" : "alert-circle"} size={15} />
+              <span>{message.text}</span>
+            </div>
+          )}
+
           <div className="grid grid-cols-2 gap-2 p-3">
             <div className="rounded-xl bg-surface-container-low p-3">
               <p className="text-[10px] font-bold uppercase text-on-surface-variant">Daily & welcome</p>
@@ -66,10 +151,39 @@ export default function CreditWalletButton() {
               <p className="mt-1 text-lg font-bold text-on-surface">{wallet?.purchased ?? 0}</p>
             </div>
           </div>
+
+          <div className="px-3 pb-3">
+            <button
+              type="button"
+              onClick={openRequestModal}
+              className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-primary text-xs font-extrabold text-on-primary shadow-xs transition hover:bg-primary/90"
+            >
+              <HugeiconsIcon icon="coin" size={16} />
+              <span>Add More Credits</span>
+            </button>
+          </div>
+
+          <div className="border-t border-outline-variant/60 px-3 py-2">
+            <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">Credit Requests</p>
+            <div className="max-h-40 overflow-y-auto">
+              {requests.length ? requests.map((item) => (
+                <div key={item._id} className="flex items-center justify-between gap-3 border-b border-outline-variant/40 py-2 last:border-0">
+                  <div className="min-w-0">
+                    <p className="truncate text-xs font-bold text-on-surface">{item.requestedCredits} credits · {item.price} {item.currency}</p>
+                    <p className="text-[10px] text-on-surface-variant">{formatDate(item.createdAt)}</p>
+                  </div>
+                  <span className={cn("shrink-0 rounded-md px-2 py-0.5 text-[9px] font-extrabold", statusTone[item.status])}>
+                    {item.status.toLowerCase()}
+                  </span>
+                </div>
+              )) : <p className="py-3 text-xs text-on-surface-variant">No credit requests yet.</p>}
+            </div>
+          </div>
+
           <div className="border-t border-outline-variant/60 px-3 py-2">
             <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">Recent activity</p>
-            <div className="max-h-48 overflow-y-auto">
-              {transactions.length ? transactions.slice(0, 6).map((item: any) => {
+            <div className="max-h-44 overflow-y-auto">
+              {transactions.length ? transactions.slice(0, 5).map((item: any) => {
                 const delta = ["refunded", "cancelled"].includes(item.status)
                   ? 0
                   : (item.promotionalDelta || 0) + (item.purchasedDelta || 0) - (item.chargedCost || 0);
@@ -84,11 +198,228 @@ export default function CreditWalletButton() {
               }) : <p className="py-3 text-xs text-on-surface-variant">No credit activity yet.</p>}
             </div>
           </div>
+
           <p className="border-t border-outline-variant/60 px-4 py-2.5 text-[10px] leading-relaxed text-on-surface-variant">
             Promotional credits refill up to {wallet?.dailyRefillTarget ?? 20} each day and are used first.
           </p>
         </div>
       )}
+
+      {modalOpen && (
+        <CreditRequestModal
+          options={options}
+          submitting={requestLoading}
+          setSubmitting={setRequestLoading}
+          onClose={() => setModalOpen(false)}
+          onSubmitted={handleSubmitted}
+        />
+      )}
     </div>
+  );
+}
+
+function CreditRequestModal({
+  options,
+  submitting,
+  setSubmitting,
+  onClose,
+  onSubmitted,
+}: {
+  options: { pricePerCredit: number; currency: string; packages: PurchasePackage[] } | null;
+  submitting: boolean;
+  setSubmitting: (value: boolean) => void;
+  onClose: () => void;
+  onSubmitted: (message: string) => void;
+}) {
+  const user = readCurrentUser();
+  const packages = options?.packages || [];
+  const [mode, setMode] = useState(packages[0]?.key || "custom");
+  const [customCredits, setCustomCredits] = useState(100);
+  const [phone, setPhone] = useState("");
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [onClose]);
+
+  useEffect(() => {
+    if (packages.length && mode === "custom") setMode(packages[0].key);
+  }, [packages.length]);
+
+  const selectedPackage = packages.find((item) => item.key === mode);
+  const isCustom = mode === "custom";
+  const requestedCredits = selectedPackage?.credits || Math.max(0, Math.trunc(Number(customCredits) || 0));
+  const price = useMemo(() => {
+    if (selectedPackage) return selectedPackage.price;
+    return Math.round(requestedCredits * (options?.pricePerCredit || 0) * 100) / 100;
+  }, [options?.pricePerCredit, requestedCredits, selectedPackage]);
+  const currency = selectedPackage?.currency || options?.currency || "TND";
+
+  const submit = async () => {
+    const digits = phone.replace(/\D/g, "");
+    if (digits.length < 6 || digits.length > 15) {
+      setError("Enter a valid phone number so the admin can contact you.");
+      return;
+    }
+    if (!requestedCredits || requestedCredits <= 0) {
+      setError("Choose a package or enter a custom credit amount greater than 0.");
+      return;
+    }
+    setSubmitting(true);
+    setError("");
+    try {
+      const data = await fetchApi("/credits/requests", {
+        method: "POST",
+        body: JSON.stringify({
+          phone,
+          packageKey: isCustom ? "" : mode,
+          credits: isCustom ? requestedCredits : undefined,
+        }),
+      });
+      onSubmitted(data.message || "Your credit request has been submitted successfully. The admin will contact you shortly.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not submit your credit request.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4">
+      <button
+        type="button"
+        className="absolute inset-0 cursor-default bg-black/45 backdrop-blur-[2px]"
+        onClick={onClose}
+        aria-label="Close credit request modal"
+      />
+
+      <div
+        className="relative flex max-h-[calc(100dvh-1.5rem)] w-full max-w-xl flex-col overflow-hidden rounded-2xl border border-outline-variant bg-surface shadow-2xl sm:max-h-[calc(100dvh-2rem)]"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="credit-request-title"
+      >
+        <header className="flex items-start justify-between gap-3 border-b border-outline-variant/60 bg-surface-container-low/50 p-4">
+          <div className="min-w-0">
+            <p id="credit-request-title" className="text-sm font-extrabold text-on-surface">Add More Credits</p>
+            <p className="text-xs text-on-surface-variant">Submit a request and the admin will contact you shortly.</p>
+          </div>
+          <button type="button" onClick={onClose} className="grid h-8 w-8 place-items-center rounded-lg text-on-surface-variant hover:bg-surface-container" aria-label="Close">
+            <HugeiconsIcon icon="close" size={16} />
+          </button>
+        </header>
+
+        <div className="flex-1 space-y-4 overflow-y-auto p-4">
+          {error && (
+            <div className="flex items-center gap-2 rounded-xl border border-error/30 bg-error/10 px-3 py-2 text-xs font-semibold text-error">
+              <HugeiconsIcon icon="alert-circle" size={15} />
+              <span>{error}</span>
+            </div>
+          )}
+
+          <label className="block text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
+            Student email
+            <input
+              value={user.email || ""}
+              readOnly
+              className="mt-1 h-10 w-full rounded-xl border border-outline-variant bg-surface-container-low px-3 text-sm font-semibold text-on-surface outline-none"
+            />
+          </label>
+
+          <label className="block text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
+            Phone number <span className="text-error">*</span>
+            <input
+              value={phone}
+              onChange={(event) => setPhone(event.target.value)}
+              placeholder="+216 00 000 000"
+              className="mt-1 h-10 w-full rounded-xl border border-outline-variant bg-surface px-3 text-sm text-on-surface outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+            />
+          </label>
+
+          <section>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">Credit purchase mode</p>
+            <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {packages.map((item) => (
+                <button
+                  key={item.key}
+                  type="button"
+                  onClick={() => setMode(item.key)}
+                  className={cn(
+                    "rounded-xl border p-3 text-left transition",
+                    mode === item.key ? "border-primary bg-primary/10 text-primary" : "border-outline-variant bg-surface-container-lowest text-on-surface hover:border-primary/40"
+                  )}
+                >
+                  <span className="block text-sm font-extrabold">{item.credits} credits</span>
+                  <span className="mt-1 block text-xs font-semibold text-on-surface-variant">{item.price} {item.currency}</span>
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => setMode("custom")}
+                className={cn(
+                  "rounded-xl border p-3 text-left transition",
+                  isCustom ? "border-primary bg-primary/10 text-primary" : "border-outline-variant bg-surface-container-lowest text-on-surface hover:border-primary/40"
+                )}
+              >
+                <span className="block text-sm font-extrabold">Custom amount</span>
+                <span className="mt-1 block text-xs font-semibold text-on-surface-variant">{options?.pricePerCredit ?? 0.05} {currency} / credit</span>
+              </button>
+            </div>
+          </section>
+
+          {isCustom && (
+            <label className="block text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
+              Desired credits
+              <input
+                type="number"
+                min="1"
+                step="1"
+                value={customCredits}
+                onChange={(event) => setCustomCredits(Math.max(0, Math.trunc(Number(event.target.value) || 0)))}
+                className="mt-1 h-10 w-full rounded-xl border border-outline-variant bg-surface px-3 font-mono text-sm font-bold text-on-surface outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+              />
+            </label>
+          )}
+
+          <div className="rounded-2xl border border-amber-400/30 bg-amber-400/10 p-4">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-xs font-bold text-on-surface-variant">Credits requested</span>
+              <span className="font-mono text-lg font-extrabold text-on-surface">{requestedCredits.toLocaleString()}</span>
+            </div>
+            <div className="mt-2 flex items-center justify-between gap-3">
+              <span className="text-xs font-bold text-on-surface-variant">Estimated price</span>
+              <span className="font-mono text-lg font-extrabold text-on-surface">{price.toLocaleString()} {currency}</span>
+            </div>
+          </div>
+        </div>
+
+        <footer className="flex flex-col-reverse gap-2 border-t border-outline-variant/60 bg-surface-container-low/40 p-4 sm:flex-row sm:items-center sm:justify-end">
+          <button type="button" onClick={onClose} className="h-10 w-full rounded-xl border border-outline-variant bg-surface px-4 text-xs font-bold text-on-surface hover:bg-surface-container sm:w-auto">
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={submit}
+            disabled={submitting}
+            className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 text-xs font-extrabold text-on-primary shadow-xs hover:bg-primary/90 disabled:opacity-50 sm:w-auto"
+          >
+            {submitting && <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />}
+            <span>{submitting ? "Submitting..." : "Submit Request"}</span>
+          </button>
+        </footer>
+      </div>
+    </div>,
+    document.body
   );
 }

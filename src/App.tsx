@@ -42,6 +42,7 @@ import AdminSettings from "./pages/admin/AdminSettings";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminProjects from "./pages/admin/AdminProjects";
 import AdminCredits from "./pages/admin/AdminCredits";
+import AdminCreditRequests from "./pages/admin/AdminCreditRequests";
 import { CreditProvider } from "./context/CreditContext";
   
 export default function App() {
@@ -102,6 +103,7 @@ export default function App() {
           <Route path="users" element={<AdminUsers />} />
           <Route path="projects" element={<AdminProjects />} />
           <Route path="credits" element={<AdminCredits />} />
+          <Route path="credit-requests" element={<AdminCreditRequests />} />
           <Route path="settings" element={<AdminSettings />} />
           <Route path="*" element={<BackofficeDashboard />} />
         </Route>

@@ -11,6 +11,7 @@ const ADMIN_NAV_ITEMS = [
   { label: "Users", icon: "group", path: "/admin/users", helper: "Accounts & wallets" },
   { label: "Projects", icon: "folder-01", path: "/admin/projects", helper: "Student workspaces" },
   { label: "Credit Economy", icon: "coin", path: "/admin/credits", helper: "Pricing & allowances", coin: true },
+  { label: "Credit Requests", icon: "wallet-02", path: "/admin/credit-requests", helper: "Manual top-ups", coin: true },
   { label: "Admin Account", icon: "settings-02", path: "/admin/settings", helper: "Profile & security" },
 ];
 
