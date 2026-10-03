@@ -30,6 +30,7 @@ import FunctionalRequirements from "./pages/workspace/FunctionalRequirements/ind
 import NonFunctionalRequirements from "./pages/workspace/NonFunctionalRequirements/index";
 import UmlPreparation from "./pages/workspace/UmlPreparation/index";
 import Settings from "./pages/workspace/Settings";
+import CreditHistory from "./pages/workspace/CreditHistory";
 import ProjectSettings from "./pages/workspace/ProjectSettings";
 import AccountSettings from "./pages/workspace/AccountSettings";
 
@@ -85,6 +86,7 @@ export default function App() {
           <Route path="jury-simulation" element={<JurySimulation />} />
 
           <Route path="settings" element={<Settings />} />
+          <Route path="settings/credits" element={<CreditHistory />} />
           <Route path="settings/onboarding" element={<ProjectSettings />} />
           <Route path="account" element={<AccountSettings />} />
           <Route path="*" element={<Overview />} />

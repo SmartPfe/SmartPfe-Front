@@ -50,6 +50,7 @@ export default function Topbar({ toggleSidebar }: TopbarProps) {
     const path = location.pathname;
     const match = WORKSPACE_PHASES.find((p) => p.path === path);
     if (match) return match;
+    if (path === "/workspace/settings/credits") return { id: "settings", label: "Credit History", path };
     if (path.includes("/workspace/settings")) return { id: "settings", label: "Settings", path };
     if (path.includes("/workspace/account")) return { id: "account", label: "Account", path };
     return { id: "overview", label: "Overview", path: "/workspace/overview" };

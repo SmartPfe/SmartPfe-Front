@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { Link } from "react-router-dom";
+import CreditDialog from "./CreditDialog";
+import { CREDIT_HISTORY_PATH, creditMoney, transactionLabel, transactionDelta, type CreditRequest } from "@/lib/creditHistory";
 import creditCoin from "@/assets/credit-coin.png";
 import { useCredits } from "@/context/CreditContext";
 import HugeiconsIcon from "@/components/ui/HugeiconsIcon";
@@ -14,28 +16,11 @@ type PurchasePackage = {
   currency: string;
 };
 
-type CreditRequest = {
-  _id: string;
-  requestedCredits: number;
-  packageLabel: string;
-  price: number;
-  currency: string;
-  status: "PENDING" | "CONFIRMED" | "CANCELLED" | "COMPLETED";
-  createdAt: string;
-};
-
 const statusTone: Record<string, string> = {
   PENDING: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
   CONFIRMED: "bg-primary/10 text-primary",
   COMPLETED: "bg-secondary/10 text-secondary",
   CANCELLED: "bg-error/10 text-error",
-};
-
-const transactionLabel = (item: any) => {
-  if (item.kind === "welcome") return "Welcome credits";
-  if (item.kind === "daily_refill") return "Daily refill";
-  if (item.kind === "admin_adjustment") return item.reason || "Admin adjustment";
-  return item.actionKey?.replaceAll("_", " ") || "AI action";
 };
 
 const formatDate = (value: string) =>
@@ -61,13 +46,13 @@ export default function CreditWalletButton() {
   const [requests, setRequests] = useState<CreditRequest[]>([]);
   const [options, setOptions] = useState<{ pricePerCredit: number; currency: string; packages: PurchasePackage[] } | null>(null);
   const [requestLoading, setRequestLoading] = useState(false);
-  const [message, setMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
+  const [confirmation, setConfirmation] = useState<{ request: CreditRequest; studentEmailSent: boolean } | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
 
   const loadRequests = async () => {
     const userIdAtRequestStart = readCurrentUserId();
     setRequests([]);
-    const data = await fetchApi("/credits/requests/my?limit=6");
+    const data = await fetchApi("/credits/requests/my?limit=3");
     if (userIdAtRequestStart !== readCurrentUserId()) return;
     setRequests(data.requests || []);
   };
@@ -82,6 +67,12 @@ export default function CreditWalletButton() {
     setModalOpen(true);
     if (!options) loadPurchaseOptions().catch(() => undefined);
   };
+
+  useEffect(() => {
+    const openModal = () => { setOpen(false); setModalOpen(true); loadPurchaseOptions().catch(() => undefined); };
+    window.addEventListener("open-credit-request", openModal);
+    return () => window.removeEventListener("open-credit-request", openModal);
+  }, []);
 
   useEffect(() => {
     if (walletOpenRequest > 0) setOpen(true);
@@ -101,10 +92,12 @@ export default function CreditWalletButton() {
     return () => document.removeEventListener("mousedown", close);
   }, [open, modalOpen, loadTransactions, refresh]);
 
-  const handleSubmitted = async (text: string) => {
-    setMessage({ tone: "success", text });
+  const handleSubmitted = (result: { request: CreditRequest; studentEmailSent: boolean }) => {
+    setConfirmation(result);
     setModalOpen(false);
-    await loadRequests().catch(() => undefined);
+    setOpen(false);
+    window.dispatchEvent(new Event("credit-requests-updated"));
+    loadRequests().catch(() => undefined);
   };
 
   return (
@@ -134,13 +127,6 @@ export default function CreditWalletButton() {
             </button>
           </div>
 
-          {message && (
-            <div className={cn("mx-3 mt-3 flex items-start gap-2 rounded-xl border px-3 py-2 text-xs font-semibold", message.tone === "success" ? "border-secondary/30 bg-secondary/10 text-secondary" : "border-error/30 bg-error/10 text-error")}>
-              <HugeiconsIcon icon={message.tone === "success" ? "checkmark-circle-02" : "alert-circle"} size={15} />
-              <span>{message.text}</span>
-            </div>
-          )}
-
           <div className="grid grid-cols-2 gap-2 p-3">
             <div className="rounded-xl bg-surface-container-low p-3">
               <p className="text-[10px] font-bold uppercase text-on-surface-variant">Daily & welcome</p>
@@ -164,10 +150,10 @@ export default function CreditWalletButton() {
           </div>
 
           <div className="border-t border-outline-variant/60 px-3 py-2">
-            <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">Credit Requests</p>
+            <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">Latest requests</p>
             <div className="max-h-40 overflow-y-auto">
-              {requests.length ? requests.map((item) => (
-                <div key={item._id} className="flex items-center justify-between gap-3 border-b border-outline-variant/40 py-2 last:border-0">
+              {requests.length ? requests.slice(0, 3).map((item) => (
+                <Link key={item._id} to={`${CREDIT_HISTORY_PATH}?request=${item._id}`} onClick={() => setOpen(false)} className="flex items-center justify-between gap-3 rounded-lg border-b border-outline-variant/40 px-1 py-2 transition hover:bg-primary/5 last:border-0">
                   <div className="min-w-0">
                     <p className="truncate text-xs font-bold text-on-surface">{item.requestedCredits} credits · {item.price} {item.currency}</p>
                     <p className="text-[10px] text-on-surface-variant">{formatDate(item.createdAt)}</p>
@@ -175,7 +161,7 @@ export default function CreditWalletButton() {
                   <span className={cn("shrink-0 rounded-md px-2 py-0.5 text-[9px] font-extrabold", statusTone[item.status])}>
                     {item.status.toLowerCase()}
                   </span>
-                </div>
+                </Link>
               )) : <p className="py-3 text-xs text-on-surface-variant">No credit requests yet.</p>}
             </div>
           </div>
@@ -183,10 +169,8 @@ export default function CreditWalletButton() {
           <div className="border-t border-outline-variant/60 px-3 py-2">
             <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">Recent activity</p>
             <div className="max-h-44 overflow-y-auto">
-              {transactions.length ? transactions.slice(0, 5).map((item: any) => {
-                const delta = ["refunded", "cancelled"].includes(item.status)
-                  ? 0
-                  : (item.promotionalDelta || 0) + (item.purchasedDelta || 0) - (item.chargedCost || 0);
+              {transactions.length ? transactions.slice(0, 3).map((item: any) => {
+                const delta = transactionDelta(item);
                 return (
                   <div key={item._id} className="flex items-center justify-between gap-3 border-b border-outline-variant/40 py-2 last:border-0">
                     <span className="truncate text-xs font-medium capitalize text-on-surface">{transactionLabel(item)}</span>
@@ -199,6 +183,9 @@ export default function CreditWalletButton() {
             </div>
           </div>
 
+          <Link to={CREDIT_HISTORY_PATH} onClick={() => setOpen(false)} className="flex items-center justify-between border-t border-outline-variant/60 px-4 py-3 text-xs font-bold text-primary hover:bg-primary/5">
+            View full credit history <HugeiconsIcon icon="arrow-right" size={15} />
+          </Link>
           <p className="border-t border-outline-variant/60 px-4 py-2.5 text-[10px] leading-relaxed text-on-surface-variant">
             Promotional credits refill up to {wallet?.dailyRefillTarget ?? 20} each day and are used first.
           </p>
@@ -213,6 +200,30 @@ export default function CreditWalletButton() {
           onClose={() => setModalOpen(false)}
           onSubmitted={handleSubmitted}
         />
+      )}
+      {confirmation && (
+        <CreditDialog titleId="credit-success-title" onClose={() => setConfirmation(null)}>
+          <div className="overflow-y-auto p-6 text-center sm:p-8">
+            <div className="mx-auto mb-5 grid h-16 w-16 place-items-center rounded-full border border-secondary/25 bg-secondary/10 text-secondary">
+              <HugeiconsIcon icon="checkmark-circle-02" size={34} />
+            </div>
+            <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-secondary">Request received</p>
+            <h2 id="credit-success-title" className="mt-2 text-2xl font-extrabold text-on-surface">You're all set!</h2>
+            <p className="mt-3 text-sm leading-relaxed text-on-surface-variant">Your credit request has been submitted successfully. A team member will contact you as soon as possible to explain the payment steps.</p>
+            <p className="mt-2 text-sm leading-relaxed text-on-surface-variant">Your credits will be added to your wallet after your payment is verified.</p>
+            <div className="mt-5 flex items-center justify-between gap-3 rounded-2xl border border-outline-variant bg-surface-container-low p-4 text-left">
+              <span className="flex items-center gap-2 text-sm font-bold text-on-surface"><img src={creditCoin} alt="" className="h-6 w-6" />{confirmation.request.requestedCredits} credits</span>
+              <span className="text-sm font-bold text-on-surface">{creditMoney(confirmation.request.price, confirmation.request.currency)}</span>
+            </div>
+            <p className={cn("mt-4 text-xs leading-relaxed", confirmation.studentEmailSent ? "text-on-surface-variant" : "text-amber-700 dark:text-amber-300")}>
+              {confirmation.studentEmailSent ? "A receipt with your request details has been sent to your email. You can also track your request in Credit History." : "Your request is saved, but we couldn't send your receipt email. All your request details are available in Credit History."}
+            </p>
+            <div className="mt-6 flex flex-col gap-2 sm:flex-row">
+              <button type="button" onClick={() => setConfirmation(null)} className="h-11 flex-1 rounded-xl border border-outline-variant text-sm font-bold text-on-surface hover:bg-surface-container">Got it</button>
+              <Link to={`${CREDIT_HISTORY_PATH}?request=${confirmation.request._id}`} onClick={() => setConfirmation(null)} className="flex h-11 flex-1 items-center justify-center rounded-xl bg-primary text-sm font-bold text-on-primary hover:bg-primary/90">Track my request</Link>
+            </div>
+          </div>
+        </CreditDialog>
       )}
     </div>
   );
@@ -229,7 +240,7 @@ function CreditRequestModal({
   submitting: boolean;
   setSubmitting: (value: boolean) => void;
   onClose: () => void;
-  onSubmitted: (message: string) => void;
+  onSubmitted: (result: { request: CreditRequest; studentEmailSent: boolean }) => void;
 }) {
   const user = readCurrentUser();
   const packages = options?.packages || [];
@@ -237,21 +248,6 @@ function CreditRequestModal({
   const [customCredits, setCustomCredits] = useState(100);
   const [phone, setPhone] = useState("");
   const [error, setError] = useState("");
-
-  useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [onClose]);
 
   useEffect(() => {
     if (packages.length && mode === "custom") setMode(packages[0].key);
@@ -272,8 +268,9 @@ function CreditRequestModal({
       setError("Enter a valid phone number so the admin can contact you.");
       return;
     }
-    if (!requestedCredits || requestedCredits <= 0) {
-      setError("Choose a package or enter a custom credit amount greater than 0.");
+    if (!options) { setError("Purchase options are still loading. Please try again in a moment."); return; }
+    if (!requestedCredits || requestedCredits <= 0 || requestedCredits > 100000) {
+      setError("Choose between 1 and 100,000 credits.");
       return;
     }
     setSubmitting(true);
@@ -287,7 +284,7 @@ function CreditRequestModal({
           credits: isCustom ? requestedCredits : undefined,
         }),
       });
-      onSubmitted(data.message || "Your credit request has been submitted successfully. The admin will contact you shortly.");
+      onSubmitted({ request: data.request, studentEmailSent: data.studentEmailSent === true });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not submit your credit request.");
     } finally {
@@ -295,27 +292,14 @@ function CreditRequestModal({
     }
   };
 
-  return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4">
-      <button
-        type="button"
-        className="absolute inset-0 cursor-default bg-black/45 backdrop-blur-[2px]"
-        onClick={onClose}
-        aria-label="Close credit request modal"
-      />
-
-      <div
-        className="relative flex max-h-[calc(100dvh-1.5rem)] w-full max-w-xl flex-col overflow-hidden rounded-2xl border border-outline-variant bg-surface shadow-2xl sm:max-h-[calc(100dvh-2rem)]"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="credit-request-title"
-      >
+  return (
+    <CreditDialog titleId="credit-request-title" onClose={onClose} busy={submitting}>
         <header className="flex items-start justify-between gap-3 border-b border-outline-variant/60 bg-surface-container-low/50 p-4">
           <div className="min-w-0">
             <p id="credit-request-title" className="text-sm font-extrabold text-on-surface">Add More Credits</p>
-            <p className="text-xs text-on-surface-variant">Submit a request and the admin will contact you shortly.</p>
+            <p className="text-xs leading-relaxed text-on-surface-variant">Our team will contact you with payment instructions. Credits are added after payment is verified.</p>
           </div>
-          <button type="button" onClick={onClose} className="grid h-8 w-8 place-items-center rounded-lg text-on-surface-variant hover:bg-surface-container" aria-label="Close">
+          <button type="button" onClick={onClose} disabled={submitting} className="grid h-8 w-8 place-items-center rounded-lg text-on-surface-variant hover:bg-surface-container disabled:opacity-50" aria-label="Close">
             <HugeiconsIcon icon="close" size={16} />
           </button>
         </header>
@@ -384,6 +368,7 @@ function CreditRequestModal({
               <input
                 type="number"
                 min="1"
+                max="100000"
                 step="1"
                 value={customCredits}
                 onChange={(event) => setCustomCredits(Math.max(0, Math.trunc(Number(event.target.value) || 0)))}
@@ -405,21 +390,19 @@ function CreditRequestModal({
         </div>
 
         <footer className="flex flex-col-reverse gap-2 border-t border-outline-variant/60 bg-surface-container-low/40 p-4 sm:flex-row sm:items-center sm:justify-end">
-          <button type="button" onClick={onClose} className="h-10 w-full rounded-xl border border-outline-variant bg-surface px-4 text-xs font-bold text-on-surface hover:bg-surface-container sm:w-auto">
+          <button type="button" onClick={onClose} disabled={submitting} className="h-10 w-full rounded-xl border border-outline-variant bg-surface px-4 text-xs font-bold text-on-surface hover:bg-surface-container disabled:opacity-50 sm:w-auto">
             Cancel
           </button>
           <button
             type="button"
             onClick={submit}
-            disabled={submitting}
+            disabled={submitting || !options}
             className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 text-xs font-extrabold text-on-primary shadow-xs hover:bg-primary/90 disabled:opacity-50 sm:w-auto"
           >
             {submitting && <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />}
             <span>{submitting ? "Submitting..." : "Submit Request"}</span>
           </button>
         </footer>
-      </div>
-    </div>,
-    document.body
+    </CreditDialog>
   );
 }

@@ -1,5 +1,13 @@
 # PFE Guidance Frontend Documentation
 
+## Student Credit History and Request Confirmation
+
+Settings → Credit History (`/workspace/settings/credits`) centralizes purchase requests and wallet activity. Both tabs have server-side search, status/date filters and pagination. Wallet activity additionally supports activity-type filters. Dates are displayed and filtered in UTC. Request details show a timeline, payment guidance, notes and receipt email status; a deposit transaction links back to its purchase request.
+
+The wallet shows only the latest three requests and three activities, with a full-history link. **Request credits** is also available on the history page. After submission, a centered dialog with a blurred backdrop explains that the team will contact the student with payment instructions and deposit credits after payment verification. It includes the amount, price, receipt delivery result and a **Track my request** link. The confirmation stays until dismissed; it replaces the old wallet text.
+
+Notifications and receipt emails link directly to `/workspace/settings/credits?request=<id>`. Receipt email failures are shown honestly while keeping the saved request accessible. Shared credit dialogs support Escape, focus trapping, focus restoration and scroll locking; submission cannot be dismissed while saving.
+
 ## 1. Repository Purpose
 
 This repository contains the frontend application for PFE Guidance / Smart PFE. It is the user interface used by students and administrators.

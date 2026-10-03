@@ -151,6 +151,14 @@ export default function Settings() {
         </Link>
       </div>
 
+      <Link to="/workspace/settings/credits" className="group mb-6 flex items-center justify-between gap-4 rounded-xl border border-amber-400/30 bg-amber-400/5 p-5 transition hover:border-primary/50 hover:shadow-xs">
+        <div className="flex items-center gap-3">
+          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400"><HugeiconsIcon icon="wallet-02" size={20} /></div>
+          <div><h2 className="text-sm font-bold text-on-surface group-hover:text-primary">Credit History</h2><p className="mt-1 text-xs leading-relaxed text-on-surface-variant">Track purchase requests, deposits and credit usage. Search and filter your complete history.</p></div>
+        </div>
+        <HugeiconsIcon icon="arrow-right" size={18} className="shrink-0 text-primary" />
+      </Link>
+
       {/* Secondary Utilities Grid (2 clean cards) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {/* Workspace Theme Toggle */}

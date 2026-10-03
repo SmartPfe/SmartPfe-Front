@@ -15,6 +15,12 @@ export interface HugeiconsIconProps extends Omit<React.SVGProps<SVGSVGElement>, 
  * All icons are pure SVG vectors (not selectable text glyphs).
  */
 const ICONS: Record<string, (props: { strokeWidth: number }) => React.ReactNode> = {
+  "coin": ({ strokeWidth }) => (
+    <><circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth={strokeWidth} /><path d="M15 8.5C14.4 7.8 13.4 7.5 12 7.5C10.3 7.5 9 8.4 9 10C9 13 15 11 15 14C15 15.5 13.7 16.5 12 16.5C10.6 16.5 9.6 16.2 9 15.5M12 5.5V18.5" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" /></>
+  ),
+  "wallet-02": ({ strokeWidth }) => (
+    <><path d="M20 7H5A2 2 0 0 1 5 3H18V7M4 5V18A3 3 0 0 0 7 21H20V7" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" /><path d="M20 11H16A2 2 0 0 0 16 15H20" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" /><circle cx="16" cy="13" r=".7" fill="currentColor" /></>
+  ),
   // AI & Magic / Sparkles
   "ai-beautify": ({ strokeWidth }) => (
     <>
