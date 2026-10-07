@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { fetchApi } from "@/lib/api";
 import creditCoin from "@/assets/credit-coin.png";
 import HugeiconsIcon from "@/components/ui/HugeiconsIcon";
@@ -122,6 +123,7 @@ const ENFORCEMENT_CARDS = [
 ];
 
 export default function AdminCredits() {
+  const { t, i18n } = useTranslation("adminCredits");
   const [settings, setSettings] = useState<Settings | null>(null);
   const [initialSettings, setInitialSettings] = useState<Settings | null>(null);
   const [policies, setPolicies] = useState<Policy[]>([]);
@@ -129,7 +131,7 @@ export default function AdminCredits() {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string>("");
-  const [message, setMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
+  const [message, setMessage] = useState<{ tone: "success" | "error"; text?: string; key?: string; values?: Record<string, string | number> } | null>(null);
 
   // Search & Filter controls
   const [searchQuery, setSearchQuery] = useState("");
@@ -141,6 +143,8 @@ export default function AdminCredits() {
 
   // Live clock ticker for the timezone preview
   const [now, setNow] = useState(new Date());
+  const policyLabel = (policy: Policy) => t(`economy.policyLabels.${policy.key}`, policy.label);
+  const policyGroup = (group: string) => t(`economy.policyGroups.${group}`, group);
 
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 10000);
@@ -157,7 +161,7 @@ export default function AdminCredits() {
       setDrafts(Object.fromEntries((data.policies || []).map((item: Policy) => [item.key, { ...item }])));
       setHistory(data.history || []);
     } catch (error) {
-      setMessage({ tone: "error", text: error instanceof Error ? error.message : "Could not load the credit economy." });
+      setMessage(error instanceof Error ? { tone: "error", text: error.message } : { tone: "error", key: "economy.errorLoad" });
     } finally {
       setLoading(false);
     }
@@ -195,7 +199,7 @@ export default function AdminCredits() {
   const timezoneInfo = useMemo(() => {
     const tz = settings?.timezone || "Africa/Tunis";
     try {
-      const timeStr = new Intl.DateTimeFormat("en-US", {
+      const timeStr = new Intl.DateTimeFormat(i18n.resolvedLanguage || "en", {
         timeZone: tz,
         hour: "2-digit",
         minute: "2-digit",
@@ -222,9 +226,9 @@ export default function AdminCredits() {
         isValid: true,
       };
     } catch {
-      return { timeStr: "Invalid timezone", countdown: "", isValid: false };
+      return { timeStr: t("economy.invalidTimezone"), countdown: "", isValid: false };
     }
-  }, [settings?.timezone, now]);
+  }, [settings?.timezone, now, i18n.resolvedLanguage]);
 
   // Groups and filtered policies
   const availableGroups = useMemo(() => {
@@ -273,7 +277,7 @@ export default function AdminCredits() {
     if (!policyReason.trim()) {
       setMessage({
         tone: "error",
-        text: "Please provide a short change reason for the audit log before saving pricing.",
+        key: "economy.reasonPricing",
       });
       return;
     }
@@ -310,7 +314,8 @@ export default function AdminCredits() {
       const count = updatedList.length;
       setMessage({
         tone: "success",
-        text: `Successfully saved ${count} policy ${count === 1 ? "change" : "changes"}.`,
+        key: count === 1 ? "economy.savedPolicies_one" : "economy.savedPolicies_other",
+        values: { count },
       });
       setPolicyReason("");
 
@@ -318,10 +323,7 @@ export default function AdminCredits() {
       const freshData = await fetchApi("/admin/credits/economy");
       if (freshData.history) setHistory(freshData.history);
     } catch (error) {
-      setMessage({
-        tone: "error",
-        text: error instanceof Error ? error.message : "Failed to save policy updates.",
-      });
+      setMessage(error instanceof Error ? { tone: "error", text: error.message } : { tone: "error", key: "economy.errorSavePolicies" });
     } finally {
       setSaving("");
     }
@@ -333,7 +335,8 @@ export default function AdminCredits() {
     if (!policyReason.trim()) {
       setMessage({
         tone: "error",
-        text: `Please enter a change reason below before saving "${policy.label}".`,
+        key: "economy.reasonSinglePolicy",
+        values: { label: policy.label, policyKey: policy.key },
       });
       return;
     }
@@ -353,13 +356,13 @@ export default function AdminCredits() {
 
       setPolicies((current) => current.map((item) => (item.key === policy.key ? result.policy : item)));
       setDrafts((current) => ({ ...current, [policy.key]: result.policy }));
-      setMessage({ tone: "success", text: `${policy.label} pricing updated.` });
+      setMessage({ tone: "success", key: "economy.singlePolicyUpdated", values: { label: policy.label, policyKey: policy.key } });
       setPolicyReason("");
 
       const freshData = await fetchApi("/admin/credits/economy");
       if (freshData.history) setHistory(freshData.history);
     } catch (error) {
-      setMessage({ tone: "error", text: error instanceof Error ? error.message : "Could not save this policy." });
+      setMessage(error instanceof Error ? { tone: "error", text: error.message } : { tone: "error", key: "economy.errorSavePolicy" });
     } finally {
       setSaving("");
     }
@@ -371,7 +374,7 @@ export default function AdminCredits() {
     if (!settingsReason.trim()) {
       setMessage({
         tone: "error",
-        text: "Please enter a change reason for the audit log before updating wallet defaults.",
+        key: "economy.reasonSettings",
       });
       return;
     }
@@ -393,12 +396,12 @@ export default function AdminCredits() {
       setSettings(result.settings);
       setInitialSettings(result.settings);
       setSettingsReason("");
-      setMessage({ tone: "success", text: "Wallet defaults and enforcement rules updated." });
+      setMessage({ tone: "success", key: "economy.settingsUpdated" });
 
       const freshData = await fetchApi("/admin/credits/economy");
       if (freshData.history) setHistory(freshData.history);
     } catch (error) {
-      setMessage({ tone: "error", text: error instanceof Error ? error.message : "Could not save settings." });
+      setMessage(error instanceof Error ? { tone: "error", text: error.message } : { tone: "error", key: "economy.errorSaveSettings" });
     } finally {
       setSaving("");
     }
@@ -412,13 +415,13 @@ export default function AdminCredits() {
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-amber-400/30 bg-amber-400/10 px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wider text-amber-700 dark:text-amber-300">
-            <img src={creditCoin} alt="" className="h-4 w-4" /> Credit Economy & Monetization
+            <img src={creditCoin} alt="" className="h-4 w-4" /> {t("economy.badge")}
           </div>
           <h1 className="text-2xl font-black tracking-tight text-on-surface sm:text-3xl">
-            Pricing, Refills & Enforcement
+            {t("economy.title")}
           </h1>
           <p className="mt-1 max-w-2xl text-xs sm:text-sm text-on-surface-variant">
-            Adjust live AI feature pricing, configure student promotional refills, and set credit gating rules without deployments.
+            {t("economy.intro")}
           </p>
         </div>
 
@@ -430,7 +433,7 @@ export default function AdminCredits() {
             className="inline-flex h-9 items-center gap-2 rounded-xl border border-outline-variant bg-surface px-3 text-xs font-bold text-on-surface shadow-2xs transition hover:bg-surface-container disabled:opacity-50"
           >
             <HugeiconsIcon icon="refresh" size={15} className={loading ? "animate-spin" : ""} />
-            <span>Refresh</span>
+            <span>{t("economy.refresh")}</span>
           </button>
         </div>
       </header>
@@ -438,7 +441,7 @@ export default function AdminCredits() {
       {/* Telemetry Summary Cards */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <div className="rounded-2xl border border-outline-variant/80 bg-surface-container-lowest p-4 shadow-2xs">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">Enforcement Mode</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">{t("economy.enforcementMode")}</p>
           <div className="mt-1.5 flex items-center gap-2">
             <span
               className={cn(
@@ -451,38 +454,38 @@ export default function AdminCredits() {
               )}
             >
               <span className="h-1.5 w-1.5 rounded-full bg-current" />
-              {settings?.enforcementMode || "..."}
+              {settings?.enforcementMode ? t(`economy.modes.${settings.enforcementMode}.title`) : "..."}
             </span>
           </div>
         </div>
 
         <div className="rounded-2xl border border-outline-variant/80 bg-surface-container-lowest p-4 shadow-2xs">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">Welcome Bonus</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">{t("economy.welcomeBonus")}</p>
           <div className="mt-1.5 flex items-center gap-1.5">
             <img src={creditCoin} alt="" className="h-4 w-4" />
             <span className="font-mono text-lg font-extrabold text-on-surface">
               {settings?.welcomeCredits ?? "..."}
             </span>
-            <span className="text-[11px] text-on-surface-variant">credits</span>
+            <span className="text-[11px] text-on-surface-variant">{t("economy.credits")}</span>
           </div>
         </div>
 
         <div className="rounded-2xl border border-outline-variant/80 bg-surface-container-lowest p-4 shadow-2xs">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">Daily Midnight Refill</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">{t("economy.dailyRefill")}</p>
           <div className="mt-1.5 flex items-center gap-1.5">
             <img src={creditCoin} alt="" className="h-4 w-4" />
             <span className="font-mono text-lg font-extrabold text-on-surface">
               {settings?.dailyPromotionalRefill ?? "..."}
             </span>
-            <span className="text-[11px] text-on-surface-variant">/ day</span>
+            <span className="text-[11px] text-on-surface-variant">{t("economy.perDay")}</span>
           </div>
         </div>
 
         <div className="rounded-2xl border border-outline-variant/80 bg-surface-container-lowest p-4 shadow-2xs">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">Priced AI Actions</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">{t("economy.pricedActions")}</p>
           <div className="mt-1.5 flex items-center gap-1.5">
             <span className="font-mono text-lg font-extrabold text-on-surface">{policies.length}</span>
-            <span className="text-[11px] text-on-surface-variant">configured</span>
+            <span className="text-[11px] text-on-surface-variant">{t("economy.configured")}</span>
           </div>
         </div>
       </div>
@@ -508,13 +511,13 @@ export default function AdminCredits() {
             >
               <HugeiconsIcon icon={message.tone === "success" ? "check" : "alert-circle"} size={14} strokeWidth={2.2} />
             </div>
-            <span className="font-medium text-on-surface">{message.text}</span>
+            <span className="font-medium text-on-surface">{message.key ? t(message.key, message.values?.policyKey ? { ...message.values, label: t(`economy.policyLabels.${message.values.policyKey}`, String(message.values.label)) } : message.values) : message.text}</span>
           </div>
           <button
             type="button"
             onClick={() => setMessage(null)}
             className="rounded-md p-1 text-on-surface-variant hover:text-on-surface transition"
-            aria-label="Close notification"
+            aria-label={t("economy.closeNotification")}
           >
             ✕
           </button>
@@ -530,21 +533,21 @@ export default function AdminCredits() {
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">
-                  System Gating Policy
+                  {t("economy.systemPolicy")}
                 </span>
                 <span className="rounded-md bg-primary/10 px-2 py-0.5 text-[10px] font-extrabold text-primary">
-                  Core Engine
+                  {t("economy.coreEngine")}
                 </span>
               </div>
-              <h2 className="mt-1 text-base font-extrabold text-on-surface">AI Engine Enforcement Mode</h2>
+              <h2 className="mt-1 text-base font-extrabold text-on-surface">{t("economy.enforcementTitle")}</h2>
               <p className="mt-0.5 text-xs text-on-surface-variant">
-                Controls whether the system strictly bills students, runs in trial monitoring, or allows unrestricted free access.
+                {t("economy.enforcementIntro")}
               </p>
             </div>
 
             {isSettingsDirty && (
               <span className="self-start rounded-full border border-amber-400/40 bg-amber-400/15 px-2.5 py-1 text-[11px] font-bold text-amber-700 dark:text-amber-300">
-                Unsaved Settings
+                {t("economy.unsavedSettings")}
               </span>
             )}
           </div>
@@ -579,8 +582,8 @@ export default function AdminCredits() {
                           <HugeiconsIcon icon={card.icon} size={16} strokeWidth={2} />
                         </div>
                         <div>
-                          <h3 className="text-sm font-black text-on-surface">{card.title}</h3>
-                          <span className="text-[10px] font-medium text-on-surface-variant">{card.subtitle}</span>
+                          <h3 className="text-sm font-black text-on-surface">{t(`economy.modes.${card.id}.title`)}</h3>
+                          <span className="text-[10px] font-medium text-on-surface-variant">{t(`economy.modes.${card.id}.subtitle`)}</span>
                         </div>
                       </div>
 
@@ -596,13 +599,13 @@ export default function AdminCredits() {
                       </div>
                     </div>
 
-                    <p className="mt-3 text-xs leading-relaxed text-on-surface-variant">{card.description}</p>
+                    <p className="mt-3 text-xs leading-relaxed text-on-surface-variant">{t(`economy.modes.${card.id}.description`)}</p>
                   </div>
 
                   <div className="mt-4 border-t border-outline-variant/60 pt-3">
                     <div className="flex items-start gap-1.5 text-[11px]">
-                      <span className="font-bold text-on-surface shrink-0">Financial Impact:</span>
-                      <span className="text-on-surface-variant leading-snug">{card.financialImpact}</span>
+                      <span className="font-bold text-on-surface shrink-0">{t("economy.financialImpact")}</span>
+                      <span className="text-on-surface-variant leading-snug">{t(`economy.modes.${card.id}.financialImpact`)}</span>
                     </div>
                   </div>
                 </div>
@@ -619,14 +622,14 @@ export default function AdminCredits() {
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="rounded-md border border-amber-500/20 bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-300">
-                    Evaluation Mode
+                    {t("economy.shadowMode")}
                   </span>
                   <h4 className="text-xs sm:text-sm font-extrabold text-on-surface">
-                    Shadow Active — AI actions execute without blocking students
+                    {t("economy.shadowTitle")}
                   </h4>
                 </div>
                 <p className="mt-1 text-xs leading-relaxed text-on-surface-variant">
-                  Students will not encounter payment prompts or 402 barriers even if their wallet balance is zero. Quoted credit costs are silently recorded for analytics. Remember to switch back to <strong className="font-bold text-on-surface">Enforce (Production)</strong> when you are ready to collect revenue.
+                  {t("economy.shadowDescription")}
                 </p>
               </div>
             </div>
@@ -641,18 +644,18 @@ export default function AdminCredits() {
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="rounded-md border border-error/20 bg-error/10 px-2 py-0.5 text-[10px] font-bold text-error">
-                    Dangerous Configuration
+                    {t("economy.offMode")}
                   </span>
                   <h4 className="text-xs sm:text-sm font-extrabold text-on-surface">
-                    Credit Engine Disabled — Full Platform Subsidy
+                    {t("economy.offTitle")}
                   </h4>
                 </div>
                 <p className="mt-1 text-xs leading-relaxed text-on-surface-variant">
-                  All balance checks, quotas, and credit deductions are completely bypassed. Students have unrestricted free access to all AI features at your organization&apos;s direct expense.
+                  {t("economy.offDescription")}
                 </p>
                 <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-outline-variant/60 pt-2.5">
                   <p className="text-[11px] font-semibold text-error">
-                    ⚠️ High risk: Your organization absorbs 100% of LLM provider API token costs.
+                    {t("economy.highRisk")}
                   </p>
                   <button
                     type="button"
@@ -660,7 +663,7 @@ export default function AdminCredits() {
                     className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-extrabold text-on-primary shadow-xs transition hover:bg-primary/90"
                   >
                     <HugeiconsIcon icon="shield" size={13} strokeWidth={2} />
-                    <span>Switch back to Enforce</span>
+                    <span>{t("economy.switchEnforce")}</span>
                   </button>
                 </div>
               </div>
@@ -677,11 +680,11 @@ export default function AdminCredits() {
           <div className="flex items-center justify-between">
             <div>
               <span className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">
-                Student Allowances
+                {t("economy.allowances")}
               </span>
-              <h2 className="mt-1 text-base font-extrabold text-on-surface">Wallet Balances & Daily Refill Cadence</h2>
+              <h2 className="mt-1 text-base font-extrabold text-on-surface">{t("economy.walletTitle")}</h2>
               <p className="mt-0.5 text-xs text-on-surface-variant">
-                Define the initial credits granted to new students and the daily midnight replenishment amount.
+                {t("economy.walletIntro")}
               </p>
             </div>
           </div>
@@ -693,8 +696,8 @@ export default function AdminCredits() {
               {/* 1. Welcome Credits */}
               <div className="rounded-xl border border-outline-variant/70 bg-surface-container-lowest p-4">
                 <label className="block text-xs font-bold text-on-surface">
-                  Welcome Bonus
-                  <span className="ml-1 text-[10px] font-normal text-on-surface-variant">(Granted once on registration)</span>
+                  {t("economy.welcomeBonus")}
+                  <span className="ml-1 text-[10px] font-normal text-on-surface-variant">{t("economy.grantedOnce")}</span>
                 </label>
                 <div className="mt-2 flex h-10 items-center rounded-lg border border-outline-variant bg-surface px-3 focus-within:border-primary">
                   <img src={creditCoin} alt="" className="mr-2 h-4 w-4 shrink-0" />
@@ -705,18 +708,18 @@ export default function AdminCredits() {
                     onChange={(e) => setSettings({ ...settings, welcomeCredits: asNumber(e.target.value) })}
                     className="w-full bg-transparent font-mono text-sm font-extrabold text-on-surface outline-none"
                   />
-                  <span className="text-xs text-on-surface-variant">credits</span>
+                  <span className="text-xs text-on-surface-variant">{t("economy.credits")}</span>
                 </div>
                 <p className="mt-1.5 text-[11px] text-on-surface-variant">
-                  Initial budget for students to try AI generation immediately upon signup.
+                  {t("economy.welcomeHelp")}
                 </p>
               </div>
 
               {/* 2. Daily Promotional Refill */}
               <div className="rounded-xl border border-outline-variant/70 bg-surface-container-lowest p-4">
                 <label className="block text-xs font-bold text-on-surface">
-                  Daily Promotional Refill
-                  <span className="ml-1 text-[10px] font-normal text-on-surface-variant">(Top-up ceiling each midnight)</span>
+                  {t("economy.dailyPromotionalRefill")}
+                  <span className="ml-1 text-[10px] font-normal text-on-surface-variant">{t("economy.topupCeiling")}</span>
                 </label>
                 <div className="mt-2 flex h-10 items-center rounded-lg border border-outline-variant bg-surface px-3 focus-within:border-primary">
                   <img src={creditCoin} alt="" className="mr-2 h-4 w-4 shrink-0" />
@@ -727,18 +730,18 @@ export default function AdminCredits() {
                     onChange={(e) => setSettings({ ...settings, dailyPromotionalRefill: asNumber(e.target.value) })}
                     className="w-full bg-transparent font-mono text-sm font-extrabold text-on-surface outline-none"
                   />
-                  <span className="text-xs text-on-surface-variant">/ day</span>
+                  <span className="text-xs text-on-surface-variant">{t("economy.perDay")}</span>
                 </div>
                 <p className="mt-1.5 text-[11px] text-on-surface-variant">
-                  If student promotional balance is below this amount, it refills up to this target.
+                  {t("economy.dailyRefillHelp")}
                 </p>
               </div>
 
               {/* 3. Refill Timezone (Midnight Cutoff) with Live Ticker */}
               <div className="rounded-xl border border-outline-variant/70 bg-surface-container-lowest p-4">
                 <label className="block text-xs font-bold text-on-surface">
-                  Refill Timezone (Midnight Cutoff)
-                  <span className="ml-1 text-[10px] font-normal text-on-surface-variant">(When 00:00 resets occur)</span>
+                  {t("economy.timezoneCutoff")}
+                  <span className="ml-1 text-[10px] font-normal text-on-surface-variant">{t("economy.timezoneHelp")}</span>
                 </label>
                 <div className="mt-2">
                   <select
@@ -747,17 +750,17 @@ export default function AdminCredits() {
                     className="h-10 w-full rounded-lg border border-outline-variant bg-surface px-3 text-xs font-semibold text-on-surface outline-none focus:border-primary"
                   >
                     {TIMEZONE_GROUPS.map((group) => (
-                      <optgroup key={group.region} label={group.region}>
+                      <optgroup key={group.region} label={t(`economy.timezoneRegions.${group.region}`, group.region)}>
                         {group.options.map((tz) => (
                           <option key={tz.value} value={tz.value}>
-                            {tz.label}
+                          {t(`economy.timezones.${tz.value}`, tz.label)}
                           </option>
                         ))}
                       </optgroup>
                     ))}
                     {/* Fallback option if current setting is outside the curated list */}
                     {!TIMEZONE_GROUPS.some((g) => g.options.some((o) => o.value === settings.timezone)) && (
-                      <option value={settings.timezone}>{settings.timezone} (Custom)</option>
+                      <option value={settings.timezone}>{settings.timezone} ({t("economy.custom")})</option>
                     )}
                   </select>
                 </div>
@@ -766,16 +769,16 @@ export default function AdminCredits() {
                 <div className="mt-2.5 flex items-center justify-between rounded-lg bg-surface-container px-2.5 py-1.5 text-[11px]">
                   <div className="flex items-center gap-1.5 text-on-surface font-semibold">
                     <HugeiconsIcon icon="clock" size={13} className="text-primary" />
-                    <span>Local Time: {timezoneInfo.timeStr}</span>
+                    <span>{t("economy.localTime", { time: timezoneInfo.timeStr })}</span>
                   </div>
                   {timezoneInfo.countdown && (
                     <span className="text-[10px] font-bold text-secondary">
-                      Refill in {timezoneInfo.countdown}
+                      {t("economy.refillIn", { countdown: timezoneInfo.countdown })}
                     </span>
                   )}
                 </div>
                 <p className="mt-1 text-[10px] text-on-surface-variant">
-                  At 00:00:00 in this timezone, all daily free quotas and promotional refills reset.
+                  {t("economy.timezoneResetHelp")}
                 </p>
               </div>
             </div>
@@ -787,12 +790,12 @@ export default function AdminCredits() {
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex-1">
                   <label className="block text-xs font-bold text-on-surface">
-                    Audit Change Reason <span className="text-error">*</span>
+                    {t("economy.auditReason")} <span className="text-error">*</span>
                   </label>
                   <input
                     value={settingsReason}
                     onChange={(e) => setSettingsReason(e.target.value)}
-                    placeholder="e.g. Switched to production enforcement and updated welcome allowance"
+                    placeholder={t("economy.settingsReasonPlaceholder")}
                     maxLength={300}
                     className="mt-1 h-9 w-full rounded-lg border border-outline-variant bg-surface px-3 text-xs text-on-surface outline-none focus:border-primary"
                   />
@@ -804,7 +807,7 @@ export default function AdminCredits() {
                     onClick={resetSettings}
                     className="h-9 rounded-lg border border-outline-variant bg-surface px-3 text-xs font-bold text-on-surface-variant hover:text-on-surface"
                   >
-                    Discard
+                    {t("economy.discard")}
                   </button>
                   <button
                     type="button"
@@ -812,7 +815,7 @@ export default function AdminCredits() {
                     disabled={saving === "settings"}
                     className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary px-4 text-xs font-extrabold text-on-primary shadow-xs transition hover:bg-primary/90 disabled:opacity-50"
                   >
-                    {saving === "settings" ? "Saving..." : "Save Settings & Enforcement"}
+                    {saving === "settings" ? t("economy.saving") : t("economy.saveSettings")}
                   </button>
                 </div>
               </div>
@@ -831,15 +834,15 @@ export default function AdminCredits() {
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">
-                  Tariff Catalog
+                  {t("economy.catalog")}
                 </span>
                 <span className="rounded-md bg-secondary/10 px-2 py-0.5 text-[10px] font-bold text-secondary">
-                  {policies.length} Actions
+                  {t("economy.actions", { count: policies.length })}
                 </span>
               </div>
-              <h2 className="mt-1 text-base font-extrabold text-on-surface">AI Action Pricing & Allowances</h2>
+              <h2 className="mt-1 text-base font-extrabold text-on-surface">{t("economy.pricingTitle")}</h2>
               <p className="mt-0.5 text-xs text-on-surface-variant">
-                Set the credit cost and daily free uses for each AI action. Setting cost to 0 keeps the action free.
+                {t("economy.pricingIntro")}
               </p>
             </div>
 
@@ -850,7 +853,7 @@ export default function AdminCredits() {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Filter actions or keys..."
+                  placeholder={t("economy.filterActions")}
                   className="h-9 w-full rounded-xl border border-outline-variant bg-surface pl-8 pr-3 text-xs text-on-surface outline-none focus:border-primary"
                 />
                 <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-on-surface-variant">
@@ -872,7 +875,7 @@ export default function AdminCredits() {
                   : "text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
               )}
             >
-              All ({policies.length})
+              {t("economy.all", { count: policies.length })}
             </button>
             {availableGroups.map((group) => {
               const count = policies.filter((p) => p.group === group).length;
@@ -888,7 +891,7 @@ export default function AdminCredits() {
                       : "text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
                   )}
                 >
-                  {group} ({count})
+                  {policyGroup(group)} ({count})
                 </button>
               );
             })}
@@ -898,10 +901,10 @@ export default function AdminCredits() {
         {/* Policy Rows */}
         <div className="divide-y divide-outline-variant/40">
           {loading ? (
-            <div className="py-16 text-center text-xs text-on-surface-variant">Loading credit policies...</div>
+            <div className="py-16 text-center text-xs text-on-surface-variant">{t("economy.loadingPolicies")}</div>
           ) : filteredPolicies.length === 0 ? (
             <div className="py-16 text-center text-xs text-on-surface-variant">
-              No actions match &ldquo;{searchQuery}&rdquo; in category &ldquo;{selectedGroup}&rdquo;.
+              {t("economy.noMatchingActions", { query: searchQuery, group: selectedGroup === "All" ? t("economy.allGroups") : policyGroup(selectedGroup) })}
             </div>
           ) : (
             filteredPolicies.map((policy) => {
@@ -922,22 +925,22 @@ export default function AdminCredits() {
                   {/* Action Identification */}
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="truncate text-xs font-extrabold text-on-surface">{policy.label}</p>
+                      <p className="truncate text-xs font-extrabold text-on-surface">{policyLabel(policy)}</p>
                       {policy.cost === 0 && (
                         <span className="rounded bg-secondary/10 px-1.5 py-0.5 text-[9px] font-extrabold text-secondary">
-                          Free
+                          {t("economy.free")}
                         </span>
                       )}
                       {isDirty && (
                         <span className="rounded bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-extrabold text-amber-700 dark:text-amber-300">
-                          Modified
+                          {t("economy.modified")}
                         </span>
                       )}
                     </div>
                     <div className="mt-0.5 flex items-center gap-2 font-mono text-[10px] text-on-surface-variant/80">
                       <span>{policy.key}</span>
                       <span>·</span>
-                      <span className="rounded bg-surface-container px-1 py-0.2">{policy.group}</span>
+                      <span className="rounded bg-surface-container px-1 py-0.2">{policyGroup(policy.group)}</span>
                       <span>·</span>
                       <span>v{policy.version}</span>
                     </div>
@@ -946,7 +949,7 @@ export default function AdminCredits() {
                   {/* Cost Input */}
                   <div>
                     <label className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
-                      Cost
+                      {t("economy.cost")}
                     </label>
                     <div className="mt-1 flex h-9 items-center rounded-lg border border-outline-variant bg-surface px-2.5 focus-within:border-primary">
                       <img src={creditCoin} alt="" className="mr-1.5 h-3.5 w-3.5 shrink-0" />
@@ -964,7 +967,7 @@ export default function AdminCredits() {
                   {/* Free Daily Uses */}
                   <div>
                     <label className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
-                      Free / Day
+                      {t("economy.freePerDay")}
                     </label>
                     <div className="mt-1 flex h-9 items-center rounded-lg border border-outline-variant bg-surface px-2.5 focus-within:border-primary">
                       <input
@@ -981,7 +984,7 @@ export default function AdminCredits() {
                   {/* Status Toggle */}
                   <div className="flex flex-col">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
-                      Active
+                      {t("economy.active")}
                     </span>
                     <label className="mt-2 inline-flex cursor-pointer items-center">
                       <input
@@ -1002,15 +1005,15 @@ export default function AdminCredits() {
                         type="button"
                         disabled={saving === policy.key}
                         onClick={() => saveSinglePolicy(policy)}
-                        title="Save this price individually"
+                        title={t("economy.savePriceTitle")}
                         className="inline-flex h-8 items-center gap-1 rounded-lg bg-primary/10 px-2.5 text-[11px] font-bold text-primary transition hover:bg-primary/20 disabled:opacity-50"
                       >
                         <HugeiconsIcon icon="check" size={13} strokeWidth={2} />
-                        <span>{saving === policy.key ? "Saving..." : "Save Row"}</span>
+                        <span>{saving === policy.key ? t("economy.saving") : t("economy.saveRow")}</span>
                       </button>
                     ) : (
                       <span className="text-[11px] font-semibold text-on-surface-variant/60">
-                        {policy.editable ? "Saved" : "Locked"}
+                        {policy.editable ? t("economy.saved") : t("economy.locked")}
                       </span>
                     )}
                   </div>
@@ -1025,19 +1028,19 @@ export default function AdminCredits() {
           FLOATING BATCH SAVE BAR (When policies are modified)
          ========================================================================= */}
       {dirtyPolicies.length > 0 && (
-        <aside aria-label="Unsaved pricing changes" className="fixed bottom-4 left-1/2 z-40 w-[95%] max-w-4xl -translate-x-1/2 rounded-2xl border border-primary/30 bg-surface/95 p-4 shadow-2xl backdrop-blur-md animate-in slide-in-from-bottom-4">
+        <aside aria-label={t("economy.unsavedPricingChanges")} className="fixed bottom-4 left-1/2 z-40 w-[95%] max-w-4xl -translate-x-1/2 rounded-2xl border border-primary/30 bg-surface/95 p-4 shadow-2xl backdrop-blur-md animate-in slide-in-from-bottom-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
                 <span className="flex h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
                 <p className="text-xs font-extrabold text-on-surface">
-                  {dirtyPolicies.length} {dirtyPolicies.length === 1 ? "Price Policy" : "Price Policies"} Modified
+                  {dirtyPolicies.length} {t(dirtyPolicies.length === 1 ? "economy.pricePolicy" : "economy.pricePolicies")} {t("economy.policiesModified")}
                 </p>
               </div>
               <input
                 value={policyReason}
                 onChange={(e) => setPolicyReason(e.target.value)}
-                placeholder="Required audit reason (e.g. Adjusted defense simulation and report builder pricing)"
+                placeholder={t("economy.policyReasonPlaceholder")}
                 maxLength={300}
                 className="mt-1.5 h-9 w-full rounded-lg border border-outline-variant bg-surface px-3 text-xs text-on-surface outline-none focus:border-primary"
               />
@@ -1049,7 +1052,7 @@ export default function AdminCredits() {
                 onClick={resetAllDrafts}
                 className="h-9 rounded-lg border border-outline-variant bg-surface px-3 text-xs font-bold text-on-surface-variant hover:text-on-surface transition"
               >
-                Reset
+                {t("economy.reset")}
               </button>
               <button
                 type="button"
@@ -1057,7 +1060,7 @@ export default function AdminCredits() {
                 disabled={saving === "policies-batch"}
                 className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary px-4 text-xs font-extrabold text-on-primary shadow-md transition hover:bg-primary/90 disabled:opacity-50"
               >
-                {saving === "policies-batch" ? "Saving..." : `Save All (${dirtyPolicies.length}) Changes`}
+                {saving === "policies-batch" ? t("economy.savingAll") : t("economy.saveAll", { count: dirtyPolicies.length })}
               </button>
             </div>
           </div>
@@ -1072,15 +1075,15 @@ export default function AdminCredits() {
           <div className="flex items-center justify-between">
             <div>
               <span className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">
-                Governance & Audit Trail
+                {t("economy.auditTrail")}
               </span>
-              <h2 className="mt-1 text-base font-extrabold text-on-surface">Recent Pricing & Settings Updates</h2>
+              <h2 className="mt-1 text-base font-extrabold text-on-surface">{t("economy.recentUpdates")}</h2>
               <p className="mt-0.5 text-xs text-on-surface-variant">
-                Permanent cryptographic audit log of all economic changes, reasons, and version increments.
+                {t("economy.auditIntro")}
               </p>
             </div>
             <span className="rounded-md bg-surface-container-high px-2 py-1 font-mono text-[10px] font-bold text-on-surface-variant">
-              Immutable Log
+              {t("economy.immutableLog")}
             </span>
           </div>
         </div>
@@ -1096,14 +1099,14 @@ export default function AdminCredits() {
                     </span>
                     <span className="text-xs font-bold text-on-surface">v{item.version}</span>
                     {item.actor?.fullName && (
-                      <span className="text-[11px] text-on-surface-variant">by {item.actor.fullName}</span>
+                      <span className="text-[11px] text-on-surface-variant">{t("economy.by", { name: item.actor.fullName })}</span>
                     )}
                   </div>
                   <p className="mt-1 text-xs text-on-surface-variant/90 italic">&ldquo;{item.reason}&rdquo;</p>
                 </div>
 
                 <div className="shrink-0 text-[11px] font-medium text-on-surface-variant/75">
-                  {new Date(item.createdAt).toLocaleString(undefined, {
+                  {new Date(item.createdAt).toLocaleString(i18n.resolvedLanguage || "en", {
                     month: "short",
                     day: "numeric",
                     year: "numeric",
@@ -1114,7 +1117,7 @@ export default function AdminCredits() {
               </div>
             ))
           ) : (
-            <p className="py-8 text-center text-xs text-on-surface-variant">No economy changes recorded yet.</p>
+            <p className="py-8 text-center text-xs text-on-surface-variant">{t("economy.noChanges")}</p>
           )}
         </div>
       </section>

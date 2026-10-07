@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import { fetchApi } from "@/lib/api";
 import HugeiconsIcon from "@/components/ui/HugeiconsIcon";
 import creditCoin from "@/assets/credit-coin.png";
+import { useTranslation } from "react-i18next";
+import { displayOptionLabel } from "@/lib/onboardingOptions";
 
 type Item = { label: string; value: number };
 type Day = { key?: string; label: string; spent: number; fulfilled: number };
@@ -83,23 +85,42 @@ type CreditTimeRange = "24h" | "7d" | "30d" | "12m";
 type CreditGranularity = "day" | "week" | "month";
 type MomentumTimeRange = "12m" | "6m" | "3m";
 
-const formatRelativeTime = (dateStr: string) => {
+const formatCreditDateKey = (key: string | undefined, locale: string, fallback: string) => {
+  const dayMatch = key?.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  const monthMatch = key?.match(/^(\d{4})-(\d{2})$/);
+  if (!dayMatch && !monthMatch) return fallback;
+  const year = Number((dayMatch || monthMatch)?.[1]);
+  const month = Number((dayMatch || monthMatch)?.[2]) - 1;
+  const day = dayMatch ? Number(dayMatch[3]) : 1;
+  const date = new Date(Date.UTC(year, month, day));
+  return new Intl.DateTimeFormat(locale, {
+    month: "short",
+    ...(dayMatch ? { day: "numeric" as const } : {}),
+    timeZone: "UTC",
+  }).format(date);
+};
+
+const formatRelativeTime = (dateStr: string, locale: string, t: (key: string, options?: any) => string) => {
   const diff = Date.now() - new Date(dateStr).getTime();
   const minutes = Math.floor(diff / 60000);
-  if (minutes < 1) return "Just now";
-  if (minutes < 60) return `${minutes}m ago`;
+  if (minutes < 1) return t("dashboard.relative.now");
+  if (minutes < 60) return t("dashboard.relative.minutes", { count: minutes });
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
+  if (hours < 24) return t("dashboard.relative.hours", { count: hours });
   const days = Math.floor(hours / 24);
-  if (days < 7) return `${days}d ago`;
-  return new Intl.DateTimeFormat("en", { month: "short", day: "numeric" }).format(new Date(dateStr));
+  if (days < 7) return t("dashboard.relative.days", { count: days });
+  return new Intl.DateTimeFormat(locale, { month: "short", day: "numeric" }).format(new Date(dateStr));
 };
 
 export default function BackofficeDashboard() {
+  const { t, i18n } = useTranslation("adminManagement");
+  const tOnboarding = i18n.getFixedT(i18n.resolvedLanguage || i18n.language, "onboarding");
+  const tCreditHistory = i18n.getFixedT(i18n.resolvedLanguage || i18n.language, "creditHistory");
   const [data, setData] = useState<DashboardData>(emptyDashboard);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
+  const [errorKey, setErrorKey] = useState<string | null>(null);
 
   // Credit Filter Controls (As shown in reference photo)
   const [creditRange, setCreditRange] = useState<CreditTimeRange>("30d");
@@ -125,11 +146,13 @@ export default function BackofficeDashboard() {
     if (isRefresh) setRefreshing(true);
     else setLoading(true);
     setError("");
+    setErrorKey(null);
     try {
       const response = await fetchApi("/admin/dashboard");
       setData(response);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not load administrative telemetry.");
+      if (err instanceof Error) setError(err.message);
+      else { setError(""); setErrorKey("dashboard.error"); }
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -174,7 +197,10 @@ export default function BackofficeDashboard() {
         const chunk = sliced.slice(i, i + 7);
         const spent = chunk.reduce((sum, d) => sum + d.spent, 0);
         const fulfilled = chunk.reduce((sum, d) => sum + d.fulfilled, 0);
-        const label = `W${Math.floor(i / 7) + 1} (${chunk[0]?.label || ""})`;
+        const label = t("dashboard.credit.weekLabel", {
+          week: Math.floor(i / 7) + 1,
+          date: formatCreditDateKey(chunk[0]?.key, i18n.language, chunk[0]?.label || ""),
+        });
         weeks.push({ label, spent, fulfilled });
       }
       return weeks;
@@ -186,16 +212,16 @@ export default function BackofficeDashboard() {
       }
       const spent = sliced.reduce((sum, d) => sum + d.spent, 0);
       const fulfilled = sliced.reduce((sum, d) => sum + d.fulfilled, 0);
-      return [{ label: "Selected Period", spent, fulfilled }];
+      return [{ label: t("dashboard.credit.selectedPeriod"), spent, fulfilled }];
     }
 
     return sliced;
-  }, [data.charts.creditActivity, data.charts.creditMonthly, creditRange, creditGranularity]);
+  }, [data.charts.creditActivity, data.charts.creditMonthly, creditRange, creditGranularity, t]);
 
   // Date range formatted label for Credit Telemetry
   const creditDateRangeLabel = useMemo(() => {
     const now = new Date();
-    const endStr = new Intl.DateTimeFormat("en", { month: "short", day: "numeric", year: "numeric" }).format(now);
+    const endStr = new Intl.DateTimeFormat(i18n.language, { month: "short", day: "numeric", year: "numeric" }).format(now);
     let daysBack = 30;
     if (creditRange === "24h") daysBack = 1;
     if (creditRange === "7d") daysBack = 7;
@@ -203,9 +229,9 @@ export default function BackofficeDashboard() {
     if (creditRange === "12m") daysBack = 365;
 
     const start = new Date(now.getTime() - daysBack * 24 * 60 * 60 * 1000);
-    const startStr = new Intl.DateTimeFormat("en", { month: "short", day: "numeric", year: "numeric" }).format(start);
+    const startStr = new Intl.DateTimeFormat(i18n.language, { month: "short", day: "numeric", year: "numeric" }).format(start);
     return `${startStr} – ${endStr}`;
-  }, [creditRange]);
+  }, [creditRange, i18n.language]);
 
   // Filtered Student & Project Growth Momentum
   const processedMomentum = useMemo(() => {
@@ -251,15 +277,15 @@ export default function BackofficeDashboard() {
           <div className="flex items-center gap-2.5">
             <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              Production Telemetry
+              {t("dashboard.productionTelemetry")}
             </span>
-            <span className="text-[11px] font-semibold text-on-surface-variant">SmartPFE Financial & Adoption Pulse</span>
+            <span className="text-[11px] font-semibold text-on-surface-variant">{t("dashboard.pulse")}</span>
           </div>
           <h1 className="mt-1.5 text-2xl font-extrabold tracking-tight text-on-surface sm:text-3xl">
-            Executive Overview
+            {t("dashboard.title")}
           </h1>
           <p className="mt-1 text-sm text-on-surface-variant max-w-2xl leading-relaxed">
-            Credit monetization velocity, generative AI burn telemetry, and student adoption trajectory.
+            {t("dashboard.description")}
           </p>
         </div>
 
@@ -270,12 +296,12 @@ export default function BackofficeDashboard() {
             onClick={() => loadData(true)}
             disabled={refreshing}
             className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-outline-variant bg-surface px-3 text-xs font-bold text-on-surface shadow-2xs transition-all hover:bg-surface-container-low active:scale-[.98] disabled:opacity-50"
-            title="Refresh administrative metrics"
+            title={t("dashboard.refreshTitle")}
           >
             <span className={refreshing ? "animate-spin" : ""}>
               <HugeiconsIcon icon="refresh" size={14} strokeWidth={1.8} />
             </span>
-            <span>Refresh</span>
+            <span>{t("common.refresh")}</span>
           </button>
 
           <Link
@@ -283,7 +309,7 @@ export default function BackofficeDashboard() {
             className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-amber-400/40 bg-amber-400/10 px-3 text-xs font-bold text-amber-700 dark:text-amber-300 shadow-2xs transition-all hover:bg-amber-400/20 active:scale-[.98]"
           >
             <img src={creditCoin} alt="" className="h-4 w-4" />
-            <span>Economy Policies</span>
+            <span>{t("dashboard.economyPolicies")}</span>
           </Link>
 
           <Link
@@ -291,24 +317,24 @@ export default function BackofficeDashboard() {
             className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-primary px-3.5 text-xs font-bold text-on-primary shadow-xs transition-all hover:bg-primary/90 active:scale-[.98]"
           >
             <HugeiconsIcon icon="group" size={14} strokeWidth={1.8} />
-            <span>Manage Users</span>
+            <span>{t("dashboard.manageUsers")}</span>
           </Link>
         </div>
       </header>
 
       {/* Error Banner */}
-      {error && (
+      {(error || errorKey) && (
         <div className="flex items-center gap-3 rounded-2xl border border-error/30 bg-error/10 p-4 text-xs font-semibold text-error shadow-2xs">
           <HugeiconsIcon icon="alert-circle" size={18} strokeWidth={2} />
-          <span>{error}</span>
+          <span>{errorKey ? t(errorKey) : error}</span>
         </div>
       )}
 
       {loading ? (
         <div className="flex flex-col items-center justify-center rounded-3xl border border-outline-variant/80 bg-surface-container-lowest p-20 text-center shadow-2xs">
           <div className="h-10 w-10 animate-spin rounded-full border-3 border-primary border-t-transparent" />
-          <p className="mt-4 text-sm font-bold text-on-surface">Aggregating production telemetry…</p>
-          <p className="mt-1 text-xs text-on-surface-variant">Connecting student wallets, AI burn ledger, and workspaces</p>
+          <p className="mt-4 text-sm font-bold text-on-surface">{t("dashboard.loading")}</p>
+          <p className="mt-1 text-xs text-on-surface-variant">{t("dashboard.loadingDescription")}</p>
         </div>
       ) : (
         <>
@@ -318,11 +344,11 @@ export default function BackofficeDashboard() {
           <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {/* KPI 1: Purchased Credits Fulfilled (Main Revenue Driver) */}
             <CreditKpiCard
-              label="Purchased Credits Fulfilled"
-              value={data.totals.purchasedFulfilled.toLocaleString()}
-              badge="Direct Revenue"
+              label={t("dashboard.kpi.purchasedFulfilled")}
+              value={data.totals.purchasedFulfilled.toLocaleString(i18n.language)}
+              badge={t("dashboard.kpi.directRevenue")}
               badgeColor="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
-              helper="Confirmed student credit purchases"
+              helper={t("dashboard.kpi.confirmedPurchases")}
               icon="wallet-02"
               coin
               accentColor="emerald"
@@ -330,11 +356,11 @@ export default function BackofficeDashboard() {
 
             {/* KPI 2: Total AI Credits Spent (Demand & Value Capture) */}
             <CreditKpiCard
-              label="Total AI Credits Burned"
-              value={data.totals.creditsSpent.toLocaleString()}
-              badge="Action Demand"
+              label={t("dashboard.kpi.totalBurned")}
+              value={data.totals.creditsSpent.toLocaleString(i18n.language)}
+              badge={t("dashboard.kpi.actionDemand")}
               badgeColor="bg-primary/10 text-primary border-primary/20"
-              helper="Completed thesis AI generations"
+              helper={t("dashboard.kpi.completedGenerations")}
               icon="coin"
               coin
               accentColor="primary"
@@ -342,11 +368,11 @@ export default function BackofficeDashboard() {
 
             {/* KPI 3: Circulating Wallet Pool (Student Liabilities) */}
             <CreditKpiCard
-              label="Circulating Wallet Balance"
-              value={data.totals.walletCredits.toLocaleString()}
-              badge={`${creditMetrics.purchasedRatio}% Purchased Buffer`}
+              label={t("dashboard.kpi.walletBalance")}
+              value={data.totals.walletCredits.toLocaleString(i18n.language)}
+              badge={t("dashboard.kpi.purchasedBuffer", { percent: creditMetrics.purchasedRatio })}
               badgeColor="bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20"
-              helper="Promotional + purchased held by students"
+              helper={t("dashboard.kpi.heldByStudents")}
               icon="coin"
               coin
               accentColor="amber"
@@ -354,11 +380,11 @@ export default function BackofficeDashboard() {
 
             {/* KPI 4: Student Unit Economics (Burn / Student) */}
             <CreditKpiCard
-              label="Avg. Burn / Student"
+              label={t("dashboard.kpi.avgBurnStudent")}
               value={`${creditMetrics.avgBurnPerStudent} cr`}
-              badge={`${creditMetrics.activationRate}% Onboarded`}
+              badge={t("dashboard.kpi.onboarded", { percent: creditMetrics.activationRate })}
               badgeColor="bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20"
-              helper={`${data.totals.students} active student workspaces`}
+              helper={t("dashboard.kpi.activeWorkspaces", { count: data.totals.students })}
               icon="group"
               accentColor="tertiary"
             />
@@ -376,14 +402,14 @@ export default function BackofficeDashboard() {
                   <div>
                     <div className="flex items-center gap-2">
                       <h2 className="text-sm font-extrabold text-on-surface">
-                        Credit Economy Velocity & Telemetry
+                        {t("dashboard.credit.title")}
                       </h2>
                       <span className="rounded-md bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-300">
-                        Primary Income Engine
+                        {t("dashboard.credit.engine")}
                       </span>
                     </div>
                     <p className="mt-0.5 text-xs text-on-surface-variant">
-                      Compare AI credits spent (burn) vs purchased credits fulfilled (replenishment).
+                      {t("dashboard.credit.description")}
                     </p>
                   </div>
 
@@ -403,7 +429,7 @@ export default function BackofficeDashboard() {
                           : "text-on-surface-variant hover:text-on-surface"
                       }`}
                     >
-                      12 months
+                      {t("dashboard.credit.12months")}
                     </button>
                     <button
                       type="button"
@@ -414,7 +440,7 @@ export default function BackofficeDashboard() {
                           : "text-on-surface-variant hover:text-on-surface"
                       }`}
                     >
-                      30 days
+                      {t("dashboard.credit.30days")}
                     </button>
                     <button
                       type="button"
@@ -425,7 +451,7 @@ export default function BackofficeDashboard() {
                           : "text-on-surface-variant hover:text-on-surface"
                       }`}
                     >
-                      7 days
+                      {t("dashboard.credit.7days")}
                     </button>
                     <button
                       type="button"
@@ -436,7 +462,7 @@ export default function BackofficeDashboard() {
                           : "text-on-surface-variant hover:text-on-surface"
                       }`}
                     >
-                      24 hours
+                      {t("dashboard.credit.24hours")}
                     </button>
                   </div>
 
@@ -453,7 +479,7 @@ export default function BackofficeDashboard() {
                       {creditRange === "12m" ? (
                         <div className="flex items-center gap-1.5 rounded-lg bg-surface-container-high px-2.5 py-1 text-[11px] font-extrabold text-on-surface">
                           <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-                          <span>Per Month</span>
+                          <span>{t("dashboard.credit.perMonth")}</span>
                         </div>
                       ) : (
                         <>
@@ -466,7 +492,7 @@ export default function BackofficeDashboard() {
                                 : "text-on-surface-variant hover:text-on-surface"
                             }`}
                           >
-                            Per Day
+                            {t("dashboard.credit.perDay")}
                           </button>
                           <button
                             type="button"
@@ -477,7 +503,7 @@ export default function BackofficeDashboard() {
                                 : "text-on-surface-variant hover:text-on-surface"
                             }`}
                           >
-                            Per Week
+                            {t("dashboard.credit.perWeek")}
                           </button>
                         </>
                       )}
@@ -500,15 +526,15 @@ export default function BackofficeDashboard() {
                 <div className="flex items-center gap-4">
                   <span className="inline-flex items-center gap-1.5 font-bold text-on-surface">
                     <span className="h-2.5 w-2.5 rounded bg-primary" />
-                    AI Credits Spent ({processedCreditActivity.reduce((acc, d) => acc + d.spent, 0).toLocaleString()})
+                    {t("dashboard.credit.spent", { count: processedCreditActivity.reduce((acc, d) => acc + d.spent, 0).toLocaleString(i18n.language) })}
                   </span>
                   <span className="inline-flex items-center gap-1.5 font-bold text-amber-700 dark:text-amber-300">
                     <span className="h-2.5 w-2.5 rounded bg-amber-400" />
-                    Purchased Fulfilled ({processedCreditActivity.reduce((acc, d) => acc + d.fulfilled, 0).toLocaleString()})
+                    {t("dashboard.credit.fulfilled", { count: processedCreditActivity.reduce((acc, d) => acc + d.fulfilled, 0).toLocaleString(i18n.language) })}
                   </span>
                 </div>
                 <span className="text-[11px] text-on-surface-variant/75">
-                  Hover over bars for detailed volume
+                  {t("dashboard.credit.hover")}
                 </span>
               </div>
             </div>
@@ -519,14 +545,14 @@ export default function BackofficeDashboard() {
                 <div className="border-b border-outline-variant/60 pb-3">
                   <div className="flex items-center justify-between">
                     <h2 className="text-sm font-extrabold text-on-surface">
-                      AI Actions Demand
+                      {t("dashboard.credit.actionDemand")}
                     </h2>
                     <span className="rounded-md bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
-                      Top Requested
+                      {t("dashboard.credit.topRequested")}
                     </span>
                   </div>
                   <p className="mt-0.5 text-xs text-on-surface-variant">
-                    Action consumption informing credit policy pricing.
+                    {t("dashboard.credit.actionDescription")}
                   </p>
                 </div>
 
@@ -537,6 +563,9 @@ export default function BackofficeDashboard() {
                         ? Math.round((item.value / totalActionDemand) * 100)
                         : 0;
                       const cleanLabel = item.label.replaceAll("_", " ");
+                      const actionLabel = i18n.exists(`actions.${item.label}`, { ns: "creditHistory" })
+                        ? tCreditHistory(`actions.${item.label}`)
+                        : cleanLabel;
 
                       return (
                         <div key={item.label} className="group">
@@ -546,7 +575,7 @@ export default function BackofficeDashboard() {
                                 #{idx + 1}
                               </span>
                               <span className="truncate font-semibold capitalize text-on-surface group-hover:text-primary transition-colors">
-                                {cleanLabel}
+                                {actionLabel}
                               </span>
                             </div>
                             <div className="flex shrink-0 items-center gap-2">
@@ -566,7 +595,7 @@ export default function BackofficeDashboard() {
                       );
                     })
                   ) : (
-                    <p className="py-8 text-center text-xs text-on-surface-variant">No AI actions logged yet.</p>
+                    <p className="py-8 text-center text-xs text-on-surface-variant">{t("dashboard.credit.noActions")}</p>
                   )}
                 </div>
               </div>
@@ -576,7 +605,7 @@ export default function BackofficeDashboard() {
                   to="/admin/credits"
                   className="flex items-center justify-between text-xs font-bold text-primary hover:underline"
                 >
-                  <span>Configure credit prices for actions</span>
+                  <span>{t("dashboard.credit.configurePrices")}</span>
                   <HugeiconsIcon icon="arrow-right-01" size={14} strokeWidth={2} />
                 </Link>
               </div>
@@ -593,14 +622,14 @@ export default function BackofficeDashboard() {
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">
-                      Platform Momentum
+                      {t("dashboard.momentum.title")}
                     </span>
                     <span className="rounded-md bg-primary/10 px-2 py-0.5 text-[10px] font-extrabold text-primary">
-                      Adoption Curve
+                      {t("dashboard.momentum.adoption")}
                     </span>
                   </div>
                   <p className="mt-0.5 text-xs text-on-surface-variant">
-                    Cumulative student acquisition and workspace creation trajectory.
+                    {t("dashboard.momentum.description")}
                   </p>
                 </div>
 
@@ -617,7 +646,7 @@ export default function BackofficeDashboard() {
                           : "text-on-surface-variant hover:text-on-surface"
                       }`}
                     >
-                      12 Months
+                      {t("dashboard.momentum.12months")}
                     </button>
                     <button
                       type="button"
@@ -628,7 +657,7 @@ export default function BackofficeDashboard() {
                           : "text-on-surface-variant hover:text-on-surface"
                       }`}
                     >
-                      6 Months
+                      {t("dashboard.momentum.6months")}
                     </button>
                     <button
                       type="button"
@@ -639,7 +668,7 @@ export default function BackofficeDashboard() {
                           : "text-on-surface-variant hover:text-on-surface"
                       }`}
                     >
-                      3 Months
+                      {t("dashboard.momentum.3months")}
                     </button>
                   </div>
 
@@ -654,7 +683,7 @@ export default function BackofficeDashboard() {
                           : "text-on-surface-variant hover:text-on-surface"
                       }`}
                     >
-                      All
+                      {t("dashboard.momentum.all")}
                     </button>
                     <button
                       type="button"
@@ -666,7 +695,7 @@ export default function BackofficeDashboard() {
                       }`}
                     >
                       <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-                      Students
+                      {t("dashboard.momentum.students")}
                     </button>
                     <button
                       type="button"
@@ -678,7 +707,7 @@ export default function BackofficeDashboard() {
                       }`}
                     >
                       <span className="h-1.5 w-1.5 rounded-full bg-tertiary" />
-                      Projects
+                      {t("dashboard.momentum.projects")}
                     </button>
                   </div>
                 </div>
@@ -701,26 +730,26 @@ export default function BackofficeDashboard() {
               <div>
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">
-                    Student Activation
+                    {t("dashboard.onboarding.activation")}
                   </span>
                   <span className="inline-flex items-center gap-1 rounded-full bg-secondary/10 px-2 py-0.5 text-[10px] font-extrabold text-secondary">
                     <HugeiconsIcon icon="checkmark-circle-02" size={12} strokeWidth={2} />
-                    {creditMetrics.activationRate}% Completed
+                    {t("dashboard.onboarding.completedPercent", { percent: creditMetrics.activationRate })}
                   </span>
                 </div>
                 <h3 className="mt-2 text-base font-extrabold text-on-surface">
-                  Onboarding Funnel Health
+                  {t("dashboard.onboarding.health")}
                 </h3>
                 <p className="mt-1 text-xs text-on-surface-variant leading-relaxed">
-                  Measures students who formulated their problem statement and technical stack.
+                  {t("dashboard.onboarding.description")}
                 </p>
 
                 {/* Visual Progress Bar */}
                 <div className="mt-5 space-y-2">
                   <div className="flex justify-between text-xs">
-                    <span className="font-semibold text-on-surface">Setup Completed</span>
+                    <span className="font-semibold text-on-surface">{t("dashboard.onboarding.setupCompleted")}</span>
                     <span className="font-mono font-bold text-secondary">
-                      {data.totals.completedOnboarding} students
+                      {t("dashboard.onboarding.students", { count: data.totals.completedOnboarding })}
                     </span>
                   </div>
                   <div className="h-3 overflow-hidden rounded-full bg-surface-container-high">
@@ -736,23 +765,23 @@ export default function BackofficeDashboard() {
                   <div className="rounded-xl border border-outline-variant/70 bg-surface-container-low/50 p-3">
                     <div className="flex items-center gap-1.5 text-[11px] font-medium text-secondary">
                       <span className="h-2 w-2 rounded-full bg-secondary" />
-                      Active Ready
+                      {t("dashboard.onboarding.activeReady")}
                     </div>
                     <p className="mt-1 font-mono text-xl font-extrabold text-on-surface">
                       {data.totals.completedOnboarding}
                     </p>
-                    <p className="text-[10px] text-on-surface-variant">Can generate report outlines</p>
+                    <p className="text-[10px] text-on-surface-variant">{t("dashboard.onboarding.canGenerate")}</p>
                   </div>
 
                   <div className="rounded-xl border border-outline-variant/70 bg-surface-container-low/50 p-3">
                     <div className="flex items-center gap-1.5 text-[11px] font-medium text-amber-600 dark:text-amber-400">
                       <span className="h-2 w-2 rounded-full bg-amber-500" />
-                      In Onboarding
+                      {t("dashboard.onboarding.inOnboarding")}
                     </div>
                     <p className="mt-1 font-mono text-xl font-extrabold text-on-surface">
                       {Math.max(data.totals.students - data.totals.completedOnboarding, 0)}
                     </p>
-                    <p className="text-[10px] text-on-surface-variant">Pending workspace basics</p>
+                    <p className="text-[10px] text-on-surface-variant">{t("dashboard.onboarding.pendingBasics")}</p>
                   </div>
                 </div>
 
@@ -763,7 +792,7 @@ export default function BackofficeDashboard() {
                       <HugeiconsIcon icon="information-circle" size={15} strokeWidth={2} />
                     </span>
                     <p className="text-[11px] leading-relaxed">
-                      Students who finish onboarding spend on average <strong className="text-on-surface">42 credits</strong> within their first 7 days.
+                      {t("dashboard.onboarding.insight")}
                     </p>
                   </div>
                 </div>
@@ -774,7 +803,7 @@ export default function BackofficeDashboard() {
                   to="/admin/users"
                   className="flex items-center justify-between text-xs font-bold text-primary hover:underline"
                 >
-                  <span>Filter students by onboarding status</span>
+                  <span>{t("dashboard.onboarding.filter")}</span>
                   <HugeiconsIcon icon="arrow-right-01" size={14} strokeWidth={2} />
                 </Link>
               </div>
@@ -788,9 +817,9 @@ export default function BackofficeDashboard() {
             {/* Projects by Academic Domain */}
             <div className="rounded-2xl border border-outline-variant/80 bg-surface-container-lowest p-5 shadow-2xs">
               <div className="border-b border-outline-variant/60 pb-3">
-                <h2 className="text-sm font-extrabold text-on-surface">Thesis Domain Concentration</h2>
+                <h2 className="text-sm font-extrabold text-on-surface">{t("dashboard.domains.title")}</h2>
                 <p className="mt-0.5 text-xs text-on-surface-variant">
-                  Where student research and engineering projects are clustered.
+                  {t("dashboard.domains.description")}
                 </p>
               </div>
 
@@ -802,7 +831,7 @@ export default function BackofficeDashboard() {
                       <div key={item.label} className="group">
                         <div className="flex items-center justify-between text-xs">
                           <span className="truncate font-semibold text-on-surface group-hover:text-primary transition-colors">
-                            {item.label}
+                            {displayOptionLabel(item.label, "domain", tOnboarding)}
                           </span>
                           <span className="font-mono text-xs font-bold text-on-surface">
                             {item.value} <span className="font-normal text-on-surface-variant">({percentage}%)</span>
@@ -818,7 +847,7 @@ export default function BackofficeDashboard() {
                     );
                   })
                 ) : (
-                  <p className="py-8 text-center text-xs text-on-surface-variant">No domain data available yet.</p>
+                  <p className="py-8 text-center text-xs text-on-surface-variant">{t("dashboard.domains.empty")}</p>
                 )}
               </div>
             </div>
@@ -827,9 +856,9 @@ export default function BackofficeDashboard() {
             <div className="rounded-2xl border border-outline-variant/80 bg-surface-container-lowest p-5 shadow-2xs">
               <div className="flex items-center justify-between border-b border-outline-variant/60 pb-3">
                 <div>
-                  <h2 className="text-sm font-extrabold text-on-surface">Recent Credit Fulfillments</h2>
+                  <h2 className="text-sm font-extrabold text-on-surface">{t("dashboard.fulfillments.title")}</h2>
                   <p className="mt-0.5 text-xs text-on-surface-variant">
-                    Manual administrator confirmations and purchased top-ups.
+                    {t("dashboard.fulfillments.description")}
                   </p>
                 </div>
                 <img src={creditCoin} alt="" className="h-6 w-6" />
@@ -841,10 +870,10 @@ export default function BackofficeDashboard() {
                     <div key={item._id} className="flex items-center justify-between gap-3 py-2.5">
                       <div className="min-w-0">
                         <p className="truncate text-xs font-bold text-on-surface">
-                          {item.user?.fullName || "Student"}
+                          {item.user?.fullName || t("dashboard.recent.student")}
                         </p>
                         <p className="truncate text-[11px] text-on-surface-variant">
-                          {item.reason || "Credit top-up"} · {formatRelativeTime(item.createdAt)}
+                          {item.reason || t("dashboard.fulfillments.creditTopUp")} · {formatRelativeTime(item.createdAt, i18n.language, t)}
                         </p>
                       </div>
                       <span className="inline-flex shrink-0 items-center gap-1 rounded-md bg-secondary/10 px-2 py-0.5 font-mono text-xs font-extrabold text-secondary">
@@ -854,7 +883,7 @@ export default function BackofficeDashboard() {
                     </div>
                   ))
                 ) : (
-                  <p className="py-8 text-center text-xs text-on-surface-variant">No credit fulfillments yet.</p>
+                  <p className="py-8 text-center text-xs text-on-surface-variant">{t("dashboard.fulfillments.empty")}</p>
                 )}
               </div>
             </div>
@@ -868,18 +897,18 @@ export default function BackofficeDashboard() {
             <div className="rounded-2xl border border-outline-variant/80 bg-surface-container-lowest p-5 shadow-2xs">
               <div className="flex items-center justify-between border-b border-outline-variant/60 pb-3">
                 <div>
-                  <h2 className="text-sm font-extrabold text-on-surface">Newest Registered Students</h2>
-                  <p className="mt-0.5 text-xs text-on-surface-variant">Recent account registrations</p>
+                  <h2 className="text-sm font-extrabold text-on-surface">{t("dashboard.recent.usersTitle")}</h2>
+                  <p className="mt-0.5 text-xs text-on-surface-variant">{t("dashboard.recent.usersDescription")}</p>
                 </div>
                 <Link to="/admin/users" className="text-xs font-bold text-primary hover:underline">
-                  View all →
+                  {t("common.viewAll")}
                 </Link>
               </div>
 
               <div className="mt-3 divide-y divide-outline-variant/50">
                 {data.recentUsers.length ? (
                   data.recentUsers.map((user) => {
-                    const initials = (user.fullName || "User")
+                    const initials = (user.fullName || t("dashboard.recent.user"))
                       .split(" ")
                       .map((p) => p[0])
                       .join("")
@@ -898,13 +927,13 @@ export default function BackofficeDashboard() {
                           </div>
                         </div>
                         <span className="shrink-0 text-[11px] text-on-surface-variant">
-                          {formatRelativeTime(user.createdAt)}
+                          {formatRelativeTime(user.createdAt, i18n.language, t)}
                         </span>
                       </div>
                     );
                   })
                 ) : (
-                  <p className="py-8 text-center text-xs text-on-surface-variant">No registered users yet.</p>
+                  <p className="py-8 text-center text-xs text-on-surface-variant">{t("dashboard.recent.usersEmpty")}</p>
                 )}
               </div>
             </div>
@@ -913,11 +942,11 @@ export default function BackofficeDashboard() {
             <div className="rounded-2xl border border-outline-variant/80 bg-surface-container-lowest p-5 shadow-2xs">
               <div className="flex items-center justify-between border-b border-outline-variant/60 pb-3">
                 <div>
-                  <h2 className="text-sm font-extrabold text-on-surface">Newest Student Workspaces</h2>
-                  <p className="mt-0.5 text-xs text-on-surface-variant">Recent PFE projects created</p>
+                  <h2 className="text-sm font-extrabold text-on-surface">{t("dashboard.recent.projectsTitle")}</h2>
+                  <p className="mt-0.5 text-xs text-on-surface-variant">{t("dashboard.recent.projectsDescription")}</p>
                 </div>
                 <Link to="/admin/projects" className="text-xs font-bold text-primary hover:underline">
-                  View all →
+                  {t("common.viewAll")}
                 </Link>
               </div>
 
@@ -927,20 +956,20 @@ export default function BackofficeDashboard() {
                     <div key={project._id} className="flex items-center justify-between gap-3 py-2.5">
                       <div className="min-w-0">
                         <p className="truncate text-xs font-bold text-on-surface">
-                          {project.basics?.title || "Untitled Project"}
+                          {project.basics?.title || t("dashboard.recent.untitled")}
                         </p>
                         <p className="truncate text-[11px] text-on-surface-variant">
-                          {project.user?.fullName || "Student"} ·{" "}
-                          <span className="font-medium text-tertiary">{project.basics?.domain || "No domain"}</span>
+                          {project.user?.fullName || t("dashboard.recent.student")} ·{" "}
+                          <span className="font-medium text-tertiary">{project.basics?.domain || t("dashboard.recent.noDomain")}</span>
                         </p>
                       </div>
                       <span className="shrink-0 text-[11px] text-on-surface-variant">
-                        {formatRelativeTime(project.createdAt)}
+                        {formatRelativeTime(project.createdAt, i18n.language, t)}
                       </span>
                     </div>
                   ))
                 ) : (
-                  <p className="py-8 text-center text-xs text-on-surface-variant">No workspaces created yet.</p>
+                  <p className="py-8 text-center text-xs text-on-surface-variant">{t("dashboard.recent.projectsEmpty")}</p>
                 )}
               </div>
             </div>
@@ -1022,6 +1051,11 @@ function SmoothSplineChart({
   hoverIndex: number | null;
   onHoverIndex: (idx: number | null) => void;
 }) {
+  const { t, i18n } = useTranslation("adminManagement");
+  const monthLabel = (label: string) => {
+    const month = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"].indexOf(label);
+    return month < 0 ? label : new Intl.DateTimeFormat(i18n.language, { month: "short", timeZone: "UTC" }).format(new Date(Date.UTC(2000, month, 1)));
+  };
   const width = 640;
   const height = 220;
   const paddingX = 45;
@@ -1078,7 +1112,7 @@ function SmoothSplineChart({
         viewBox={`0 0 ${width} ${height}`}
         className="h-56 w-full overflow-visible"
         role="img"
-        aria-label="Student and project growth curve"
+        aria-label={t("dashboard.momentum.chartLabel")}
         onMouseLeave={() => onHoverIndex(null)}
       >
         <defs>
@@ -1199,18 +1233,18 @@ function SmoothSplineChart({
             transform: "translate(-50%, -100%)",
           }}
         >
-          <span className="font-bold text-on-surface">{studentCoords[hoverIndex].label}</span>
+          <span className="font-bold text-on-surface">{monthLabel(studentCoords[hoverIndex].label)}</span>
           <div className="flex items-center gap-3">
             {showStudents && (
               <span className="flex items-center gap-1 font-semibold text-primary">
                 <span className="h-2 w-2 rounded-full bg-primary" />
-                {studentCoords[hoverIndex].value} Students
+                {t("dashboard.studentsCount", { count: studentCoords[hoverIndex].value })}
               </span>
             )}
             {showProjects && projectCoords[hoverIndex] && (
               <span className="flex items-center gap-1 font-semibold text-tertiary">
                 <span className="h-2 w-2 rounded-full bg-tertiary" />
-                {projectCoords[hoverIndex].value} Projects
+                {t("dashboard.projectsCount", { count: projectCoords[hoverIndex].value })}
               </span>
             )}
           </div>
@@ -1220,7 +1254,7 @@ function SmoothSplineChart({
       {/* Month Labels on X-Axis */}
       <div className="mt-2 flex justify-between px-6 text-[11px] font-semibold text-on-surface-variant">
         {students.map((item) => (
-          <span key={item.label}>{item.label}</span>
+          <span key={item.label}>{monthLabel(item.label)}</span>
         ))}
       </div>
     </div>
@@ -1239,6 +1273,7 @@ function DailyCreditBarChart({
   hoverIndex: number | null;
   onHoverIndex: (idx: number | null) => void;
 }) {
+  const { t, i18n } = useTranslation("adminManagement");
   const maxVal = Math.max(...days.map((d) => Math.max(d.spent, d.fulfilled)), 1);
 
   return (
@@ -1251,6 +1286,7 @@ function DailyCreditBarChart({
           const spentPct = Math.max((day.spent / maxVal) * 100, day.spent ? 8 : 2);
           const fulfilledPct = Math.max((day.fulfilled / maxVal) * 100, day.fulfilled ? 8 : 2);
           const isHovered = hoverIndex === idx;
+          const displayedLabel = formatCreditDateKey(day.key, i18n.language, day.label);
 
           return (
             <div
@@ -1275,9 +1311,9 @@ function DailyCreditBarChart({
               {/* Day Hover Tooltip */}
               {isHovered && (
                 <div className="pointer-events-none absolute -top-16 left-1/2 z-20 -translate-x-1/2 whitespace-nowrap rounded-xl border border-outline-variant bg-surface/95 px-3 py-2 text-[11px] shadow-xl backdrop-blur-md">
-                  <p className="font-extrabold text-on-surface">{day.label}</p>
-                  <p className="text-primary font-bold">{day.spent.toLocaleString()} spent</p>
-                  <p className="text-amber-600 dark:text-amber-400 font-bold">{day.fulfilled.toLocaleString()} fulfilled</p>
+                  <p className="font-extrabold text-on-surface">{displayedLabel}</p>
+                  <p className="text-primary font-bold">{t("dashboard.spentTooltip", { count: day.spent.toLocaleString(i18n.language) })}</p>
+                  <p className="text-amber-600 dark:text-amber-400 font-bold">{t("dashboard.fulfilledTooltip", { count: day.fulfilled.toLocaleString(i18n.language) })}</p>
                 </div>
               )}
             </div>
@@ -1296,7 +1332,7 @@ function DailyCreditBarChart({
               }`}
               style={{ flex: 1 }}
             >
-              {day.label}
+              {formatCreditDateKey(day.key, i18n.language, day.label)}
             </span>
           ))
         ) : (

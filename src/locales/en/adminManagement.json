@@ -1,0 +1,51 @@
+{
+  "common": {
+    "administration": "Administration",
+    "refresh": "Refresh",
+    "all": "All",
+    "students": "Students",
+    "admin": "Admin",
+    "projects": "Projects",
+    "previous": "Previous",
+    "next": "Next",
+    "showing": "Showing {{shown}} of {{total}} {{item}}",
+    "loading": "Loading…",
+    "noResults": "No results found.",
+    "viewAll": "View all →",
+    "credits": "Credits",
+    "promotional": "Promotional",
+    "purchased": "Purchased"
+  },
+  "users": {
+    "management": "User Management", "title": "Students & accounts",
+    "description": "Search, review student onboarding progress, and fulfil purchased AI credits with a complete audit trail.",
+    "onboarded": "Onboarded", "held": "Held", "refreshTitle": "Refresh accounts data",
+    "searchPlaceholder": "Search by name, email, or role... (Press '/' to focus)", "clearSearch": "Clear search",
+    "allOnboarding": "All Onboarding", "completedOnboarding": "Completed Onboarding", "pendingOnboarding": "Pending Onboarding",
+    "sort": { "newest": "Newest first", "oldest": "Oldest first", "nameAsc": "Name (A–Z)", "nameDesc": "Name (Z–A)", "creditsHigh": "Credits (High to Low)", "creditsLow": "Credits (Low to High)" },
+    "export": "Export Excel", "exportTitle": "Export filtered accounts to Excel (.csv with UTF-8 BOM)", "reset": "Reset", "filtered": "(filtered)",
+    "accounts": "accounts", "tipSort": "Tip: Click any column header to sort", "loadingDirectory": "Loading user directory…",
+    "table": { "account": "Account", "role": "Role", "onboarding": "Onboarding", "joined": "Joined", "actions": "Actions", "completed": "Completed", "pending": "Pending", "noWallet": "No wallet", "manageWallet": "Manage wallet", "protected": "Protected", "admins": "Admins", "promoShort": "promo", "purchasedShort": "purch" },
+    "empty": { "title": "No accounts match these filters", "description": "We couldn't find any account matching your current query or role selection.", "clear": "Clear all filters", "zeroAccounts": "0 accounts" },
+    "pagination": { "page": "Page", "of": "of", "showingPage": "Showing {{from}}–{{to}} of {{total}} accounts", "pageOf": "Page {{page}} of {{total}}" },
+    "errors": { "load": "Failed to load users.", "wallet": "Could not load the wallet.", "adjust": "Credit adjustment failed.", "validation": "Enter a non-zero whole amount and a reason." },
+    "wallet": {
+      "close": "Close", "totalBalance": "Total Student Balance", "fulfilAdjust": "Fulfil or Adjust Credits", "purchasedDefault": "Purchased by default", "quickPresets": "Quick Presets", "amount": "Amount", "bucket": "Bucket", "reasonPlaceholder": "Reason for adjustment (e.g. Bank wire confirmation) *", "referencePlaceholder": "Order or payment reference ID (optional)", "applying": "Applying Adjustment…", "confirm": "Confirm Credit Adjustment", "emailNote": "Positive purchased credit additions automatically send an email confirmation to the student.", "recentActivity": "Recent Ledger Activity ({{count}})", "emptyHistory": "No wallet activity recorded yet.", "credits": "Credits",
+      "notice": { "addedPurchased": "{{amount}} purchased credits added.", "addedPromotional": "{{amount}} promotional credits added.", "removedPurchased": "{{amount}} purchased credits removed.", "removedPromotional": "{{amount}} promotional credits removed.", "emailSent": "Confirmation email sent.", "emailNotConfigured": "Credits were added; SMTP must be configured to send the email." }
+    }
+  },
+  "projectsPage": {
+    "title": "Student projects", "description": "View all PFE workspaces created by students.", "search": "Search projects, students, or domains", "projects": "projects", "loading": "Loading projects...", "table": { "project": "Project", "student": "Student", "methodology": "Methodology", "technologies": "Technologies", "created": "Created" }, "empty": "No projects found.", "fallback": { "untitled": "Untitled Project", "noDomain": "No domain", "noAcademicYear": "No academic year", "unknown": "Unknown", "noEmail": "No email", "notProvided": "Not provided" }, "error": "Failed to load projects."
+  },
+  "dashboard": {
+    "productionTelemetry": "Production Telemetry", "pulse": "SmartPFE Financial & Adoption Pulse", "title": "Executive Overview", "description": "Credit monetization velocity, generative AI burn telemetry, and student adoption trajectory.", "refreshTitle": "Refresh administrative metrics", "economyPolicies": "Economy Policies", "manageUsers": "Manage Users", "error": "Could not load administrative telemetry.", "loading": "Aggregating production telemetry…", "loadingDescription": "Connecting student wallets, AI burn ledger, and workspaces",
+    "kpi": { "purchasedFulfilled": "Purchased Credits Fulfilled", "directRevenue": "Direct Revenue", "confirmedPurchases": "Confirmed student credit purchases", "totalBurned": "Total AI Credits Burned", "actionDemand": "Action Demand", "completedGenerations": "Completed thesis AI generations", "walletBalance": "Circulating Wallet Balance", "purchasedBuffer": "{{percent}}% Purchased Buffer", "heldByStudents": "Promotional + purchased held by students", "avgBurnStudent": "Avg. Burn / Student", "onboarded": "{{percent}}% Onboarded", "activeWorkspaces": "{{count}} active student workspaces" },
+    "credit": { "title": "Credit Economy Velocity & Telemetry", "engine": "Primary Income Engine", "description": "Compare AI credits spent (burn) vs purchased credits fulfilled (replenishment).", "12months": "12 months", "30days": "30 days", "7days": "7 days", "24hours": "24 hours", "perMonth": "Per Month", "perDay": "Per Day", "perWeek": "Per Week", "spent": "AI Credits Spent ({{count}})", "fulfilled": "Purchased Fulfilled ({{count}})", "hover": "Hover over bars for detailed volume", "actionDemand": "AI Actions Demand", "topRequested": "Top Requested", "actionDescription": "Action consumption informing credit policy pricing.", "noActions": "No AI actions logged yet.", "configurePrices": "Configure credit prices for actions", "selectedPeriod": "Selected Period", "weekLabel": "W{{week}} ({{date}})", "spentTooltip": "{{count}} spent", "fulfilledTooltip": "{{count}} fulfilled" },
+    "momentum": { "title": "Platform Momentum", "adoption": "Adoption Curve", "description": "Cumulative student acquisition and workspace creation trajectory.", "12months": "12 Months", "6months": "6 Months", "3months": "3 Months", "all": "All", "students": "Students", "projects": "Projects", "chartLabel": "Student and project growth curve" },
+    "onboarding": { "activation": "Student Activation", "completedPercent": "{{percent}}% Completed", "health": "Onboarding Funnel Health", "description": "Measures students who formulated their problem statement and technical stack.", "setupCompleted": "Setup Completed", "students": "{{count}} students", "activeReady": "Active Ready", "canGenerate": "Can generate report outlines", "inOnboarding": "In Onboarding", "pendingBasics": "Pending workspace basics", "insight": "Students who finish onboarding spend on average 42 credits within their first 7 days.", "filter": "Filter students by onboarding status" },
+    "domains": { "title": "Thesis Domain Concentration", "description": "Where student research and engineering projects are clustered.", "empty": "No domain data available yet." },
+    "fulfillments": { "title": "Recent Credit Fulfillments", "description": "Manual administrator confirmations and purchased top-ups.", "creditTopUp": "Credit top-up", "empty": "No credit fulfillments yet." },
+    "recent": { "usersTitle": "Newest Registered Students", "usersDescription": "Recent account registrations", "usersEmpty": "No registered users yet.", "projectsTitle": "Newest Student Workspaces", "projectsDescription": "Recent PFE projects created", "projectsEmpty": "No workspaces created yet.", "untitled": "Untitled Project", "noDomain": "No domain", "student": "Student", "user": "User" },
+    "relative": { "now": "Just now", "minutes": "{{count}}m ago", "hours": "{{count}}h ago", "days": "{{count}}d ago" }, "studentsCount": "{{count}} students", "projectsCount": "{{count}} projects", "spentTooltip": "{{count}} spent", "fulfilledTooltip": "{{count}} fulfilled"
+  }
+}

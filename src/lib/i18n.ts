@@ -29,10 +29,17 @@ import frDelivery from '@/locales/fr/delivery.json';
 import enJury from '@/locales/en/jury.json';
 import frJury from '@/locales/fr/jury.json';
 
+import enCreditHistory from '@/locales/en/creditHistory.json';
+import frCreditHistory from '@/locales/fr/creditHistory.json';
+import enAdminCredits from '@/locales/en/adminCredits.json';
+import frAdminCredits from '@/locales/fr/adminCredits.json';
+import enAdminManagement from '@/locales/en/adminManagement.json';
+import frAdminManagement from '@/locales/fr/adminManagement.json';
+
 void i18n.use(initReactI18next).init({
   resources: {
-    en: { common: enCommon, settings: enSettings, controls: enControls, shell: enShell, auth: enAuth, onboarding: enOnboarding, landing: enLanding, design: enDesign, planning: enPlanning, analysis: enAnalysis, outline: enOutline, report: enReport, delivery: enDelivery, jury: enJury },
-    fr: { common: frCommon, settings: frSettings, controls: frControls, shell: frShell, auth: frAuth, onboarding: frOnboarding, landing: frLanding, design: frDesign, planning: frPlanning, analysis: frAnalysis, outline: frOutline, report: frReport, delivery: frDelivery, jury: frJury },
+    en: { common: enCommon, settings: enSettings, controls: enControls, shell: enShell, auth: enAuth, onboarding: enOnboarding, landing: enLanding, design: enDesign, planning: enPlanning, analysis: enAnalysis, outline: enOutline, report: enReport, delivery: enDelivery, jury: enJury, creditHistory: enCreditHistory, adminCredits: enAdminCredits, adminManagement: enAdminManagement },
+    fr: { common: frCommon, settings: frSettings, controls: frControls, shell: frShell, auth: frAuth, onboarding: frOnboarding, landing: frLanding, design: frDesign, planning: frPlanning, analysis: frAnalysis, outline: frOutline, report: frReport, delivery: frDelivery, jury: frJury, creditHistory: frCreditHistory, adminCredits: frAdminCredits, adminManagement: frAdminManagement },
   },
   lng: 'en',
   fallbackLng: 'en',

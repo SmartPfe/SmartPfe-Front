@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState, useRef } from "react";
 import { createIdempotencyKey, fetchApi } from "@/lib/api";
 import HugeiconsIcon from "@/components/ui/HugeiconsIcon";
 import creditCoin from "@/assets/credit-coin.png";
+import { useTranslation } from "react-i18next";
 
 type AdminUser = {
   _id: string;
@@ -19,11 +20,11 @@ type AdminUser = {
 type SortKey = "name" | "joined" | "credits";
 type OnboardingFilter = "all" | "completed" | "pending";
 
-const formatDate = (value: string) =>
-  new Intl.DateTimeFormat("en", { month: "short", day: "numeric", year: "numeric" }).format(new Date(value));
+const formatDate = (value: string, locale: string) =>
+  new Intl.DateTimeFormat(locale, { month: "short", day: "numeric", year: "numeric" }).format(new Date(value));
 
-const formatDateTime = (value: string) =>
-  new Intl.DateTimeFormat("en", {
+const formatDateTime = (value: string, locale: string) =>
+  new Intl.DateTimeFormat(locale, {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -32,6 +33,7 @@ const formatDateTime = (value: string) =>
   }).format(new Date(value));
 
 export default function AdminUsers() {
+  const { t, i18n } = useTranslation("adminManagement");
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [onboardingFilter, setOnboardingFilter] = useState<OnboardingFilter>("all");
@@ -50,7 +52,8 @@ export default function AdminUsers() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
+  const [notice, setNotice] = useState<{ amount: number; bucket: "promotional" | "purchased"; added: boolean; deliveryKey?: string } | null>(null);
+  const [errorKey, setErrorKey] = useState<string | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const pageSize = 10;
 
@@ -58,11 +61,13 @@ export default function AdminUsers() {
     if (showRefreshSpin) setIsRefreshing(true);
     else setIsLoading(true);
     setError("");
+    setErrorKey(null);
     try {
       const data = await fetchApi("/admin/users");
       setUsers(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load users.");
+      if (err instanceof Error) setError(err.message);
+      else { setError(""); setErrorKey("users.errors.load"); }
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -99,25 +104,29 @@ export default function AdminUsers() {
     setReason("");
     setReference("");
     setError("");
-    setNotice("");
+    setErrorKey(null);
+    setNotice(null);
     try {
       const data = await fetchApi(`/admin/users/${user._id}/credits?limit=20`);
       setWallet(data.wallet);
       setHistory(data.items || []);
       setUsers((items) => items.map((item) => (item._id === user._id ? { ...item, credits: data.wallet } : item)));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not load the wallet.");
+      if (err instanceof Error) setError(err.message);
+      else { setError(""); setErrorKey("users.errors.wallet"); }
     }
   };
 
   const adjust = async () => {
     if (!selected || !Number.isInteger(Number(amount)) || Number(amount) === 0 || !reason.trim()) {
-      setError("Enter a non-zero whole amount and a reason.");
+      setError("");
+      setErrorKey("users.errors.validation");
       return;
     }
     setSaving(true);
     setError("");
-    setNotice("");
+    setErrorKey(null);
+    setNotice(null);
     try {
       const data = await fetchApi(`/admin/users/${selected._id}/credits/adjust`, {
         method: "POST",
@@ -127,18 +136,18 @@ export default function AdminUsers() {
       setWallet(data.wallet);
       setUsers((items) => items.map((item) => (item._id === selected._id ? { ...item, credits: data.wallet } : item)));
       setHistory((items) => [data.transaction, ...items]);
-      const delivery =
-        bucket === "purchased" && Number(amount) > 0
-          ? data.emailSent
-            ? " Confirmation email sent."
-            : " Credits were added; SMTP must be configured to send the email."
-          : "";
-      setNotice(`${Math.abs(Number(amount))} ${bucket} credits ${Number(amount) > 0 ? "added" : "removed"}.${delivery}`);
+      const deliveryKey = bucket === "purchased" && Number(amount) > 0
+        ? data.emailSent
+          ? "users.wallet.notice.emailSent"
+          : "users.wallet.notice.emailNotConfigured"
+        : undefined;
+      setNotice({ amount: Math.abs(Number(amount)), bucket, added: Number(amount) > 0, deliveryKey });
       setReason("");
       setReference("");
       setAmount(10);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Credit adjustment failed.");
+      if (err instanceof Error) setError(err.message);
+      else { setError(""); setErrorKey("users.errors.adjust"); }
     } finally {
       setSaving(false);
     }
@@ -249,15 +258,15 @@ export default function AdminUsers() {
       <header className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-primary">Administration</span>
+            <span className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-primary">{t("common.administration")}</span>
             <span className="h-1 w-1 rounded-full bg-outline-variant" />
-            <span className="text-[11px] font-semibold text-on-surface-variant">User Management</span>
+            <span className="text-[11px] font-semibold text-on-surface-variant">{t("users.management")}</span>
           </div>
           <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-on-surface sm:text-3xl">
-            Students & accounts
+            {t("users.title")}
           </h1>
           <p className="mt-1 text-sm text-on-surface-variant max-w-2xl">
-            Search, review student onboarding progress, and fulfil purchased AI credits with a complete audit trail.
+            {t("users.description")}
           </p>
         </div>
 
@@ -266,25 +275,25 @@ export default function AdminUsers() {
           <div className="flex items-center gap-2 rounded-xl border border-outline-variant/80 bg-surface-container-lowest px-3 py-1.5 shadow-2xs">
             <span className="flex h-2 w-2 rounded-full bg-primary" />
             <span className="text-xs font-bold text-on-surface">{counts.students}</span>
-            <span className="text-[11px] font-medium text-on-surface-variant">Students</span>
+            <span className="text-[11px] font-medium text-on-surface-variant">{t("common.students")}</span>
           </div>
 
           <div className="flex items-center gap-2 rounded-xl border border-outline-variant/80 bg-surface-container-lowest px-3 py-1.5 shadow-2xs">
             <span className="flex h-2 w-2 rounded-full bg-secondary" />
             <span className="text-xs font-bold text-on-surface">{counts.onboarded}</span>
-            <span className="text-[11px] font-medium text-on-surface-variant">Onboarded</span>
+            <span className="text-[11px] font-medium text-on-surface-variant">{t("users.onboarded")}</span>
           </div>
 
           <div className="flex items-center gap-2 rounded-xl border border-outline-variant/80 bg-surface-container-lowest px-3 py-1.5 shadow-2xs">
             <img src={creditCoin} alt="" className="h-4 w-4" />
-            <span className="font-mono text-xs font-bold text-on-surface">{counts.circulatingCredits.toLocaleString()}</span>
-            <span className="text-[11px] font-medium text-on-surface-variant">Held</span>
+            <span className="font-mono text-xs font-bold text-on-surface">{counts.circulatingCredits.toLocaleString(i18n.language)}</span>
+            <span className="text-[11px] font-medium text-on-surface-variant">{t("users.held")}</span>
           </div>
 
           <div className="flex items-center gap-2 rounded-xl border border-outline-variant/80 bg-surface-container-lowest px-3 py-1.5 shadow-2xs">
             <span className="flex h-2 w-2 rounded-full bg-surface-container-highest" />
             <span className="text-xs font-bold text-on-surface">{counts.admins}</span>
-            <span className="text-[11px] font-medium text-on-surface-variant">Admin</span>
+            <span className="text-[11px] font-medium text-on-surface-variant">{t("common.admin")}</span>
           </div>
 
           <button
@@ -292,12 +301,12 @@ export default function AdminUsers() {
             onClick={() => loadUsers(true)}
             disabled={isRefreshing}
             className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-outline-variant bg-surface px-3 text-xs font-bold text-on-surface shadow-2xs transition-all hover:bg-surface-container-low active:scale-[.98] disabled:opacity-50"
-            title="Refresh accounts data"
+            title={t("users.refreshTitle")}
           >
             <span className={isRefreshing ? "animate-spin" : ""}>
               <HugeiconsIcon icon="refresh" size={14} strokeWidth={1.8} />
             </span>
-            <span>Refresh</span>
+            <span>{t("common.refresh")}</span>
           </button>
         </div>
       </header>
@@ -316,7 +325,7 @@ export default function AdminUsers() {
                 ref={searchInputRef}
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search by name, email, or role... (Press '/' to focus)"
+                placeholder={t("users.searchPlaceholder")}
                 className="h-10 w-full rounded-xl border border-outline-variant/90 bg-surface pl-10 pr-9 text-xs sm:text-sm font-medium text-on-surface placeholder:text-on-surface-variant/55 outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
               />
               {query && (
@@ -324,7 +333,7 @@ export default function AdminUsers() {
                   type="button"
                   onClick={() => setQuery("")}
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 grid h-6 w-6 place-items-center rounded-md text-on-surface-variant/60 hover:bg-surface-container-high hover:text-on-surface transition-colors"
-                  aria-label="Clear search"
+                  aria-label={t("users.clearSearch")}
                 >
                   <HugeiconsIcon icon="close" size={13} strokeWidth={2} />
                 </button>
@@ -344,7 +353,7 @@ export default function AdminUsers() {
                       : "text-on-surface-variant hover:text-on-surface"
                   }`}
                 >
-                  All <span className="opacity-70 text-[10px]">({counts.total})</span>
+                  {t("common.all")} <span className="opacity-70 text-[10px]">({counts.total})</span>
                 </button>
                 <button
                   type="button"
@@ -355,7 +364,7 @@ export default function AdminUsers() {
                       : "text-on-surface-variant hover:text-on-surface"
                   }`}
                 >
-                  Students <span className="opacity-70 text-[10px]">({counts.students})</span>
+                  {t("common.students")} <span className="opacity-70 text-[10px]">({counts.students})</span>
                 </button>
                 <button
                   type="button"
@@ -366,7 +375,7 @@ export default function AdminUsers() {
                       : "text-on-surface-variant hover:text-on-surface"
                   }`}
                 >
-                  Admins <span className="opacity-70 text-[10px]">({counts.admins})</span>
+                  {t("users.table.admins")} <span className="opacity-70 text-[10px]">({counts.admins})</span>
                 </button>
               </div>
 
@@ -377,9 +386,9 @@ export default function AdminUsers() {
                   onChange={(e) => setOnboardingFilter(e.target.value as OnboardingFilter)}
                   className="h-9 appearance-none rounded-xl border border-outline-variant/80 bg-surface pl-3 pr-8 text-xs font-semibold text-on-surface outline-none transition-all hover:bg-surface-container-low focus:border-primary focus:ring-2 focus:ring-primary/20"
                 >
-                  <option value="all">All Onboarding</option>
-                  <option value="completed">Completed Onboarding</option>
-                  <option value="pending">Pending Onboarding</option>
+                  <option value="all">{t("users.allOnboarding")}</option>
+                  <option value="completed">{t("users.completedOnboarding")}</option>
+                  <option value="pending">{t("users.pendingOnboarding")}</option>
                 </select>
                 <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-on-surface-variant/70">
                   <HugeiconsIcon icon="chevron-down" size={13} strokeWidth={2} />
@@ -397,12 +406,12 @@ export default function AdminUsers() {
                   }}
                   className="h-9 appearance-none rounded-xl border border-outline-variant/80 bg-surface pl-3 pr-8 text-xs font-semibold text-on-surface outline-none transition-all hover:bg-surface-container-low focus:border-primary focus:ring-2 focus:ring-primary/20"
                 >
-                  <option value="joined-desc">Newest first</option>
-                  <option value="joined-asc">Oldest first</option>
-                  <option value="name-asc">Name (A–Z)</option>
-                  <option value="name-desc">Name (Z–A)</option>
-                  <option value="credits-desc">Credits (High to Low)</option>
-                  <option value="credits-asc">Credits (Low to High)</option>
+                  <option value="joined-desc">{t("users.sort.newest")}</option>
+                  <option value="joined-asc">{t("users.sort.oldest")}</option>
+                  <option value="name-asc">{t("users.sort.nameAsc")}</option>
+                  <option value="name-desc">{t("users.sort.nameDesc")}</option>
+                  <option value="credits-desc">{t("users.sort.creditsHigh")}</option>
+                  <option value="credits-asc">{t("users.sort.creditsLow")}</option>
                 </select>
                 <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-on-surface-variant/70">
                   <HugeiconsIcon icon="chevron-down" size={13} strokeWidth={2} />
@@ -415,10 +424,10 @@ export default function AdminUsers() {
                 onClick={exportCsv}
                 disabled={!filteredUsers.length}
                 className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-outline-variant/80 bg-surface px-3 text-xs font-semibold text-on-surface shadow-2xs transition-all hover:border-emerald-500/40 hover:bg-emerald-500/5 hover:text-emerald-600 dark:hover:text-emerald-400 active:scale-[.98] disabled:opacity-40"
-                title="Export filtered accounts to Excel (.csv with UTF-8 BOM)"
+                title={t("users.exportTitle")}
               >
                 <HugeiconsIcon icon="file-excel" size={15} className="text-emerald-600 dark:text-emerald-400" strokeWidth={1.8} />
-                <span className="hidden sm:inline">Export Excel</span>
+                <span className="hidden sm:inline">{t("users.export")}</span>
               </button>
 
               {/* Reset Filters Chip (if active) */}
@@ -429,7 +438,7 @@ export default function AdminUsers() {
                   className="inline-flex h-9 items-center gap-1 rounded-xl bg-primary/10 px-2.5 text-xs font-bold text-primary hover:bg-primary/20 transition-colors"
                 >
                   <HugeiconsIcon icon="filter-remove" size={13} strokeWidth={2} />
-                  <span>Reset</span>
+                  <span>{t("users.reset")}</span>
                 </button>
               )}
             </div>
@@ -438,21 +447,20 @@ export default function AdminUsers() {
           {/* Active Filter Context Bar */}
           <div className="mt-3 flex items-center justify-between text-xs text-on-surface-variant">
             <span>
-              Showing <strong className="text-on-surface">{filteredUsers.length}</strong> of{" "}
-              <strong className="text-on-surface">{users.length}</strong> accounts
-              {hasActiveFilters && <span className="ml-1 text-primary">(filtered)</span>}
+              {t("common.showing", { shown: filteredUsers.length, total: users.length, item: t("users.accounts") })}
+              {hasActiveFilters && <span className="ml-1 text-primary">{t("users.filtered")}</span>}
             </span>
             <span className="hidden sm:inline text-[11px] text-on-surface-variant/70">
-              Tip: Click any column header to sort
+              {t("users.tipSort")}
             </span>
           </div>
         </div>
 
         {/* Error Alert */}
-        {error && !selected && (
+        {(error || errorKey) && !selected && (
           <div className="m-4 flex items-center gap-2 rounded-xl border border-error/30 bg-error/10 px-4 py-3 text-xs font-semibold text-error">
             <HugeiconsIcon icon="alert-circle" size={16} strokeWidth={1.8} />
-            <span>{error}</span>
+            <span>{errorKey ? t(errorKey) : error}</span>
           </div>
         )}
 
@@ -460,19 +468,19 @@ export default function AdminUsers() {
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-            <p className="mt-3 text-sm font-medium text-on-surface-variant">Loading user directory…</p>
+            <p className="mt-3 text-sm font-medium text-on-surface-variant">{t("users.loadingDirectory")}</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[760px] text-left">
               <thead className="border-b border-outline-variant/60 bg-surface-container-low/60 text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
                 <tr>
-                  <Head label="Account" active={sort === "name"} descending={descending} onClick={() => sortBy("name")} />
-                  <th className="px-4 py-3">Role</th>
-                  <th className="px-4 py-3">Onboarding</th>
-                  <Head label="Credits" active={sort === "credits"} descending={descending} onClick={() => sortBy("credits")} />
-                  <Head label="Joined" active={sort === "joined"} descending={descending} onClick={() => sortBy("joined")} />
-                  <th className="px-5 py-3 text-right">Actions</th>
+                  <Head label={t("users.table.account")} active={sort === "name"} descending={descending} onClick={() => sortBy("name")} />
+                  <th className="px-4 py-3">{t("users.table.role")}</th>
+                  <th className="px-4 py-3">{t("users.table.onboarding")}</th>
+                  <Head label={t("common.credits")} active={sort === "credits"} descending={descending} onClick={() => sortBy("credits")} />
+                  <Head label={t("users.table.joined")} active={sort === "joined"} descending={descending} onClick={() => sortBy("joined")} />
+                  <th className="px-5 py-3 text-right">{t("users.table.actions")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant/40">
@@ -530,7 +538,7 @@ export default function AdminUsers() {
                               user.walletEligible ? "bg-primary" : "bg-on-surface-variant"
                             }`}
                           />
-                          {user.walletEligible ? "Student" : "Admin"}
+                          {user.walletEligible ? t("common.students") : t("common.admin")}
                         </span>
                       </td>
 
@@ -540,12 +548,12 @@ export default function AdminUsers() {
                           user.hasCompletedOnboarding ? (
                             <span className="inline-flex items-center gap-1 rounded-md bg-secondary/10 px-2 py-0.5 text-[10px] font-bold text-secondary">
                               <HugeiconsIcon icon="checkmark-circle-02" size={12} strokeWidth={2} />
-                              Completed
+                              {t("users.table.completed")}
                             </span>
                           ) : (
                             <span className="inline-flex items-center gap-1 rounded-md bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400">
                               <HugeiconsIcon icon="time-quarter" size={12} strokeWidth={2} />
-                              Pending
+                              {t("users.table.pending")}
                             </span>
                           )
                         ) : (
@@ -559,20 +567,20 @@ export default function AdminUsers() {
                           <div className="flex flex-col">
                             <span className="inline-flex items-center gap-1.5 text-xs font-extrabold text-on-surface">
                               <img src={creditCoin} alt="" className="h-4 w-4" />
-                              {total.toLocaleString()}
+                              {total.toLocaleString(i18n.language)}
                             </span>
                             <span className="text-[10px] text-on-surface-variant/75">
-                              {promo} promo · {purch} purch
+                              {promo} {t("users.table.promoShort")} · {purch} {t("users.table.purchasedShort")}
                             </span>
                           </div>
                         ) : (
-                          <span className="text-xs text-on-surface-variant/70 italic">No wallet</span>
+                          <span className="text-xs text-on-surface-variant/70 italic">{t("users.table.noWallet")}</span>
                         )}
                       </td>
 
                       {/* Joined Date */}
                       <td className="px-4 py-3.5">
-                        <span className="text-xs text-on-surface-variant">{formatDate(user.createdAt)}</span>
+                        <span className="text-xs text-on-surface-variant">{formatDate(user.createdAt, i18n.language)}</span>
                       </td>
 
                       {/* Action */}
@@ -584,12 +592,12 @@ export default function AdminUsers() {
                             className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-outline-variant bg-surface px-2.5 text-[11px] font-bold text-on-surface shadow-2xs transition-all hover:border-primary/50 hover:bg-primary/5 hover:text-primary active:scale-[.98]"
                           >
                             <HugeiconsIcon icon="wallet-02" size={13} strokeWidth={1.8} />
-                            <span>Manage wallet</span>
+                            <span>{t("users.table.manageWallet")}</span>
                           </button>
                         ) : (
                           <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/70">
                             <HugeiconsIcon icon="lock" size={11} strokeWidth={2} />
-                            Protected
+                            {t("users.table.protected")}
                           </span>
                         )}
                       </td>
@@ -605,16 +613,16 @@ export default function AdminUsers() {
                 <div className="grid h-12 w-12 place-items-center rounded-2xl bg-surface-container-high text-on-surface-variant">
                   <HugeiconsIcon icon="search" size={24} strokeWidth={1.5} />
                 </div>
-                <p className="mt-3 text-sm font-bold text-on-surface">No accounts match these filters</p>
+                <p className="mt-3 text-sm font-bold text-on-surface">{t("users.empty.title")}</p>
                 <p className="mt-1 text-xs text-on-surface-variant max-w-sm">
-                  We couldn't find any account matching your current query or role selection.
+                  {t("users.empty.description")}
                 </p>
                 <button
                   type="button"
                   onClick={clearAllFilters}
                   className="mt-4 inline-flex h-8 items-center gap-1 rounded-lg bg-primary px-3 text-xs font-bold text-on-primary transition-all hover:bg-primary/90"
                 >
-                  Clear all filters
+                  {t("users.empty.clear")}
                 </button>
               </div>
             )}
@@ -625,10 +633,8 @@ export default function AdminUsers() {
         <footer className="flex flex-col gap-3 border-t border-outline-variant/60 bg-surface-container-low/20 px-4 py-3 text-xs text-on-surface-variant sm:flex-row sm:items-center sm:justify-between">
           <span>
             {filteredUsers.length
-              ? `Showing ${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, filteredUsers.length)} of ${
-                  filteredUsers.length
-                } accounts`
-              : "0 accounts"}
+              ? t("users.pagination.showingPage", { from: (page - 1) * pageSize + 1, to: Math.min(page * pageSize, filteredUsers.length), total: filteredUsers.length })
+              : t("users.empty.zeroAccounts")}
           </span>
           <div className="flex items-center gap-2 self-end sm:self-auto">
             <button
@@ -638,10 +644,10 @@ export default function AdminUsers() {
               className="inline-flex h-8 items-center gap-1 rounded-lg border border-outline-variant bg-surface px-2.5 font-bold text-on-surface shadow-2xs transition-all hover:bg-surface-container-low disabled:opacity-40"
             >
               <HugeiconsIcon icon="chevron-left" size={13} strokeWidth={2} />
-              Previous
+              {t("common.previous")}
             </button>
             <span className="px-2 font-medium">
-              Page <strong className="text-on-surface">{page}</strong> of <strong>{totalPages}</strong>
+              {t("users.pagination.pageOf", { page, total: totalPages })}
             </span>
             <button
               type="button"
@@ -649,7 +655,7 @@ export default function AdminUsers() {
               onClick={() => setPage((current) => current + 1)}
               className="inline-flex h-8 items-center gap-1 rounded-lg border border-outline-variant bg-surface px-2.5 font-bold text-on-surface shadow-2xs transition-all hover:bg-surface-container-low disabled:opacity-40"
             >
-              Next
+              {t("common.next")}
               <HugeiconsIcon icon="chevron-right" size={13} strokeWidth={2} />
             </button>
           </div>
@@ -672,6 +678,7 @@ export default function AdminUsers() {
           setReference={setReference}
           saving={saving}
           error={error}
+          errorKey={errorKey}
           notice={notice}
           onClose={() => setSelected(null)}
           onAdjust={adjust}
@@ -711,6 +718,8 @@ function Head({
 }
 
 function WalletDrawer(props: any) {
+  const { t, i18n } = useTranslation("adminManagement");
+  const tCreditHistory = i18n.getFixedT(i18n.resolvedLanguage || i18n.language, "creditHistory");
   const {
     selected,
     wallet,
@@ -725,6 +734,7 @@ function WalletDrawer(props: any) {
     setReference,
     saving,
     error,
+    errorKey,
     notice,
     onClose,
     onAdjust,
@@ -755,7 +765,7 @@ function WalletDrawer(props: any) {
             type="button"
             onClick={onClose}
             className="grid h-8 w-8 place-items-center rounded-lg text-on-surface-variant hover:bg-surface-container transition-colors"
-            aria-label="Close"
+            aria-label={t("users.wallet.close")}
           >
             <HugeiconsIcon icon="close" size={16} strokeWidth={2} />
           </button>
@@ -763,16 +773,21 @@ function WalletDrawer(props: any) {
 
         {/* Drawer Body */}
         <div className="flex-1 space-y-5 overflow-y-auto p-5">
-          {error && (
+          {(error || errorKey) && (
             <div className="flex items-center gap-2 rounded-xl border border-error/30 bg-error/10 px-3.5 py-2.5 text-xs font-semibold text-error">
               <HugeiconsIcon icon="alert-circle" size={15} strokeWidth={2} />
-              <span>{error}</span>
+              <span>{errorKey ? t(errorKey) : error}</span>
             </div>
           )}
           {notice && (
             <div className="flex items-center gap-2 rounded-xl border border-secondary/30 bg-secondary/10 px-3.5 py-2.5 text-xs font-semibold text-secondary">
               <HugeiconsIcon icon="checkmark-circle-02" size={15} strokeWidth={2} />
-              <span>{notice}</span>
+              <span>
+                {t(`users.wallet.notice.${notice.added ? "added" : "removed"}${notice.bucket === "purchased" ? "Purchased" : "Promotional"}`, {
+                  amount: notice.amount.toLocaleString(i18n.language),
+                })}
+                {notice.deliveryKey ? ` ${t(notice.deliveryKey)}` : ""}
+              </span>
             </div>
           )}
 
@@ -781,29 +796,29 @@ function WalletDrawer(props: any) {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-[10px] font-extrabold uppercase tracking-wider text-amber-700 dark:text-amber-300">
-                  Total Student Balance
+                  {t("users.wallet.totalBalance")}
                 </p>
                 <div className="mt-1.5 flex items-center gap-2.5">
                   <img src={creditCoin} alt="" className="h-8 w-8 drop-shadow-xs" />
                   <span className="font-mono text-3xl font-extrabold tracking-tight text-on-surface">
-                    {(wallet?.total ?? 0).toLocaleString()}
+                    {(wallet?.total ?? 0).toLocaleString(i18n.language)}
                   </span>
-                  <span className="text-xs font-semibold text-on-surface-variant">Credits</span>
+                  <span className="text-xs font-semibold text-on-surface-variant">{t("users.wallet.credits")}</span>
                 </div>
               </div>
             </div>
 
             <div className="mt-4 grid grid-cols-2 gap-2.5">
               <div className="rounded-xl border border-outline-variant/60 bg-surface/80 p-2.5 backdrop-blur-xs">
-                <span className="text-[11px] font-medium text-on-surface-variant">Promotional</span>
+                <span className="text-[11px] font-medium text-on-surface-variant">{t("common.promotional")}</span>
                 <p className="mt-0.5 font-mono text-base font-bold text-on-surface">
-                  {(wallet?.promotional ?? 0).toLocaleString()}
+                  {(wallet?.promotional ?? 0).toLocaleString(i18n.language)}
                 </p>
               </div>
               <div className="rounded-xl border border-outline-variant/60 bg-surface/80 p-2.5 backdrop-blur-xs">
-                <span className="text-[11px] font-medium text-on-surface-variant">Purchased</span>
+                <span className="text-[11px] font-medium text-on-surface-variant">{t("common.purchased")}</span>
                 <p className="mt-0.5 font-mono text-base font-bold text-amber-600 dark:text-amber-400">
-                  {(wallet?.purchased ?? 0).toLocaleString()}
+                  {(wallet?.purchased ?? 0).toLocaleString(i18n.language)}
                 </p>
               </div>
             </div>
@@ -813,16 +828,16 @@ function WalletDrawer(props: any) {
           <section className="rounded-2xl border border-outline-variant/80 bg-surface-container-lowest p-4 shadow-2xs">
             <div className="flex items-center justify-between">
               <h2 className="text-xs font-extrabold uppercase tracking-wider text-on-surface">
-                Fulfil or Adjust Credits
+                {t("users.wallet.fulfilAdjust")}
               </h2>
               <span className="rounded-full bg-amber-400/10 px-2 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-300">
-                Purchased by default
+                {t("users.wallet.purchasedDefault")}
               </span>
             </div>
 
             {/* Quick Amount Presets */}
             <div className="mt-3">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">Quick Presets</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">{t("users.wallet.quickPresets")}</span>
               <div className="mt-1.5 flex flex-wrap gap-1.5">
                 {quickPresets.map((val) => (
                   <button
@@ -843,7 +858,7 @@ function WalletDrawer(props: any) {
 
             <div className="mt-3 grid grid-cols-2 gap-2.5">
               <label className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
-                Amount
+                {t("users.wallet.amount")}
                 <input
                   type="number"
                   step="1"
@@ -853,14 +868,14 @@ function WalletDrawer(props: any) {
                 />
               </label>
               <label className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
-                Bucket
+                {t("users.wallet.bucket")}
                 <select
                   value={bucket}
                   onChange={(event) => setBucket(event.target.value as any)}
                   className="mt-1 h-10 w-full rounded-xl border border-outline-variant bg-surface px-3 text-xs font-semibold text-on-surface outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                 >
-                  <option value="purchased">Purchased</option>
-                  <option value="promotional">Promotional</option>
+                  <option value="purchased">{t("common.purchased")}</option>
+                  <option value="promotional">{t("common.promotional")}</option>
                 </select>
               </label>
             </div>
@@ -869,14 +884,14 @@ function WalletDrawer(props: any) {
               <input
                 value={reason}
                 onChange={(event) => setReason(event.target.value)}
-                placeholder="Reason for adjustment (e.g. Bank wire confirmation) *"
+                placeholder={t("users.wallet.reasonPlaceholder")}
                 maxLength={500}
                 className="h-10 w-full rounded-xl border border-outline-variant bg-surface px-3 text-xs text-on-surface outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
               />
               <input
                 value={reference}
                 onChange={(event) => setReference(event.target.value)}
-                placeholder="Order or payment reference ID (optional)"
+                placeholder={t("users.wallet.referencePlaceholder")}
                 maxLength={200}
                 className="h-10 w-full rounded-xl border border-outline-variant bg-surface px-3 text-xs text-on-surface outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
               />
@@ -891,24 +906,24 @@ function WalletDrawer(props: any) {
               {saving ? (
                 <>
                   <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                  <span>Applying Adjustment…</span>
+                  <span>{t("users.wallet.applying")}</span>
                 </>
               ) : (
                 <>
                   <HugeiconsIcon icon="checkmark-circle-02" size={16} strokeWidth={2} />
-                  <span>Confirm Credit Adjustment</span>
+                  <span>{t("users.wallet.confirm")}</span>
                 </>
               )}
             </button>
             <p className="mt-2 text-[10px] text-on-surface-variant/80">
-              Positive purchased credit additions automatically send an email confirmation to the student.
+              {t("users.wallet.emailNote")}
             </p>
           </section>
 
           {/* Recent Wallet History */}
           <section>
             <h2 className="text-xs font-extrabold uppercase tracking-wider text-on-surface">
-              Recent Ledger Activity ({history.length})
+              {t("users.wallet.recentActivity", { count: history.length })}
             </h2>
             <div className="mt-2 divide-y divide-outline-variant/50 rounded-2xl border border-outline-variant/70 bg-surface-container-lowest p-2">
               {history.length ? (
@@ -922,9 +937,11 @@ function WalletDrawer(props: any) {
                     <div key={item._id} className="flex items-center justify-between gap-3 p-2.5">
                       <div className="min-w-0">
                         <p className="truncate text-xs font-bold capitalize text-on-surface">
-                          {item.reason || item.actionKey?.replaceAll("_", " ") || item.kind}
+                          {item.reason || (item.actionKey && i18n.exists(`actions.${item.actionKey}`, { ns: "creditHistory" })
+                            ? tCreditHistory(`actions.${item.actionKey}`)
+                            : item.actionKey?.replaceAll("_", " ") || item.kind)}
                         </p>
-                        <p className="text-[10px] text-on-surface-variant">{formatDateTime(item.createdAt)}</p>
+                        <p className="text-[10px] text-on-surface-variant">{formatDateTime(item.createdAt, i18n.language)}</p>
                       </div>
                       <span
                         className={`inline-flex items-center gap-1 font-mono text-xs font-extrabold ${
@@ -937,7 +954,7 @@ function WalletDrawer(props: any) {
                   );
                 })
               ) : (
-                <p className="py-6 text-center text-xs text-on-surface-variant">No wallet activity recorded yet.</p>
+                <p className="py-6 text-center text-xs text-on-surface-variant">{t("users.wallet.emptyHistory")}</p>
               )}
             </div>
           </section>

@@ -30,8 +30,8 @@ export const requestStatusDescription: Record<string, string> = {
   CANCELLED: "This request was cancelled. No credits will be added for this request.",
 };
 
-export const creditDate = (value?: string) => value ? new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" }).format(new Date(value)) : "—";
-export const creditMoney = (price: number, currency: string) => `${new Intl.NumberFormat("en", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(price)} ${currency}`;
+export const creditDate = (value?: string, locale: "en" | "fr" = "en") => value ? new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" }).format(new Date(value)) : "—";
+export const creditMoney = (price: number, currency: string, locale: "en" | "fr" = "en") => `${new Intl.NumberFormat(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(price)} ${currency}`;
 export const transactionLabel = (item: CreditTransaction) => {
   if (item.reference?.startsWith("credit-request:")) return "Credit purchase";
   if (item.kind === "welcome") return "Welcome credits";

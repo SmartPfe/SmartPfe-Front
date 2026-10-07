@@ -739,3 +739,110 @@ test('report, presentation and speech editors retain loaded document content acr
     });
   }
 });
+import CreditHistory from '../src/pages/workspace/CreditHistory';
+import AdminCreditRequests from '../src/pages/admin/AdminCreditRequests';
+import AdminCredits from '../src/pages/admin/AdminCredits';
+import AdminUsers from '../src/pages/admin/AdminUsers';
+import AdminProjects from '../src/pages/admin/AdminProjects';
+import BackofficeDashboard from '../src/pages/admin/BackofficeDashboard';
+
+test('credit and admin pages switch interface language without reloading or mutating financial data', async (t) => {
+  for (const { Page, path } of [
+    { Page: CreditHistory, path: '/workspace/settings/credits' },
+    { Page: AdminCreditRequests, path: '/admin/credit-requests' },
+    { Page: AdminCredits, path: '/admin/credits' },
+    { Page: AdminUsers, path: '/admin/users' },
+    { Page: AdminProjects, path: '/admin/projects' },
+    { Page: BackofficeDashboard, path: '/admin/dashboard' },
+  ]) await t.test(path, async child => {
+    const requests: string[] = [];
+    const env = installBrowser(child, async (input, options) => {
+      assert.equal(options?.method || 'GET', 'GET');
+      requests.push(String(input));
+      let body: unknown = {};
+      if (String(input).includes('/credits/history?')) body = { items: [], total: 0, page: 1, pages: 1, limit: 10 };
+      if (String(input).includes('/admin/credit-requests')) body = { requests: [] };
+      if (String(input).endsWith('/admin/users') || String(input).endsWith('/admin/projects')) body = [];
+      if (String(input).endsWith('/admin/dashboard')) body = { totals: { users: 0, students: 0, admins: 0, projects: 0, completedOnboarding: 0, creditsSpent: 0, purchasedFulfilled: 0, walletCredits: 0 }, charts: { studentGrowth: [], projectGrowth: [], onboardingStatus: [], domains: [], actionDemand: [], creditActivity: [], creditMonthly: [] }, recentUsers: [], recentProjects: [], recentFulfillments: [] };
+      if (String(input).endsWith('/credits/economy')) body = { settings: { welcomeCredits: 20, dailyPromotionalRefill: 5, timezone: 'Africa/Tunis', enforcementMode: 'shadow', version: 1 }, policies: [], history: [] };
+      return { ...jsonResponse(body), headers: new Headers({ 'content-type': 'application/json' }) };
+    });
+    await act(async () => {
+      await i18n.changeLanguage('en');
+      env.root.render(<MemoryRouter initialEntries={[path]}><CreditProvider><Page /></CreditProvider></MemoryRouter>);
+    });
+    const values = () => [...env.container.querySelectorAll('input,select,textarea')].map(e => (e as HTMLInputElement).value);
+    const initialValues = values();
+    const initialText = env.container.textContent;
+    const count = requests.length;
+    assert.ok(count > 0);
+    await act(async () => { await i18n.changeLanguage('fr'); });
+    assert.deepEqual(values(), initialValues);
+    assert.notEqual(env.container.textContent, initialText);
+    assert.equal(requests.length, count);
+  });
+});
+
+test('French credit-history filters send canonical status and kind values and survive locale switching', async t => {
+  const requests: string[] = [];
+  const env = installBrowser(t, async (input, options) => {
+    assert.equal(options?.method || 'GET', 'GET');
+    requests.push(String(input));
+    return { ...jsonResponse({ items: [], total: 0, page: 1, pages: 1, limit: 10 }), headers: new Headers({ 'content-type': 'application/json' }) };
+  });
+  await act(async () => {
+    await i18n.changeLanguage('fr');
+    env.root.render(<MemoryRouter initialEntries={['/workspace/settings/credits?view=transactions']}><CreditProvider><CreditHistory /></CreditProvider></MemoryRouter>);
+  });
+  const selects = [...env.container.querySelectorAll('select')];
+  const status = selects.find(s => [...s.options].some(o => o.value === 'reserved'))!;
+  const kind = selects.find(s => [...s.options].some(o => o.value === 'admin_adjustment'))!;
+  assert.ok(status); assert.ok(kind);
+  await act(async () => { status.value = 'reserved'; status.dispatchEvent(new env.browser.Event('change', { bubbles: true })); });
+  await act(async () => { kind.value = 'admin_adjustment'; kind.dispatchEvent(new env.browser.Event('change', { bubbles: true })); });
+  const query = new URL(requests.at(-1)!, 'http://localhost').searchParams;
+  assert.equal(query.get('status'), 'reserved');
+  assert.equal(query.get('kind'), 'admin_adjustment');
+  assert.equal(query.get('section'), 'transactions');
+  const count = requests.length;
+  await act(async () => { await i18n.changeLanguage('en'); });
+  assert.equal(status.value, 'reserved'); assert.equal(kind.value, 'admin_adjustment');
+  assert.equal(requests.length, count);
+});
+
+test('a French credit request drawer preserves purchased amount, currency, package and administrator note', async t => {
+  const request = { _id: 'r-a', requestedCredits: 1250, packageLabel: 'Original English package', price: 29.5, currency: 'TND', status: 'CONFIRMED', createdAt: '2026-10-07T12:00:00Z', adminNote: 'Original English administrator note.' };
+  let calls = 0;
+  const env = installBrowser(t, async (input, options) => {
+    assert.equal(options?.method || 'GET', 'GET'); calls++;
+    const body = String(input).includes('/credits/requests/') ? { request } : { items: [request], total: 1, page: 1, pages: 1, limit: 10 };
+    return { ...jsonResponse(body), headers: new Headers({ 'content-type': 'application/json' }) };
+  });
+  await act(async () => {
+    await i18n.changeLanguage('en');
+    env.root.render(<MemoryRouter initialEntries={['/workspace/settings/credits?request=r-a']}><CreditProvider><CreditHistory /></CreditProvider></MemoryRouter>);
+  });
+  const count = calls;
+  await act(async () => { await i18n.changeLanguage('fr'); });
+  assert.ok(env.browser.document.body.textContent?.includes(request.adminNote));
+  assert.ok(env.browser.document.body.textContent?.includes(request.packageLabel));
+  assert.ok(env.browser.document.body.textContent?.includes('29,50 TND'));
+  assert.ok(env.browser.document.body.textContent?.includes(new Intl.NumberFormat('fr').format(1250)));
+  assert.equal(calls, count);
+});
+
+test('an unsaved credit-policy timezone choice survives interface switching without an API write', async t => {
+  let calls = 0;
+  const env = installBrowser(t, async (_input, options) => {
+    assert.equal(options?.method || 'GET', 'GET'); calls++;
+    return { ...jsonResponse({ settings: { welcomeCredits: 20, dailyPromotionalRefill: 5, timezone: 'Africa/Tunis', enforcementMode: 'shadow', version: 1 }, policies: [], history: [] }), headers: new Headers({ 'content-type': 'application/json' }) };
+  });
+  await act(async () => { await i18n.changeLanguage('fr'); env.root.render(<AdminCredits />); });
+  const select = [...env.container.querySelectorAll('select')].find(s => [...s.options].some(o => o.value === 'Europe/Paris'))!;
+  assert.ok(select);
+  await act(async () => { select.value = 'Europe/Paris'; select.dispatchEvent(new env.browser.Event('change', { bubbles: true })); });
+  const count = calls;
+  await act(async () => { await i18n.changeLanguage('en'); });
+  assert.equal(select.value, 'Europe/Paris');
+  assert.equal(calls, count);
+});
