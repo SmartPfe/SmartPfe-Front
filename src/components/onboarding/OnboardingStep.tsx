@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
@@ -22,20 +23,21 @@ export default function OnboardingStep({
   description,
   children,
   backTo,
-  backLabel = "Back",
+  backLabel,
   nextTo,
   nextLabel,
   nextIcon = "arrow_forward",
   isNextDisabled = false,
   onNextAction,
 }: OnboardingStepProps) {
+  const { t } = useTranslation("onboarding");
   const progressWidth = `${(step / 4) * 100}%`;
 
   return (
     <div className="w-full max-w-[960px] flex flex-col gap-lg mx-auto">
       <div className="flex flex-col gap-xs">
         <div className="flex justify-between items-center gap-sm font-label-md text-label-md text-on-surface-variant">
-          <span>Step {step} of 4</span>
+          <span>{t("steps.progress", { step })}</span>
           <span className="text-primary font-semibold text-right">{title}</span>
         </div>
         <div className="w-full h-1 bg-surface-container-high rounded-full overflow-hidden">
@@ -62,7 +64,7 @@ export default function OnboardingStep({
             className="flex w-full sm:w-auto items-center justify-center gap-xs min-w-[120px] px-md sm:px-lg py-sm rounded-DEFAULT border border-outline-variant bg-surface text-on-surface font-label-md text-label-md hover:bg-surface-container transition-colors"
           >
             <span className="material-symbols-outlined text-[18px]">arrow_back</span>
-            {backLabel}
+            {backLabel || t("steps.back")}
           </Link>
         )}
         {onNextAction ? (

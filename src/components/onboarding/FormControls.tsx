@@ -1,5 +1,7 @@
 import { useState, type KeyboardEvent } from "react";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
+import type { DisplayOption } from "@/lib/onboardingOptions";
 
 type BaseFieldProps = {
   id: string;
@@ -39,6 +41,7 @@ export function TextField({
   autoComplete?: string;
   name?: string;
 }) {
+  const { t } = useTranslation("onboarding");
   const [showPassword, setShowPassword] = useState(false);
   const inputType = canTogglePassword && type === "password" && showPassword ? "text" : type;
 
@@ -64,7 +67,7 @@ export function TextField({
             type="button"
             onClick={() => setShowPassword((current) => !current)}
             className="absolute inset-y-0 right-0 px-sm flex items-center text-outline hover:text-on-surface transition-colors"
-            aria-label={showPassword ? "Hide password" : "Show password"}
+            aria-label={showPassword ? t("controls.hidePassword") : t("controls.showPassword")}
           >
             <span className="material-symbols-outlined text-[18px]">
               {showPassword ? "visibility_off" : "visibility"}
@@ -115,13 +118,14 @@ export function SelectField({
   options,
   required,
   helperText,
-  placeholder = "Select an option",
+  placeholder,
 }: BaseFieldProps & {
   value: string;
   onChange: (value: string) => void;
-  options: string[];
+  options: Array<string | DisplayOption>;
   placeholder?: string;
 }) {
+  const { t } = useTranslation("onboarding");
   return (
     <div className="flex flex-col gap-xs">
       <FieldLabel id={id} label={label} required={required} />
@@ -134,13 +138,17 @@ export function SelectField({
           className="w-full bg-surface-bright border border-outline-variant rounded-DEFAULT px-md py-2 pr-10 font-body-md text-on-surface appearance-none focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary transition-colors cursor-pointer"
         >
           <option value="" disabled>
-            {placeholder}
+            {placeholder ?? t("controls.selectOption")}
           </option>
-          {options.map((option) => (
-            <option key={option} value={option}>
-              {option}
+          {options.map((option) => {
+            const value = typeof option === "string" ? option : option.value;
+            const label = typeof option === "string" ? option : option.label;
+            return (
+            <option key={value} value={value}>
+              {label}
             </option>
-          ))}
+            );
+          })}
         </select>
         <span className="material-symbols-outlined absolute right-sm top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant">
           expand_more
@@ -159,19 +167,20 @@ export function OptionCards({
   label: string;
   value: string;
   onChange: (value: string) => void;
-  options: { label: string; description: string; icon: string }[];
+  options: { value: string; label: string; description: string; icon: string }[];
 }) {
   return (
     <div className="flex flex-col gap-xs">
       <span className="font-label-md text-label-md text-on-surface">{label}</span>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-sm">
         {options.map((option) => {
-          const selected = value === option.label;
+          const selected = value === option.value;
           return (
             <button
-              key={option.label}
+              key={option.value}
               type="button"
-              onClick={() => onChange(option.label)}
+              onClick={() => onChange(option.value)}
+              aria-pressed={selected}
               className={cn(
                 "h-full text-left bg-surface-bright border rounded-lg p-sm flex flex-col gap-xs transition-colors",
                 selected ? "border-primary bg-surface ring-1 ring-primary" : "border-outline-variant hover:bg-surface-container"
@@ -216,11 +225,12 @@ export function MultiSelectChips({
   helperText,
 }: {
   label: string;
-  options: string[];
+  options: Array<string | DisplayOption>;
   values: string[];
   onChange: (values: string[]) => void;
   helperText?: string;
 }) {
+  const { t } = useTranslation("onboarding");
   const toggle = (option: string) => {
     onChange(values.includes(option) ? values.filter((item) => item !== option) : [...values, option]);
   };
@@ -230,21 +240,26 @@ export function MultiSelectChips({
       <span className="font-label-md text-label-md text-on-surface">{label}</span>
       {helperText && <p className="text-xs leading-snug text-on-surface-variant">{helperText}</p>}
       <div className="flex flex-wrap gap-xs max-h-[148px] overflow-y-auto rounded-lg border border-outline-variant bg-surface-bright p-sm">
-        {options.map((option) => (
-          <button
-            key={option}
-            type="button"
-            onClick={() => toggle(option)}
-            className={cn(
-              "px-sm py-base rounded-full border transition-colors font-label-sm text-label-sm cursor-pointer",
-              values.includes(option)
-                ? "border-primary bg-primary text-on-primary"
-                : "border-outline-variant bg-surface-bright text-on-surface hover:bg-surface-container-high"
-            )}
-          >
-            {option}
-          </button>
-        ))}
+        {options.map((option) => {
+          const value = typeof option === "string" ? option : option.value;
+          const label = typeof option === "string" ? option : option.label;
+          return (
+            <button
+              key={value}
+              type="button"
+              onClick={() => toggle(value)}
+              aria-pressed={values.includes(value)}
+              className={cn(
+                "px-sm py-base rounded-full border transition-colors font-label-sm text-label-sm cursor-pointer",
+                values.includes(value)
+                  ? "border-primary bg-primary text-on-primary"
+                  : "border-outline-variant bg-surface-bright text-on-surface hover:bg-surface-container-high"
+              )}
+            >
+              {label}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
@@ -257,13 +272,14 @@ export function TagInput({
   onChange,
   suggestions = [],
   helperText,
-  placeholder = "Type and press Enter...",
+  placeholder,
 }: BaseFieldProps & {
   values: string[];
   onChange: (values: string[]) => void;
   suggestions?: string[];
   placeholder?: string;
 }) {
+  const { t } = useTranslation("onboarding");
   const [input, setInput] = useState("");
 
   const addTag = (tag: string) => {
@@ -300,6 +316,8 @@ export function TagInput({
                 type="button"
                 onClick={() => removeTag(tag)}
                 className="material-symbols-outlined text-[14px] text-on-surface-variant hover:text-error transition-colors"
+                aria-label={t("controls.removeTag", { tag })}
+                title={t("controls.removeTag", { tag })}
               >
                 close
               </button>
@@ -313,7 +331,7 @@ export function TagInput({
           onChange={(event) => setInput(event.target.value)}
           onKeyDown={handleKeyDown}
           onBlur={() => addTag(input)}
-          placeholder={placeholder}
+          placeholder={placeholder ?? t("controls.tagPlaceholder")}
           className="flex-1 bg-transparent border-none p-0 font-body-md text-body-md text-on-surface placeholder:text-on-surface-variant focus:ring-0 focus:outline-none"
         />
       </div>

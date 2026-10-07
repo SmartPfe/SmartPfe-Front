@@ -1,6 +1,8 @@
 import OnboardingStep from "@/components/onboarding/OnboardingStep";
 import { MultiSelectChips, SelectField, TextField } from "@/components/onboarding/FormControls";
 import { useOnboarding } from "@/context/OnboardingContext";
+import { useTranslation } from "react-i18next";
+import { displayOptions } from "@/lib/onboardingOptions";
 
 const DEVELOPMENT_TYPES = [
   "Web Application",
@@ -170,6 +172,7 @@ function replaceCustomValues(values: string[], previousCustomValue: string, next
 }
 
 export default function TechnicalContext() {
+  const { t } = useTranslation("onboarding");
   const { data, updateSection } = useOnboarding();
   const technicalContext = data.technicalContext;
   const developmentTypeOptions = [
@@ -229,80 +232,80 @@ export default function TechnicalContext() {
   return (
     <OnboardingStep
       step={3}
-      title="Technical Context"
-      description="Describe how the project will be built so generated artifacts match the real implementation scope."
+      title={t("technical.title")}
+      description={t("technical.description")}
       backTo="/onboarding/2"
       nextTo="/onboarding/4"
-      nextLabel="Review Summary"
+      nextLabel={t("steps.reviewSummary")}
     >
       <MultiSelectChips
-        label="Development Type"
+        label={t("technical.developmentType")}
         values={technicalContext.developmentTypes}
         onChange={handleDevelopmentTypesChange}
-        options={developmentTypeOptions}
-        helperText="Select every platform or technical category that applies to your project."
+        options={displayOptions(developmentTypeOptions, "developmentType", t)}
+        helperText={t("technical.developmentTypeHelper")}
       />
 
       {(technicalContext.developmentTypes.includes("Other") || technicalContext.otherDevelopmentType) && (
         <TextField
           id="other-development-type"
-          label="Other Development Type"
+          label={t("technical.otherDevelopmentType")}
           value={technicalContext.otherDevelopmentType}
           onChange={handleOtherDevelopmentTypeChange}
-          placeholder="e.g. AR/VR system, embedded system, blockchain application"
-          helperText="Specify the real project type if it is not listed above."
+          placeholder={t("technical.otherDevelopmentTypePlaceholder")}
+          helperText={t("technical.otherDevelopmentTypeHelper")}
         />
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-lg">
         <SelectField
           id="methodology"
-          label="Methodology"
+          label={t("technical.methodology")}
           value={technicalContext.methodology}
           onChange={(methodology) => updateSection("technicalContext", { methodology })}
-          options={METHODOLOGIES}
+          options={displayOptions(METHODOLOGIES, "methodology", t)}
         />
         <SelectField
           id="complexity"
-          label="Project Complexity"
+          label={t("technical.projectComplexity")}
           value={technicalContext.complexity}
           onChange={(complexity) => updateSection("technicalContext", { complexity })}
-          options={COMPLEXITIES}
+          options={displayOptions(COMPLEXITIES, "complexity", t)}
         />
       </div>
 
       <MultiSelectChips
-        label="Technology Stack"
+        label={t("technical.technologyStack")}
         values={technicalContext.technologies}
         onChange={handleTechnologiesChange}
-        options={technologyOptions}
-        helperText="Select the frameworks, languages, databases, cloud tools, and AI libraries used in your project."
+        options={displayOptions(technologyOptions, "technology", t)}
+        helperText={t("technical.technologyStackHelper")}
       />
 
       {(technicalContext.technologies.includes("Other") || technicalContext.otherTechnologies) && (
         <TextField
           id="other-technologies"
-          label="Other Technologies"
+          label={t("technical.otherTechnologies")}
           value={technicalContext.otherTechnologies}
           onChange={handleOtherTechnologiesChange}
-          placeholder="e.g. Odoo, Figma, MATLAB, Apache Kafka"
-          helperText="Use this only for real tools or technologies that are not available in the list."
+          placeholder={t("technical.otherTechnologiesPlaceholder")}
+          helperText={t("technical.otherTechnologiesHelper")}
         />
       )}
 
       <TextField
         id="target-users"
-        label="Target Users"
+        label={t("technical.targetUsers")}
         value={technicalContext.targetUsers}
         onChange={(targetUsers) => updateSection("technicalContext", { targetUsers })}
-        placeholder="e.g. Students, academic supervisors, company supervisors, administrators"
-        helperText="This helps AI generate relevant actors and backlog items."
+        placeholder={t("technical.targetUsersPlaceholder")}
+        helperText={t("technical.targetUsersHelper")}
       />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-lg">
         <TextField
           id="team-size"
-          label="Team Size"
+          label={t("technical.teamSize")}
           type="number"
           value={technicalContext.teamSize}
           onChange={(teamSize) => updateSection("technicalContext", { teamSize: Number(teamSize) })}
@@ -310,7 +313,7 @@ export default function TechnicalContext() {
         />
         <TextField
           id="duration"
-          label="Duration (months)"
+          label={t("technical.duration")}
           type="number"
           value={technicalContext.duration}
           onChange={(duration) => updateSection("technicalContext", { duration: Number(duration) })}

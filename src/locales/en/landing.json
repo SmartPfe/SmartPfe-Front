@@ -1,0 +1,146 @@
+{
+  "nav": ["Features", "How it works", "Pricing", "About us", "Contact"],
+  "signIn": "Sign in",
+  "getStarted": "Get started free",
+  "menuToggle": "Toggle navigation menu",
+  "hero": {
+    "badge": "AI SaaS workspace for Final Year Projects",
+    "title": "Structure your PFE.",
+    "titleEmphasis": "Defend with confidence.",
+    "description": "One intelligent workspace to manage every deliverable of your Final Year Project — from needs analysis to jury simulation.",
+    "createWorkspace": "Create free workspace",
+    "seeFeatures": "See features",
+    "aiMetricValue": "AI-Powered",
+    "metrics": ["Guided modules", "Project phases", "Built for students", "Guidance & tools"]
+  },
+  "demo": {
+    "activeProject": "ACTIVE PROJECT",
+    "workspaceNav": ["Overview", "Problem Statement", "Actors", "Backlog", "Report", "UML Diagrams", "Jury Simulation"],
+    "projectName": "AI-Powered Retail Analytics",
+    "onTrack": "On track",
+    "progress": "Progress",
+    "modules": "Modules",
+    "nextStep": "Next step",
+    "draftProblem": "Draft the Problem Statement",
+    "recentActivityTitle": "Recent activity",
+    "recentActivity": ["Actors section updated", "Backlog tasks prioritized", "Jury simulation completed"]
+  },
+  "challenge": {
+    "title": "The challenge",
+    "heading": "PFE projects fail from poor structure, not poor ideas.",
+    "description": "Students often manage their PFE using disconnected documents, emails, notes, slides and tools. Good work becomes hard to follow when the process has no shared system.",
+    "problems": ["No single source of truth", "Deliverables created independently", "Difficult to track progress", "Little preparation for the final defense"],
+    "solutionTitle": "The solution",
+    "solutionHeading": "One workspace. Full methodology. Built for PFE.",
+    "solutionDescription": "PFE Guidance connects the methodology, editors, AI support and progress tracking into one student-ready product workflow.",
+    "solutions": ["Structured PFE methodology", "14+ connected modules", "Guided editors", "AI assistance", "Progress tracking", "Jury simulation"]
+  },
+  "journey": {
+    "eyebrow": "How it works",
+    "heading": "Your journey, step by step.",
+    "steps": [
+      { "title": "Create your workspace", "description": "Describe your project and technical context." },
+      { "title": "Follow the methodology", "description": "Progress through structured PFE modules." },
+      { "title": "Build your deliverables", "description": "Create your backlog, UML, report, presentation and other deliverables." },
+      { "title": "Ace your defense", "description": "Prepare your pitch and practice using AI jury simulation." }
+    ]
+  },
+  "features": {
+    "eyebrow": "Features",
+    "heading": "Everything you need. In one place.",
+    "description": "Guided modules keep each deliverable connected to the same project context, so the work reads like one coherent PFE.",
+    "items": [
+      { "title": "Problem Statement", "description": "Structure project context, objectives and scope." },
+      { "title": "Actors", "description": "Identify and organize project stakeholders." },
+      { "title": "Requirements", "description": "Manage functional and non-functional requirements." },
+      { "title": "User Stories", "description": "Generate and structure user stories." },
+      { "title": "Product Backlog", "description": "Prioritize project tasks and features." },
+      { "title": "Existing Solutions", "description": "Analyze competing or existing solutions." },
+      { "title": "UML Diagrams", "description": "Prepare project architecture and technical diagrams." },
+      { "title": "Report Builder", "description": "Build the PFE report chapter by chapter." },
+      { "title": "Presentation Builder", "description": "Prepare professional defense slides." },
+      { "title": "Pitch Preparation", "description": "Prepare and improve the oral presentation." },
+      { "title": "Jury Simulation", "description": "Practice with realistic AI-generated jury questions." },
+      { "title": "Progress Tracking", "description": "Track completed modules and next steps." }
+    ]
+  },
+  "ai": {
+    "eyebrow": "AI showcase",
+    "heading": "AI that understands your project.",
+    "description": "Not just another text generator. PFE Guidance uses your project context to help you build consistent deliverables from the first idea to your final defense.",
+    "points": ["Generate structured content", "Improve existing work", "Maintain consistency between deliverables", "Identify missing information", "Suggest next steps", "Generate jury questions", "Prepare your defense"],
+    "assistantName": "PFE AI Assistant",
+    "contextGuidance": "Context-aware guidance",
+    "online": "Online",
+    "sampleQuestion": "I noticed your backlog mentions inventory prediction, but your problem statement does not yet define the business impact. Add a short measurable objective?",
+    "sampleReply": "Yes. Suggest a concise objective for my context.",
+    "sampleAnswer": "Suggested objective: reduce manual stock analysis by centralizing sales, inventory and forecasting indicators in a decision dashboard.",
+    "promptPlaceholder": "Ask about report structure, slides, or jury questions...",
+    "sendPrompt": "Send demo AI prompt"
+  },
+  "pricing": {
+    "eyebrow": "Pricing",
+    "heading": "Simple pricing for students.",
+    "mostPopular": "MOST POPULAR",
+    "tiers": [
+      { "name": "Free", "cadence": "Forever", "description": "Start your PFE workspace with the essentials.", "benefits": ["Core PFE modules", "Basic AI assistance", "Project workspace", "Progress tracking", "Limited AI generations"], "cta": "Get started free" },
+      { "name": "Premium", "cadence": "/ month", "description": "More guidance for report writing and defense preparation.", "benefits": ["Everything in Free", "More AI generations", "Advanced AI assistance", "Advanced report generation", "Presentation assistance", "Jury simulation", "Premium templates", "Priority access to new AI features"], "cta": "Upgrade to Premium" }
+    ]
+  },
+  "stories": {
+    "eyebrow": "Built for students",
+    "heading": "From project idea to confident defense.",
+    "demoLabel": "Placeholder/demo content",
+    "items": [
+      { "name": "Demo student", "role": "Engineering student placeholder", "quote": "This placeholder will later show a real student story about organizing deliverables from the first project idea." },
+      { "name": "Demo supervisor", "role": "Supervisor placeholder", "quote": "This placeholder can be replaced by verified feedback about clarity, methodology and defense preparation." },
+      { "name": "Demo project team", "role": "Team placeholder", "quote": "This placeholder is reserved for a future verified story about collaboration and progress tracking." }
+    ]
+  },
+  "faq": {
+    "eyebrow": "FAQ",
+    "heading": "Questions students ask first.",
+    "items": [
+      { "question": "What is PFE Guidance?", "answer": "PFE Guidance is an intelligent workspace that helps students structure, build and defend their Final Year Project deliverables." },
+      { "question": "Is PFE Guidance free?", "answer": "Yes. The Free plan gives students access to core modules, basic AI help, a project workspace and progress tracking." },
+      { "question": "What is included in Premium?", "answer": "Premium adds more AI generations, advanced report support, presentation assistance, jury simulation, templates and priority access to new AI features." },
+      { "question": "Can I use it for any engineering PFE?", "answer": "Yes. The workflow is designed for engineering and computer science PFE projects, while remaining flexible for different technical domains." },
+      { "question": "Does the AI write my entire report?", "answer": "No. AI assists with structure, consistency, suggestions and drafting support, while the student stays responsible for validating and editing the work." },
+      { "question": "How does Jury Simulation work?", "answer": "It uses your project context to generate realistic defense questions so you can practice answers before the final presentation." },
+      { "question": "Can I export my work?", "answer": "Export behavior depends on the active workspace modules and will evolve as report, presentation and template features mature." },
+      { "question": "Is my project data private?", "answer": "Project data is treated as private workspace content. Teams should still avoid adding secrets or confidential third-party data unless their own policy allows it." }
+    ]
+  },
+  "contact": {
+    "eyebrow": "Contact",
+    "heading": "Have a question? Let's talk.",
+    "fullName": "Full name",
+    "namePlaceholder": "Your name",
+    "email": "Email",
+    "subject": "Subject",
+    "subjectPlaceholder": "How can we help?",
+    "message": "Message",
+    "messagePlaceholder": "Write your message...",
+    "sending": "Sending...",
+    "send": "Send message",
+    "success": "Your message has been sent successfully.",
+    "error": "Could not send your message. Please try again later.",
+    "infoHeading": "Contact information",
+    "location": "Tunisia",
+    "methodHeading": "Built around the PFE method.",
+    "methodDescription": "The product keeps students moving from analysis to design, implementation, report writing and defense preparation inside a single workspace."
+  },
+  "cta": {
+    "heading": "Ready to start your PFE?",
+    "description": "Create your workspace in under a minute and start structuring your project today.",
+    "button": "Create free workspace",
+    "reassurance": "No credit card required."
+  },
+  "footer": {
+    "description": "The intelligent workspace helping engineering students structure, build and defend their Final Year Project with confidence.",
+    "groups": ["Product", "Resources", "Company"],
+    "links": [["Features", "How it works", "Pricing"], ["Guides", "Templates", "FAQ"], ["About us", "Contact us", "Privacy Policy", "Terms of Service"]],
+    "copyright": "2026 PFE Guidance. All rights reserved.",
+    "location": "Built for students in Tunisia and beyond."
+  }
+}

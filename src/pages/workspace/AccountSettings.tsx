@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { TextField } from "@/components/onboarding/FormControls";
 import { fetchApi } from "@/lib/api";
 import HugeiconsIcon, { GoogleIcon } from "@/components/ui/HugeiconsIcon";
@@ -16,13 +17,14 @@ type AccountForm = {
 
 export default function AccountSettings({
   backTo = "/workspace/settings",
-  backLabel = "Back to Settings",
-  memberLabel = "Student Member",
+  backLabel,
+  memberLabel,
 }: {
   backTo?: string;
   backLabel?: string;
   memberLabel?: string;
 } = {}) {
+  const { t } = useTranslation("auth");
   const [form, setForm] = useState<AccountForm>({
     fullName: "",
     email: "",
@@ -33,8 +35,9 @@ export default function AccountSettings({
     confirmPassword: "",
   });
   const [saved, setSaved] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
+  const [successMessageKey, setSuccessMessageKey] = useState("");
   const [error, setError] = useState("");
+  const [errorKey, setErrorKey] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -60,16 +63,22 @@ export default function AccountSettings({
   }, []);
 
   const isGoogleAccount = form.authProvider === "google";
+  const displayBackLabel = backLabel === "Back to Admin Dashboard"
+    ? t("account.backToAdmin")
+    : backLabel ?? t("account.backToSettings");
+  const displayMemberLabel = memberLabel === "Administrator"
+    ? t("account.administrator")
+    : memberLabel ?? t("account.studentMember");
   const wantsPasswordChange = Boolean(form.currentPassword || form.newPassword || form.confirmPassword);
   const newPasswordHasMinLength = form.newPassword.length >= 6;
   const newPasswordHasUppercase = /[A-Z]/.test(form.newPassword);
   const newPasswordHasNumberOrSymbol = /[0-9]|[^A-Za-z0-9]/.test(form.newPassword);
   const confirmationMatches = Boolean(form.confirmPassword) && form.newPassword === form.confirmPassword;
   const passwordRules = [
-    { label: "At least 6 characters", isValid: newPasswordHasMinLength },
-    { label: "One uppercase letter", isValid: newPasswordHasUppercase },
-    { label: "One number or symbol", isValid: newPasswordHasNumberOrSymbol },
-    { label: "Confirmation matches", isValid: confirmationMatches },
+    { label: t("account.atLeast6Characters"), isValid: newPasswordHasMinLength },
+    { label: t("account.uppercaseLetter"), isValid: newPasswordHasUppercase },
+    { label: t("account.numberOrSymbol"), isValid: newPasswordHasNumberOrSymbol },
+    { label: t("account.confirmationMatches"), isValid: confirmationMatches },
   ];
   const isPasswordFormValid =
     !wantsPasswordChange ||
@@ -82,7 +91,8 @@ export default function AccountSettings({
 
   const updateField = (field: keyof AccountForm, value: string) => {
     setError("");
-    setSuccessMessage("");
+    setErrorKey("");
+    setSuccessMessageKey("");
     setForm((current) => ({ ...current, [field]: value }));
   };
 
@@ -91,34 +101,35 @@ export default function AccountSettings({
 
     if (wantsPasswordChange) {
       if (!form.currentPassword) {
-        setError("Current password is required to change your password.");
+        setErrorKey("account.currentPasswordRequired");
         return;
       }
 
       if (form.newPassword.length < 6) {
-        setError("New password must be at least 6 characters.");
+        setErrorKey("account.newPasswordTooShort");
         return;
       }
 
       if (!newPasswordHasUppercase) {
-        setError("New password must contain at least one uppercase letter.");
+        setErrorKey("account.uppercaseRequired");
         return;
       }
 
       if (!newPasswordHasNumberOrSymbol) {
-        setError("New password must contain at least one number or symbol.");
+        setErrorKey("account.numberOrSymbolRequired");
         return;
       }
 
       if (!confirmationMatches) {
-        setError("New password and confirmation do not match.");
+        setErrorKey("account.passwordMismatch");
         return;
       }
     }
 
     setLoading(true);
     setError("");
-    setSuccessMessage("");
+    setErrorKey("");
+    setSuccessMessageKey("");
     setSaved(false);
 
     try {
@@ -148,14 +159,15 @@ export default function AccountSettings({
         confirmPassword: "",
       }));
       setSaved(true);
-      setSuccessMessage(
+      setSuccessMessageKey(
         wantsPasswordChange
-          ? "Profile and password updated successfully."
-          : "Account settings saved successfully."
+          ? "account.profileAndPasswordSaved"
+          : "account.saved"
       );
       window.setTimeout(() => setSaved(false), 2400);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update account settings.");
+      if (err instanceof Error) setError(err.message);
+      else setErrorKey("account.updateFailed");
     } finally {
       setLoading(false);
     }
@@ -170,16 +182,16 @@ export default function AccountSettings({
           className="inline-flex items-center gap-1.5 text-xs font-semibold text-on-surface-variant hover:text-primary transition-colors cursor-pointer w-fit"
         >
           <HugeiconsIcon icon="arrow-left" size={14} strokeWidth={2} />
-          <span>{backLabel}</span>
+          <span>{displayBackLabel}</span>
         </Link>
 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-1">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-on-surface">
-              Account & Security
+              {t("account.title")}
             </h1>
             <p className="text-xs sm:text-sm text-on-surface-variant max-w-xl leading-relaxed mt-1">
-              Manage your profile credentials, university email, and workspace authentication password.
+              {t("account.description")}
             </p>
           </div>
         </div>
@@ -192,9 +204,9 @@ export default function AccountSettings({
             <HugeiconsIcon icon={GoogleIcon} size={18} />
           </div>
           <div>
-            <p className="text-xs font-bold text-on-surface">Connected via Google Single Sign-On</p>
+            <p className="text-xs font-bold text-on-surface">{t("account.googleConnected")}</p>
             <p className="text-xs text-on-surface-variant mt-0.5 leading-relaxed">
-              Your name, email, and authentication credentials are provided by Google SSO.
+              {t("account.googleCredentialsProvided")}
             </p>
           </div>
         </div>
@@ -204,15 +216,15 @@ export default function AccountSettings({
       {saved && (
         <div className="mb-6 flex items-center gap-2.5 rounded-xl border border-secondary/30 bg-secondary/10 px-4 py-3 text-secondary text-xs font-semibold shadow-2xs animate-in fade-in duration-200">
           <HugeiconsIcon icon="checkmark-circle-02" size={18} strokeWidth={2} className="shrink-0" />
-          <span>{successMessage || "Account settings saved successfully."}</span>
+          <span>{t(successMessageKey || "account.saved")}</span>
         </div>
       )}
 
       {/* Error Notification */}
-      {error && (
+      {(errorKey || error) && (
         <div className="mb-6 flex items-center gap-2.5 rounded-xl border border-error/30 bg-error/10 px-4 py-3 text-error text-xs font-semibold shadow-2xs animate-in fade-in duration-200">
           <HugeiconsIcon icon="cancel-circle" size={18} strokeWidth={2} className="shrink-0" />
-          <span>{error}</span>
+          <span>{errorKey ? t(errorKey) : error}</span>
         </div>
       )}
 
@@ -221,16 +233,16 @@ export default function AccountSettings({
         <div className="flex items-center gap-4 pb-5 border-b border-outline-variant/40">
           <div className="w-14 h-14 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center font-bold text-base overflow-hidden shrink-0 shadow-2xs">
             {form.avatar ? (
-              <img src={form.avatar} alt="Account avatar" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+              <img src={form.avatar} alt={t("account.avatarAlt")} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
             ) : (
               (form.fullName || "U").substring(0, 2).toUpperCase()
             )}
           </div>
           <div className="min-w-0">
-            <p className="text-base font-bold text-on-surface truncate">{form.fullName || "Student Account"}</p>
+            <p className="text-base font-bold text-on-surface truncate">{form.fullName || t("account.studentAccount")}</p>
             <p className="text-xs text-on-surface-variant truncate mt-0.5">{form.email}</p>
             <span className="inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded bg-surface border border-outline-variant text-[10px] font-semibold text-outline-variant uppercase tracking-wide">
-              <span>{isGoogleAccount ? "Google Verified" : memberLabel}</span>
+              <span>{isGoogleAccount ? t("account.googleVerified") : displayMemberLabel}</span>
             </span>
           </div>
         </div>
@@ -238,68 +250,68 @@ export default function AccountSettings({
         <div className="flex flex-col gap-4">
           <TextField
             id="account-full-name"
-            label="Full Name"
+            label={t("account.fullName")}
             value={form.fullName}
             onChange={(fullName) => updateField("fullName", fullName)}
-            placeholder="Your full name"
+            placeholder={t("account.fullNamePlaceholder")}
             disabled={isGoogleAccount}
           />
           <TextField
             id="account-email"
-            label="Email"
+            label={t("account.email")}
             type="email"
             value={form.email}
             onChange={() => undefined}
             disabled
-            helperText="Email address cannot be changed."
+            helperText={t("account.emailUnchangeable")}
           />
         </div>
 
         {!isGoogleAccount && (
           <div className="border-t border-outline-variant/40 pt-5 flex flex-col gap-4">
             <div>
-              <h2 className="text-sm font-bold text-on-surface">Change Password</h2>
+              <h2 className="text-sm font-bold text-on-surface">{t("account.changePassword")}</h2>
               <p className="text-xs text-on-surface-variant mt-0.5 leading-relaxed">
-                Leave these fields empty if you only want to update your profile name.
+                {t("account.leavePasswordBlank")}
               </p>
             </div>
             <TextField
               id="account-current-password"
               name="manual-account-current-secret"
-              label="Current Password"
+              label={t("account.currentPassword")}
               type="password"
               value={form.currentPassword}
               onChange={(currentPassword) => updateField("currentPassword", currentPassword)}
-              placeholder="Enter current password"
-              helperText="Required only when changing password."
+              placeholder={t("account.currentPasswordPlaceholder")}
+              helperText={t("account.currentPasswordHelp")}
               autoComplete="new-password"
             />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <TextField
                 id="account-new-password"
                 name="manual-account-new-secret"
-                label="New Password"
+                label={t("account.newPassword")}
                 type="password"
                 value={form.newPassword}
                 onChange={(newPassword) => updateField("newPassword", newPassword)}
-                placeholder="At least 6 characters"
+                placeholder={t("account.newPasswordPlaceholder")}
                 autoComplete="new-password"
               />
               <TextField
                 id="account-confirm-password"
                 name="manual-account-confirm-secret"
-                label="Confirm Password"
+                label={t("account.confirmPassword")}
                 type="password"
                 value={form.confirmPassword}
                 onChange={(confirmPassword) => updateField("confirmPassword", confirmPassword)}
-                placeholder="Confirm new password"
+                placeholder={t("account.confirmPasswordPlaceholder")}
                 autoComplete="new-password"
               />
             </div>
 
             {wantsPasswordChange && (
               <div className="rounded-xl border border-outline-variant/60 bg-surface p-4">
-                <p className="text-xs font-bold text-on-surface mb-2">Password Requirements</p>
+                <p className="text-xs font-bold text-on-surface mb-2">{t("account.passwordRequirements")}</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {passwordRules.map((rule) => (
                     <div
@@ -333,7 +345,7 @@ export default function AccountSettings({
             className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-xl bg-primary text-on-primary text-xs font-bold shadow-2xs hover:bg-primary/90 active:scale-98 transition-all disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
           >
             <HugeiconsIcon icon={loading ? "cloud-sync" : "cloud-check"} size={16} className={loading ? "animate-spin" : ""} strokeWidth={1.8} />
-            <span>{loading ? "Saving..." : wantsPasswordChange ? "Update Password" : "Save Changes"}</span>
+            <span>{loading ? t("account.saving") : wantsPasswordChange ? t("account.updatePassword") : t("account.saveChanges")}</span>
           </button>
         </footer>
       )}

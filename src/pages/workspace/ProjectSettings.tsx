@@ -2,8 +2,10 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { MultiSelectChips, SelectField, TextAreaField, TextField } from "@/components/onboarding/FormControls";
 import { useOnboarding } from "@/context/OnboardingContext";
+import { useTranslation } from "react-i18next";
 import { fetchApi } from "@/lib/api";
 import HugeiconsIcon, { Folder01Icon } from "@/components/ui/HugeiconsIcon";
+import { displayOptions } from "@/lib/onboardingOptions";
 
 const PROJECT_TYPES = ["Academic Project", "Internship / Industrial Project", "Startup Project", "Research Project"];
 const DOMAINS = [
@@ -90,9 +92,11 @@ function SettingsSection({
 }
 
 export default function ProjectSettings() {
+  const { t } = useTranslation("onboarding");
   const { data, updateSection, resetOnboarding } = useOnboarding();
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
+  const [errorIsFallback, setErrorIsFallback] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [problemStatementTouched, setProblemStatementTouched] = useState(false);
 
@@ -104,6 +108,7 @@ export default function ProjectSettings() {
   const handleSave = async () => {
     setIsSaving(true);
     setError("");
+    setErrorIsFallback(false);
     setSaved(false);
 
     try {
@@ -128,7 +133,8 @@ export default function ProjectSettings() {
       setProblemStatementTouched(false);
       markSaved();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save project settings.");
+      setError(err instanceof Error ? err.message : "");
+      setErrorIsFallback(!(err instanceof Error));
     } finally {
       setIsSaving(false);
     }
@@ -143,16 +149,16 @@ export default function ProjectSettings() {
           className="inline-flex items-center gap-1.5 text-xs font-semibold text-on-surface-variant hover:text-primary transition-colors cursor-pointer w-fit"
         >
           <HugeiconsIcon icon="arrow-left" size={14} strokeWidth={2} />
-          <span>Back to Settings</span>
+          <span>{t("projectSettings.backToSettings")}</span>
         </Link>
 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-1">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-on-surface">
-              Project Specifications
+              {t("projectSettings.title")}
             </h1>
             <p className="text-xs sm:text-sm text-on-surface-variant max-w-2xl leading-relaxed mt-1">
-              Update the academic parameters and technical context used to initialize and generate your PFE workspace artifacts.
+              {t("projectSettings.description")}
             </p>
           </div>
 
@@ -164,7 +170,7 @@ export default function ProjectSettings() {
               className="inline-flex items-center gap-2 h-9 px-4 rounded-xl bg-primary text-on-primary text-xs font-bold shadow-2xs hover:bg-primary/90 active:scale-98 transition-all disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
             >
               <HugeiconsIcon icon={isSaving ? "cloud-sync" : "cloud-check"} size={16} className={isSaving ? "animate-spin" : ""} strokeWidth={1.8} />
-              <span>{isSaving ? "Saving..." : "Save Changes"}</span>
+              <span>{isSaving ? t("projectSettings.saving") : t("projectSettings.saveChanges")}</span>
             </button>
           </div>
         </div>
@@ -174,14 +180,14 @@ export default function ProjectSettings() {
       {saved && (
         <div className="mb-6 flex items-center gap-2.5 rounded-xl border border-secondary/30 bg-secondary/10 px-4 py-3 text-secondary text-xs font-semibold shadow-2xs animate-in fade-in duration-200">
           <HugeiconsIcon icon="checkmark-circle-02" size={18} strokeWidth={2} className="shrink-0" />
-          <span>Project specifications have been updated and synchronized with your workspace.</span>
+          <span>{t("projectSettings.savedNotice")}</span>
         </div>
       )}
 
-      {error && (
+      {(error || errorIsFallback) && (
         <div className="mb-6 flex items-center gap-2.5 rounded-xl border border-error/30 bg-error/10 px-4 py-3 text-error text-xs font-semibold shadow-2xs animate-in fade-in duration-200">
           <HugeiconsIcon icon="cancel-circle" size={18} strokeWidth={2} className="shrink-0" />
-          <span>{error}</span>
+          <span>{errorIsFallback ? t("projectSettings.saveError") : error}</span>
         </div>
       )}
 
@@ -189,34 +195,34 @@ export default function ProjectSettings() {
         {/* Section 1: Project Basics */}
         <SettingsSection 
           icon="document" 
-          title="Academic Basics & Identity" 
-          description="Core academic degree, title, institution, and language settings."
+          title={t("projectSettings.academicBasicsTitle")}
+          description={t("projectSettings.academicBasicsDescription")}
         >
           <TextField
             id="settings-project-title"
-            label="Project Title"
+            label={t("basics.projectTitle")}
             required
             value={data.basics.title}
             onChange={(title) => updateSection("basics", { title })}
           />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <SelectField id="settings-type" label="Project Type" value={data.basics.type} onChange={(type) => updateSection("basics", { type })} options={PROJECT_TYPES} />
-            <SelectField id="settings-domain" label="Domain" required value={data.basics.domain} onChange={(domain) => updateSection("basics", { domain })} options={DOMAINS} />
-            <SelectField id="settings-language" label="Report Language" value={data.basics.language} onChange={(language) => updateSection("basics", { language })} options={LANGUAGES} />
-            <TextField id="settings-year" label="Academic Year" value={data.basics.academicYear} onChange={(academicYear) => updateSection("basics", { academicYear })} />
-            <TextField id="settings-university" label="University" value={data.basics.university} onChange={(university) => updateSection("basics", { university })} />
+            <SelectField id="settings-type" label={t("basics.projectType")} value={data.basics.type} onChange={(type) => updateSection("basics", { type })} options={displayOptions(PROJECT_TYPES, "projectType", t)} />
+            <SelectField id="settings-domain" label={t("basics.domain")} required value={data.basics.domain} onChange={(domain) => updateSection("basics", { domain })} options={displayOptions(DOMAINS, "domain", t)} />
+            <SelectField id="settings-language" label={t("basics.reportLanguage")} value={data.basics.language} onChange={(language) => updateSection("basics", { language })} options={displayOptions(LANGUAGES, "generationLanguage", t)} />
+            <TextField id="settings-year" label={t("basics.academicYear")} value={data.basics.academicYear} onChange={(academicYear) => updateSection("basics", { academicYear })} />
+            <TextField id="settings-university" label={t("basics.university")} value={data.basics.university} onChange={(university) => updateSection("basics", { university })} />
           </div>
         </SettingsSection>
 
         {/* Section 2: Project Context */}
         <SettingsSection 
           icon="group" 
-          title="Problem Statement & Industry Context" 
-          description="Target problem formulation, project goals, deliverables, and host partner."
+          title={t("projectSettings.projectContextTitle")}
+          description={t("projectSettings.projectContextDescription")}
         >
           <TextAreaField
             id="settings-problem"
-            label="Problem Statement"
+            label={t("description.problemStatement")}
             required
             rows={4}
             value={data.description.problemStatement}
@@ -227,62 +233,62 @@ export default function ProjectSettings() {
           />
           <TextAreaField
             id="settings-objective"
-            label="Project Objective"
+            label={t("description.projectObjective")}
             required
             rows={3}
             value={data.description.objective}
             onChange={(objective) => updateSection("description", { objective })}
           />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <TextAreaField id="settings-deliverables" label="Expected Deliverables" rows={3} value={data.description.deliverables} onChange={(deliverables) => updateSection("description", { deliverables })} />
-            <TextAreaField id="settings-stakeholders" label="Stakeholders" rows={3} value={data.description.stakeholders} onChange={(stakeholders) => updateSection("description", { stakeholders })} />
-            <TextField id="settings-company" label="Internship Company" value={data.description.company} onChange={(company) => updateSection("description", { company })} />
-            <TextField id="settings-industry" label="Industry Sector" value={data.description.industry} onChange={(industry) => updateSection("description", { industry })} />
+            <TextAreaField id="settings-deliverables" label={t("description.expectedDeliverables")} rows={3} value={data.description.deliverables} onChange={(deliverables) => updateSection("description", { deliverables })} />
+            <TextAreaField id="settings-stakeholders" label={t("description.stakeholders")} rows={3} value={data.description.stakeholders} onChange={(stakeholders) => updateSection("description", { stakeholders })} />
+            <TextField id="settings-company" label={t("description.internshipCompany")} value={data.description.company} onChange={(company) => updateSection("description", { company })} />
+            <TextField id="settings-industry" label={t("description.industrySector")} value={data.description.industry} onChange={(industry) => updateSection("description", { industry })} />
           </div>
         </SettingsSection>
 
         {/* Section 3: Technical Context */}
         <SettingsSection 
           icon="layers" 
-          title="Technical Architecture & Methodology" 
-          description="Implementation choices used by generated requirements, backlog, and technical documentation."
+          title={t("projectSettings.technicalTitle")}
+          description={t("projectSettings.technicalDescription")}
         >
           <MultiSelectChips
-            label="Development Scope / Type"
+            label={t("projectSettings.developmentScopeType")}
             values={data.technicalContext.developmentTypes}
             onChange={(developmentTypes) => updateSection("technicalContext", { developmentTypes })}
-            options={DEVELOPMENT_TYPES}
+            options={displayOptions(DEVELOPMENT_TYPES, "developmentType", t)}
           />
           {data.technicalContext.developmentTypes.includes("Other") && (
             <TextField
               id="settings-other-development-type"
-              label="Other Development Type"
+              label={t("technical.otherDevelopmentType")}
               value={data.technicalContext.otherDevelopmentType}
               onChange={(otherDevelopmentType) => updateSection("technicalContext", { otherDevelopmentType })}
             />
           )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <SelectField id="settings-methodology" label="Methodology" value={data.technicalContext.methodology} onChange={(methodology) => updateSection("technicalContext", { methodology })} options={METHODOLOGIES} />
-            <SelectField id="settings-complexity" label="Project Complexity" value={data.technicalContext.complexity} onChange={(complexity) => updateSection("technicalContext", { complexity })} options={COMPLEXITIES} />
+            <SelectField id="settings-methodology" label={t("technical.methodology")} value={data.technicalContext.methodology} onChange={(methodology) => updateSection("technicalContext", { methodology })} options={displayOptions(METHODOLOGIES, "methodology", t)} />
+            <SelectField id="settings-complexity" label={t("technical.projectComplexity")} value={data.technicalContext.complexity} onChange={(complexity) => updateSection("technicalContext", { complexity })} options={displayOptions(COMPLEXITIES, "complexity", t)} />
           </div>
           <MultiSelectChips
-            label="Technology Stack"
+            label={t("technical.technologyStack")}
             values={data.technicalContext.technologies}
             onChange={(technologies) => updateSection("technicalContext", { technologies })}
-            options={TECHNOLOGY_OPTIONS}
+            options={displayOptions(TECHNOLOGY_OPTIONS, "technology", t)}
           />
           {data.technicalContext.technologies.includes("Other") && (
             <TextField
               id="settings-other-technologies"
-              label="Other Technologies"
+              label={t("technical.otherTechnologies")}
               value={data.technicalContext.otherTechnologies}
               onChange={(otherTechnologies) => updateSection("technicalContext", { otherTechnologies })}
             />
           )}
-          <TextField id="settings-target-users" label="Target Users" value={data.technicalContext.targetUsers} onChange={(targetUsers) => updateSection("technicalContext", { targetUsers })} />
+          <TextField id="settings-target-users" label={t("technical.targetUsers")} value={data.technicalContext.targetUsers} onChange={(targetUsers) => updateSection("technicalContext", { targetUsers })} />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <TextField id="settings-team-size" label="Team Size" type="number" value={data.technicalContext.teamSize} onChange={(teamSize) => updateSection("technicalContext", { teamSize: Number(teamSize) })} />
-            <TextField id="settings-duration" label="Duration (months)" type="number" value={data.technicalContext.duration} onChange={(duration) => updateSection("technicalContext", { duration: Number(duration) })} />
+            <TextField id="settings-team-size" label={t("technical.teamSize")} type="number" value={data.technicalContext.teamSize} onChange={(teamSize) => updateSection("technicalContext", { teamSize: Number(teamSize) })} />
+            <TextField id="settings-duration" label={t("technical.duration")} type="number" value={data.technicalContext.duration} onChange={(duration) => updateSection("technicalContext", { duration: Number(duration) })} />
           </div>
         </SettingsSection>
       </div>
@@ -297,7 +303,7 @@ export default function ProjectSettings() {
           }}
           className="w-full sm:w-auto px-4 py-2 rounded-xl border border-outline-variant bg-surface hover:bg-surface-container text-on-surface-variant hover:text-on-surface text-xs font-semibold transition-all cursor-pointer shadow-2xs"
         >
-          Reset Onboarding Defaults
+          {t("projectSettings.resetDefaults")}
         </button>
         <button
           type="button"
@@ -306,7 +312,7 @@ export default function ProjectSettings() {
           className="w-full sm:w-auto inline-flex items-center justify-center gap-2 h-10 px-5 rounded-xl bg-primary text-on-primary text-xs font-bold shadow-2xs hover:bg-primary/90 active:scale-98 transition-all disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
         >
           <HugeiconsIcon icon={isSaving ? "cloud-sync" : "cloud-check"} size={16} className={isSaving ? "animate-spin" : ""} strokeWidth={1.8} />
-          <span>{isSaving ? "Saving..." : "Save Project Settings"}</span>
+          <span>{isSaving ? t("projectSettings.saving") : t("projectSettings.saveProjectSettings")}</span>
         </button>
       </footer>
     </div>

@@ -1,0 +1,177 @@
+{
+  "layout": {
+    "title": "PFE Guidance Platform",
+    "exitSetup": "Exit Setup"
+  },
+  "steps": {
+    "progress": "Step {{step}} of 4",
+    "back": "Back",
+    "nextStep": "Next Step",
+    "reviewSummary": "Review Summary",
+    "createProject": "Create Project",
+    "creating": "Creating...",
+    "edit": "Edit",
+    "notProvided": "Not provided",
+    "summaryReviewTitle": "Summary Review",
+    "summaryReviewDescription": "Review your project details before final creation.",
+    "completeRequiredFields": "Complete the required fields in Project Basics and Project Description before creating the workspace.",
+    "basics": "Basics",
+    "description": "Description",
+    "technicalContext": "Technical Context"
+  },
+  "basics": {
+    "title": "Project Basics",
+    "description": "Define the identity and academic context of the PFE workspace.",
+    "projectTitle": "Project Title",
+    "projectTitlePlaceholder": "e.g. AI-Powered PFE Management Platform",
+    "projectTitleHelper": "Use a clear title that describes the solution and its purpose.",
+    "projectType": "Project Type",
+    "domain": "Domain",
+    "reportLanguage": "Report Language",
+    "academicYear": "Academic Year",
+    "university": "University",
+    "universityPlaceholder": "Your university"
+  },
+  "description": {
+    "title": "Project Description",
+    "description": "Capture the problem, objective, deliverables, and stakeholders so AI modules can generate accurate project artifacts.",
+    "problemStatement": "Problem Statement",
+    "problemStatementPlaceholder": "Describe the problem, who is affected, and why it matters.",
+    "problemStatementHelper": "Explain the current pain point, limitation, or opportunity. This will be reused to generate the formal problem statement.",
+    "projectObjective": "Project Objective",
+    "projectObjectivePlaceholder": "State the main goal your project must achieve.",
+    "projectObjectiveHelper": "Write the desired outcome in measurable terms when possible.",
+    "expectedDeliverables": "Expected Deliverables",
+    "expectedDeliverablesPlaceholder": "e.g. Web app, API, documentation, deployment guide",
+    "expectedDeliverablesHelper": "List the outputs you expect to submit or demonstrate.",
+    "stakeholders": "Stakeholders",
+    "stakeholdersPlaceholder": "e.g. Students, supervisors, administrators",
+    "stakeholdersHelper": "Mention people or organizations that use, review, or benefit from the project.",
+    "internshipCompany": "Internship Company",
+    "internshipCompanyPlaceholder": "Optional company name",
+    "internshipCompanyHelper": "Leave empty for a purely academic project.",
+    "industrySector": "Industry Sector",
+    "industrySectorPlaceholder": "e.g. Education, FinTech, Healthcare",
+    "industrySectorHelper": "This helps tailor examples, risks, and business context."
+  },
+  "technical": {
+    "title": "Technical Context",
+    "description": "Describe how the project will be built so generated artifacts match the real implementation scope.",
+    "developmentType": "Development Type",
+    "developmentTypeHelper": "Select every platform or technical category that applies to your project.",
+    "otherDevelopmentType": "Other Development Type",
+    "otherDevelopmentTypePlaceholder": "e.g. AR/VR system, embedded system, blockchain application",
+    "otherDevelopmentTypeHelper": "Specify the real project type if it is not listed above.",
+    "methodology": "Methodology",
+    "projectComplexity": "Project Complexity",
+    "technologyStack": "Technology Stack",
+    "technologyStackHelper": "Select the frameworks, languages, databases, cloud tools, and AI libraries used in your project.",
+    "otherTechnologies": "Other Technologies",
+    "otherTechnologiesPlaceholder": "e.g. Odoo, Figma, MATLAB, Apache Kafka",
+    "otherTechnologiesHelper": "Use this only for real tools or technologies that are not available in the list.",
+    "targetUsers": "Target Users",
+    "targetUsersPlaceholder": "e.g. Students, academic supervisors, company supervisors, administrators",
+    "targetUsersHelper": "This helps AI generate relevant actors and backlog items.",
+    "teamSize": "Team Size",
+    "duration": "Duration (months)"
+  },
+  "summary": {
+    "projectTitle": "Project Title",
+    "projectType": "Project Type",
+    "domain": "Domain",
+    "reportLanguage": "Report Language",
+    "academicYear": "Academic Year",
+    "university": "University",
+    "problemStatement": "Problem Statement",
+    "projectObjective": "Project Objective",
+    "expectedDeliverables": "Expected Deliverables",
+    "internshipCompany": "Internship Company",
+    "industrySector": "Industry Sector",
+    "stakeholders": "Stakeholders",
+    "developmentType": "Development Type",
+    "otherDevelopmentType": "Other Development Type",
+    "methodology": "Methodology",
+    "technologyStack": "Technology Stack",
+    "otherTechnologies": "Other Technologies",
+    "targetUsers": "Target Users",
+    "projectComplexity": "Project Complexity",
+    "teamSize": "Team Size",
+    "duration": "Duration (months)"
+  },
+  "projectSettings": {
+    "backToSettings": "Back to Settings",
+    "title": "Project Specifications",
+    "description": "Update the academic parameters and technical context used to initialize and generate your PFE workspace artifacts.",
+    "saveChanges": "Save Changes",
+    "saving": "Saving...",
+    "savedNotice": "Project specifications have been updated and synchronized with your workspace.",
+    "academicBasicsTitle": "Academic Basics & Identity",
+    "academicBasicsDescription": "Core academic degree, title, institution, and language settings.",
+    "projectContextTitle": "Problem Statement & Industry Context",
+    "projectContextDescription": "Target problem formulation, project goals, deliverables, and host partner.",
+    "technicalTitle": "Technical Architecture & Methodology",
+    "technicalDescription": "Implementation choices used by generated requirements, backlog, and technical documentation.",
+    "developmentScopeType": "Development Scope / Type",
+    "resetDefaults": "Reset Onboarding Defaults",
+    "saveProjectSettings": "Save Project Settings",
+    "saveError": "Failed to save project settings."
+  },
+  "controls": {
+    "selectOption": "Select an option",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "removeTag": "Remove {{tag}}",
+    "typeAndPressEnter": "Type and press Enter...",
+    "tagPlaceholder": "Type and press Enter..."
+  },
+  "options": {
+    "other": "Other",
+    "projectType": {
+      "academic": "Academic Project",
+      "internship": "Internship / Industrial Project",
+      "startup": "Startup Project",
+      "research": "Research Project"
+    },
+    "projectTypeDescriptions": {
+      "academic": "University-led project focused on academic validation.",
+      "internship": "Company-hosted project solving a real business need.",
+      "startup": "Product-oriented idea with market and growth potential.",
+      "research": "Investigation-driven work with experiments or publications."
+    },
+    "generationLanguage": {
+      "english": "English",
+      "french": "French",
+      "arabic": "Arabic"
+    },
+    "domain": {
+      "softwareEngineering": "Software Engineering",
+      "artificialIntelligence": "Artificial Intelligence",
+      "dataScience": "Data Science",
+      "cybersecurity": "Cybersecurity",
+      "cloudComputing": "Cloud Computing",
+      "businessIntelligence": "Business Intelligence"
+    },
+    "developmentType": {
+      "webApplication": "Web Application",
+      "mobileApplication": "Mobile Application",
+      "desktopApplication": "Desktop Application",
+      "aiMachineLearning": "AI / Machine Learning",
+      "dataEngineering": "Data Engineering",
+      "dataAnalytics": "Data Analytics",
+      "cloudPlatform": "Cloud Platform",
+      "iotSystem": "IoT System"
+    },
+    "methodology": {
+      "waterfall": "Waterfall",
+      "hybrid": "Hybrid",
+      "agile": "Agile",
+      "lean": "Lean",
+      "designThinking": "Design Thinking"
+    },
+    "complexity": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High"
+    }
+  }
+}

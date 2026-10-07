@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { fetchApi } from "../../lib/api";
 import HugeiconsIcon from "../../components/ui/HugeiconsIcon";
 
@@ -25,6 +26,7 @@ function persistSession(data: any) {
 }
 
 export default function VerifyEmail() {
+  const { t } = useTranslation("auth");
   const navigate = useNavigate();
   const location = useLocation();
   const state = (location.state || {}) as VerifyEmailLocationState;
@@ -36,7 +38,9 @@ export default function VerifyEmail() {
   const [email, setEmail] = useState(initialEmail);
   const [digits, setDigits] = useState<string[]>(["", "", "", "", "", ""]);
   const [error, setError] = useState("");
+  const [errorKey, setErrorKey] = useState("");
   const [message, setMessage] = useState(state.message || "");
+  const [messageKey, setMessageKey] = useState("");
   const [devCode, setDevCode] = useState(state.devVerificationCode || "");
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
@@ -46,6 +50,7 @@ export default function VerifyEmail() {
 
   const handleDigitChange = (index: number, value: string) => {
     setError("");
+    setErrorKey("");
     // Allow only numeric input
     const cleaned = value.replace(/\D/g, "");
     
@@ -105,17 +110,18 @@ export default function VerifyEmail() {
     event.preventDefault();
 
     if (!email.trim()) {
-      setError("Email address is required.");
+      setErrorKey("verify.emailRequired");
       return;
     }
 
     if (code.length !== 6) {
-      setError("Please enter the complete 6-digit verification code.");
+      setErrorKey("verify.completeCodeRequired");
       return;
     }
 
     setLoading(true);
     setError("");
+    setErrorKey("");
 
     try {
       const data = await fetchApi("/auth/verify-email", {
@@ -133,7 +139,8 @@ export default function VerifyEmail() {
 
       navigate(data.hasCompletedOnboarding ? "/workspace/overview" : "/onboarding/1");
     } catch (err: any) {
-      setError(err.message || "Email verification failed. Please check the code and try again.");
+      if (err.message) setError(err.message);
+      else setErrorKey("verify.verificationFailed");
     } finally {
       setLoading(false);
     }
@@ -141,12 +148,13 @@ export default function VerifyEmail() {
 
   const handleResend = async () => {
     if (!email.trim()) {
-      setError("Email is required before resending a code.");
+      setErrorKey("verify.resendEmailRequired");
       return;
     }
 
     setResending(true);
     setError("");
+    setErrorKey("");
 
     try {
       const data = await fetchApi("/auth/resend-verification-code", {
@@ -155,17 +163,31 @@ export default function VerifyEmail() {
       });
 
       if (data.alreadyVerified) {
-        setMessage(data.message || "This email is already verified. You can log in now.");
+        if (data.message) {
+          setMessage(data.message);
+          setMessageKey("");
+        }
+        else {
+          setMessage("");
+          setMessageKey("verify.alreadyVerified");
+        }
         return;
       }
 
       sessionStorage.setItem("pendingVerificationEmail", data.email || email);
-      setMessage(data.message || "A new verification code has been dispatched.");
+      if (data.message) {
+        setMessage(data.message);
+        setMessageKey("");
+      } else {
+        setMessage("");
+        setMessageKey("verify.codeSent");
+      }
       setDevCode(data.devVerificationCode || "");
       setDigits(["", "", "", "", "", ""]);
       inputRefs.current[0]?.focus();
     } catch (err: any) {
-      setError(err.message || "Failed to resend verification code.");
+      if (err.message) setError(err.message);
+      else setErrorKey("verify.resendFailed");
     } finally {
       setResending(false);
     }
@@ -178,21 +200,21 @@ export default function VerifyEmail() {
         <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center mb-3 shadow-2xs">
           <HugeiconsIcon icon="mark-email-read" size={24} strokeWidth={1.8} />
         </div>
-        <h1 className="text-2xl font-bold tracking-tight text-on-surface">Verify your email</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-on-surface">{t("verify.title")}</h1>
         <p className="text-xs text-on-surface-variant mt-1 max-w-[300px]">
           {email ? (
             <>
-              Enter the 6-digit code sent to <strong className="text-on-surface font-semibold">{email}</strong>
+              {t("verify.instructionsWithEmail", { email })}
             </>
           ) : (
-            "Enter the 6-digit verification code sent to your email."
+            t("verify.instructions")
           )}
         </p>
       </div>
 
       {devCode && (
         <div className="p-3 mb-4 bg-surface-container-low border border-primary/20 rounded-xl text-xs flex items-center justify-between">
-          <span className="text-on-surface-variant font-medium">Dev test code:</span>
+          <span className="text-on-surface-variant font-medium">{t("verify.devCode")}</span>
           <button 
             type="button"
             onClick={() => {
@@ -202,24 +224,24 @@ export default function VerifyEmail() {
               setDigits(newDigits);
             }}
             className="font-mono font-bold tracking-widest text-primary hover:underline cursor-pointer"
-            title="Click to fill"
+            title={t("verify.clickToFill")}
           >
             {devCode}
           </button>
         </div>
       )}
 
-      {message && !error && (
+      {(messageKey || message) && !error && !errorKey && (
         <div className="p-3 mb-4 rounded-xl bg-secondary/10 text-secondary border border-secondary/20 text-xs font-medium flex items-center gap-2">
           <HugeiconsIcon icon="checkmark-circle-02" size={16} strokeWidth={2} className="shrink-0" />
-          <span>{message}</span>
+          <span>{messageKey ? t(messageKey) : message}</span>
         </div>
       )}
 
-      {error && (
+      {(errorKey || error) && (
         <div className="p-3 mb-4 rounded-xl bg-error/10 text-error border border-error/20 text-xs font-medium flex items-center gap-2">
           <HugeiconsIcon icon="alert-circle" size={16} strokeWidth={2} className="shrink-0" />
-          <span>{error}</span>
+          <span>{errorKey ? t(errorKey) : error}</span>
         </div>
       )}
 
@@ -227,7 +249,7 @@ export default function VerifyEmail() {
         {!initialEmail && (
           <div>
             <label className="block text-xs font-semibold text-on-surface mb-1.5" htmlFor="email">
-              Email address
+              {t("verify.email")}
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-on-surface-variant/60">
@@ -241,10 +263,11 @@ export default function VerifyEmail() {
                 onChange={(event) => {
                   setEmail(event.target.value);
                   setError("");
+                  setErrorKey("");
                 }}
                 autoComplete="email"
                 required
-                placeholder="student@university.edu"
+                placeholder={t("verify.emailPlaceholder")}
                 className="block w-full h-11 pl-10 pr-3.5 bg-surface border border-outline-variant/80 rounded-xl text-sm text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
               />
             </div>
@@ -254,7 +277,7 @@ export default function VerifyEmail() {
         {/* 6-Digit Segmented OTP Input */}
         <div>
           <label className="block text-xs font-semibold text-on-surface mb-2.5 text-center">
-            Verification code
+            {t("verify.verificationCode")}
           </label>
           <div className="flex items-center justify-between gap-1.5 sm:gap-2">
             {digits.map((digit, idx) => (
@@ -264,6 +287,7 @@ export default function VerifyEmail() {
                   inputRefs.current[idx] = el;
                 }}
                 type="text"
+                aria-label={t("verify.digitLabel", { number: idx + 1 })}
                 inputMode="numeric"
                 maxLength={1}
                 value={digit}
@@ -286,10 +310,10 @@ export default function VerifyEmail() {
             {loading ? (
               <>
                 <div className="w-4 h-4 border-2 border-on-primary/30 border-t-on-primary rounded-full animate-spin" />
-                <span>Verifying...</span>
+                <span>{t("verify.verifying")}</span>
               </>
             ) : (
-              <span>Verify Email</span>
+              <span>{t("verify.verifyEmail")}</span>
             )}
           </button>
         </div>
@@ -303,16 +327,16 @@ export default function VerifyEmail() {
           disabled={resending}
           className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors disabled:opacity-50 cursor-pointer"
         >
-          {resending ? "Sending code..." : "Didn't receive a code? Resend"}
+          {resending ? t("verify.resending") : t("verify.resendPrompt")}
         </button>
 
         <p className="text-xs text-on-surface-variant">
-          Already verified?{" "}
+          {t("verify.alreadyVerifiedQuestion")}{" "}
           <Link 
             to="/login" 
             className="font-semibold text-primary hover:text-primary/80 transition-colors ml-0.5"
           >
-            Log in
+            {t("verify.logIn")}
           </Link>
         </p>
       </div>

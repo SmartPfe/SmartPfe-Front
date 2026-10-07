@@ -3,11 +3,18 @@ import OnboardingStep from "@/components/onboarding/OnboardingStep";
 import { Link, useNavigate } from "react-router-dom";
 import { useOnboarding } from "@/context/OnboardingContext";
 import { fetchApi } from "@/lib/api";
+import { useTranslation } from "react-i18next";
+import { displayOptionLabel, type OnboardingOptionGroup } from "@/lib/onboardingOptions";
 
-function formatValue(value: string | number | string[]) {
-  if (Array.isArray(value)) return value.length ? value.join(", ") : "Not provided";
-  if (typeof value === "number") return Number.isFinite(value) ? String(value) : "Not provided";
-  return value.trim() || "Not provided";
+function formatValue(value: string | number | string[], t: (key: string) => string, optionGroup?: OnboardingOptionGroup) {
+  if (Array.isArray(value)) {
+    if (!value.length) return t("steps.notProvided");
+    return optionGroup ? value.map((item) => displayOptionLabel(item, optionGroup, t)).join(", ") : value.join(", ");
+  }
+  if (typeof value === "number") return Number.isFinite(value) ? String(value) : t("steps.notProvided");
+  const text = value.trim();
+  if (!text) return t("steps.notProvided");
+  return optionGroup ? displayOptionLabel(text, optionGroup, t) : text;
 }
 
 function SummarySection({
@@ -19,8 +26,9 @@ function SummarySection({
   title: string;
   icon: string;
   editTo: string;
-  items: { label: string; value: string | number | string[] }[];
+  items: { label: string; value: string | number | string[]; optionGroup?: OnboardingOptionGroup }[];
 }) {
+  const { t } = useTranslation("onboarding");
   return (
     <section className="flex flex-col gap-sm">
       <div className="flex items-center justify-between gap-md border-b border-outline-variant pb-xs">
@@ -33,7 +41,7 @@ function SummarySection({
           className="inline-flex items-center gap-base px-sm py-base rounded-DEFAULT text-primary hover:bg-surface-container-high transition-colors font-label-sm text-label-sm"
         >
           <span className="material-symbols-outlined text-[16px]">edit</span>
-          Edit
+          {t("steps.edit")}
         </Link>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-md mt-sm">
@@ -41,7 +49,7 @@ function SummarySection({
           <div key={item.label} className="min-w-0">
             <span className="font-label-md text-label-md text-on-surface-variant block mb-base">{item.label}</span>
             <p className="font-body-md text-body-md text-on-surface font-medium whitespace-pre-wrap break-words">
-              {formatValue(item.value)}
+              {formatValue(item.value, t, item.optionGroup)}
             </p>
           </div>
         ))}
@@ -51,6 +59,7 @@ function SummarySection({
 }
 
 export default function SummaryReview() {
+  const { t } = useTranslation("onboarding");
   const { data, isStepValid, resetOnboarding } = useOnboarding();
   const canCreateProject = isStepValid(1) && isStepValid(2);
   const navigate = useNavigate();
@@ -86,62 +95,62 @@ export default function SummaryReview() {
   return (
     <OnboardingStep
       step={4}
-      title="Summary Review"
-      description="Review your project details before final creation."
+      title={t("steps.summaryReviewTitle")}
+      description={t("steps.summaryReviewDescription")}
       backTo="/onboarding/3"
-      nextLabel={isSubmitting ? "Creating..." : "Create Project"}
+      nextLabel={isSubmitting ? t("steps.creating") : t("steps.createProject")}
       nextIcon="check_circle"
       isNextDisabled={!canCreateProject || isSubmitting}
       onNextAction={handleCreateProject}
     >
       {!canCreateProject && (
         <div className="rounded-lg border border-error bg-error-container px-md py-sm text-on-error-container font-body-md text-body-md">
-          Complete the required fields in Project Basics and Project Description before creating the workspace.
+          {t("steps.completeRequiredFields")}
         </div>
       )}
 
       <SummarySection
-        title="Basics"
+        title={t("steps.basics")}
         icon="info"
         editTo="/onboarding/1"
         items={[
-          { label: "Project Title", value: data.basics.title },
-          { label: "Project Type", value: data.basics.type },
-          { label: "Domain", value: data.basics.domain },
-          { label: "Report Language", value: data.basics.language },
-          { label: "Academic Year", value: data.basics.academicYear },
-          { label: "University", value: data.basics.university },
+          { label: t("summary.projectTitle"), value: data.basics.title },
+          { label: t("summary.projectType"), value: data.basics.type, optionGroup: "projectType" },
+          { label: t("summary.domain"), value: data.basics.domain, optionGroup: "domain" },
+          { label: t("summary.reportLanguage"), value: data.basics.language, optionGroup: "generationLanguage" },
+          { label: t("summary.academicYear"), value: data.basics.academicYear },
+          { label: t("summary.university"), value: data.basics.university },
         ]}
       />
 
       <SummarySection
-        title="Description"
+        title={t("steps.description")}
         icon="description"
         editTo="/onboarding/2"
         items={[
-          { label: "Problem Statement", value: data.description.problemStatement },
-          { label: "Project Objective", value: data.description.objective },
-          { label: "Expected Deliverables", value: data.description.deliverables },
-          { label: "Internship Company", value: data.description.company },
-          { label: "Industry Sector", value: data.description.industry },
-          { label: "Stakeholders", value: data.description.stakeholders },
+          { label: t("summary.problemStatement"), value: data.description.problemStatement },
+          { label: t("summary.projectObjective"), value: data.description.objective },
+          { label: t("summary.expectedDeliverables"), value: data.description.deliverables },
+          { label: t("summary.internshipCompany"), value: data.description.company },
+          { label: t("summary.industrySector"), value: data.description.industry },
+          { label: t("summary.stakeholders"), value: data.description.stakeholders },
         ]}
       />
 
       <SummarySection
-        title="Technical Context"
+        title={t("steps.technicalContext")}
         icon="settings_suggest"
         editTo="/onboarding/3"
         items={[
-          { label: "Development Type", value: data.technicalContext.developmentTypes },
-          { label: "Other Development Type", value: data.technicalContext.otherDevelopmentType },
-          { label: "Methodology", value: data.technicalContext.methodology },
-          { label: "Technology Stack", value: data.technicalContext.technologies },
-          { label: "Other Technologies", value: data.technicalContext.otherTechnologies },
-          { label: "Target Users", value: data.technicalContext.targetUsers },
-          { label: "Project Complexity", value: data.technicalContext.complexity },
-          { label: "Team Size", value: data.technicalContext.teamSize },
-          { label: "Duration (months)", value: data.technicalContext.duration },
+          { label: t("summary.developmentType"), value: data.technicalContext.developmentTypes, optionGroup: "developmentType" },
+          { label: t("summary.otherDevelopmentType"), value: data.technicalContext.otherDevelopmentType },
+          { label: t("summary.methodology"), value: data.technicalContext.methodology, optionGroup: "methodology" },
+          { label: t("summary.technologyStack"), value: data.technicalContext.technologies, optionGroup: "technology" },
+          { label: t("summary.otherTechnologies"), value: data.technicalContext.otherTechnologies },
+          { label: t("summary.targetUsers"), value: data.technicalContext.targetUsers },
+          { label: t("summary.projectComplexity"), value: data.technicalContext.complexity, optionGroup: "complexity" },
+          { label: t("summary.teamSize"), value: data.technicalContext.teamSize },
+          { label: t("summary.duration"), value: data.technicalContext.duration },
         ]}
       />
 

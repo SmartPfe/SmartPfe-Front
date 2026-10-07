@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { fetchApi } from "../../lib/api";
 import GoogleLoginButton from "../../components/GoogleLoginButton";
 import HugeiconsIcon from "../../components/ui/HugeiconsIcon";
 
 export default function Signup() {
+  const { t } = useTranslation("auth");
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     fullName: "",
@@ -12,6 +14,7 @@ export default function Signup() {
     password: "",
   });
   const [error, setError] = useState("");
+  const [errorKey, setErrorKey] = useState("");
   const [loading, setLoading] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0); // 0 to 4
   const [showPassword, setShowPassword] = useState(false);
@@ -30,17 +33,19 @@ export default function Signup() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.id]: e.target.value });
     setError("");
+    setErrorKey("");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.password.length < 6) {
-      setError("Password must be at least 6 characters.");
+      setErrorKey("signup.passwordTooShort");
       return;
     }
     
     setLoading(true);
     setError("");
+    setErrorKey("");
 
     try {
       const data = await fetchApi("/auth/register", {
@@ -56,17 +61,18 @@ export default function Signup() {
         },
       });
     } catch (err: any) {
-      setError(err.message || "Failed to register. Please try again.");
+      if (err.message) setError(err.message);
+      else setErrorKey("signup.failed");
     } finally {
       setLoading(false);
     }
   };
 
   const getStrengthLabel = () => {
-    if (passwordStrength <= 1) return { text: "Weak", color: "text-error" };
-    if (passwordStrength === 2) return { text: "Fair", color: "text-amber-500" };
-    if (passwordStrength === 3) return { text: "Good", color: "text-amber-500" };
-    return { text: "Strong", color: "text-secondary" };
+    if (passwordStrength <= 1) return { text: t("signup.strength.weak"), color: "text-error" };
+    if (passwordStrength === 2) return { text: t("signup.strength.fair"), color: "text-amber-500" };
+    if (passwordStrength === 3) return { text: t("signup.strength.good"), color: "text-amber-500" };
+    return { text: t("signup.strength.strong"), color: "text-secondary" };
   };
 
   const getSegmentColor = (segmentIndex: number) => {
@@ -76,6 +82,20 @@ export default function Signup() {
     return "bg-secondary";
   };
 
+  const knownGoogleErrors = [
+    t("google.failed", { lng: "en" }),
+    t("google.failed", { lng: "fr" }),
+    t("google.noCredential", { lng: "en" }),
+    t("google.noCredential", { lng: "fr" }),
+  ];
+  const displayError = errorKey
+    ? t(errorKey)
+    : knownGoogleErrors.includes(error)
+      ? error === t("google.noCredential", { lng: "en" }) || error === t("google.noCredential", { lng: "fr" })
+        ? t("google.noCredential")
+        : t("google.failed")
+      : error;
+
   return (
     <div className="w-full bg-surface-container-lowest border border-outline-variant/80 rounded-2xl p-6 sm:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.3)]">
       {/* Header */}
@@ -83,14 +103,14 @@ export default function Signup() {
         <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center mb-3 shadow-2xs">
           <HugeiconsIcon icon="mortarboard-02" size={24} strokeWidth={1.8} />
         </div>
-        <h1 className="text-2xl font-bold tracking-tight text-on-surface">Create your account</h1>
-        <p className="text-xs text-on-surface-variant mt-1">Start architecting your end-of-studies project</p>
+        <h1 className="text-2xl font-bold tracking-tight text-on-surface">{t("signup.title")}</h1>
+        <p className="text-xs text-on-surface-variant mt-1">{t("signup.subtitle")}</p>
       </div>
 
-      {error && (
+      {displayError && (
         <div className="p-3 mb-4 rounded-xl bg-error/10 text-error border border-error/20 text-xs font-medium flex items-center gap-2">
           <HugeiconsIcon icon="alert-circle" size={16} strokeWidth={2} className="shrink-0" />
-          <span>{error}</span>
+          <span>{displayError}</span>
         </div>
       )}
 
@@ -98,7 +118,7 @@ export default function Signup() {
       <form className="space-y-3.5" onSubmit={handleSubmit}>
         <div>
           <label className="block text-xs font-semibold text-on-surface mb-1.5" htmlFor="fullName">
-            Full Name
+            {t("signup.fullName")}
           </label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-on-surface-variant/60">
@@ -109,7 +129,7 @@ export default function Signup() {
               id="fullName" 
               value={formData.fullName}
               onChange={handleChange}
-              placeholder="Alex Smith" 
+              placeholder={t("signup.namePlaceholder")}
               required 
               className="block w-full h-11 pl-10 pr-3.5 bg-surface border border-outline-variant/80 rounded-xl text-sm text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all" 
             />
@@ -118,7 +138,7 @@ export default function Signup() {
 
         <div>
           <label className="block text-xs font-semibold text-on-surface mb-1.5" htmlFor="email">
-            Email Address
+            {t("signup.email")}
           </label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-on-surface-variant/60">
@@ -129,7 +149,7 @@ export default function Signup() {
               id="email" 
               value={formData.email}
               onChange={handleChange}
-              placeholder="alex.smith@university.edu" 
+              placeholder={t("signup.emailPlaceholder")}
               required 
               className="block w-full h-11 pl-10 pr-3.5 bg-surface border border-outline-variant/80 rounded-xl text-sm text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all" 
             />
@@ -138,7 +158,7 @@ export default function Signup() {
 
         <div>
           <label className="block text-xs font-semibold text-on-surface mb-1.5" htmlFor="password">
-            Password
+            {t("signup.password")}
           </label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-on-surface-variant/60">
@@ -150,7 +170,7 @@ export default function Signup() {
               value={formData.password}
               onChange={handleChange}
               minLength={6} 
-              placeholder="••••••••" 
+              placeholder={t("signup.passwordPlaceholder")}
               required 
               className="block w-full h-11 pl-10 pr-10 bg-surface border border-outline-variant/80 rounded-xl text-sm text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all" 
             />
@@ -158,7 +178,7 @@ export default function Signup() {
               type="button"
               onClick={() => setShowPassword((current) => !current)}
               className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-on-surface-variant/60 hover:text-on-surface transition-colors cursor-pointer"
-              aria-label={showPassword ? "Hide password" : "Show password"}
+              aria-label={t(showPassword ? "signup.hidePassword" : "signup.showPassword")}
             >
               <HugeiconsIcon icon={showPassword ? "eye-off" : "eye"} size={18} strokeWidth={1.6} />
             </button>
@@ -176,7 +196,7 @@ export default function Signup() {
                 ))}
               </div>
               <div className="flex justify-between items-center text-[11px]">
-                <span className="text-on-surface-variant">Security rating:</span>
+                <span className="text-on-surface-variant">{t("signup.securityRating")}</span>
                 <span className={`font-semibold ${getStrengthLabel().color}`}>
                   {getStrengthLabel().text}
                 </span>
@@ -194,11 +214,11 @@ export default function Signup() {
             {loading ? (
               <>
                 <div className="w-4 h-4 border-2 border-on-primary/30 border-t-on-primary rounded-full animate-spin" />
-                <span>Creating Account...</span>
+                <span>{t("signup.creatingAccount")}</span>
               </>
             ) : (
               <>
-                <span>Create Account</span>
+                <span>{t("signup.createAccount")}</span>
                 <HugeiconsIcon icon="arrow-right" size={16} strokeWidth={2} />
               </>
             )}
@@ -212,7 +232,7 @@ export default function Signup() {
           <div className="w-full border-t border-outline-variant/60"></div>
         </div>
         <div className="relative bg-surface-container-lowest px-3 text-[11px] text-on-surface-variant font-bold uppercase tracking-wider">
-          or continue with
+          {t("signup.continueWith")}
         </div>
       </div>
 
@@ -224,20 +244,20 @@ export default function Signup() {
       {/* Footer login & terms */}
       <div className="space-y-3 text-center pt-1">
         <p className="text-xs text-on-surface-variant">
-          Already have an account?{" "}
+          {t("signup.haveAccount")}{" "}
           <Link 
             to="/login" 
             className="font-semibold text-primary hover:text-primary/80 transition-colors ml-0.5"
           >
-            Log in
+            {t("signup.logIn")}
           </Link>
         </p>
 
         <p className="text-[11px] text-on-surface-variant/70 leading-normal">
-          By signing up, you agree to our{" "}
-          <a href="#" className="underline hover:text-on-surface transition-colors">Terms of Service</a>{" "}
-          and{" "}
-          <a href="#" className="underline hover:text-on-surface transition-colors">Privacy Policy</a>.
+          {t("signup.termsIntro")}{" "}
+          <a href="#" className="underline hover:text-on-surface transition-colors">{t("signup.terms")}</a>{" "}
+          {t("signup.and")}{" "}
+          <a href="#" className="underline hover:text-on-surface transition-colors">{t("signup.privacy")}</a>.
         </p>
       </div>
     </div>

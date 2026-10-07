@@ -1,8 +1,10 @@
 import { Outlet, Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import HugeiconsIcon from "@/components/ui/HugeiconsIcon";
 import LanguageSelector from "@/components/LanguageSelector";
 
 export default function AuthLayout() {
+  const { t } = useTranslation("auth");
   return (
     <div className="relative min-h-screen w-full bg-surface text-on-surface antialiased flex flex-col justify-between items-center px-4 py-6 sm:px-6 sm:py-8 overflow-x-hidden selection:bg-primary/20 selection:text-primary">
       {/* Ambient background soft glow */}
@@ -31,7 +33,7 @@ export default function AuthLayout() {
           to="/"
           className="text-xs font-semibold text-on-surface-variant hover:text-on-surface transition-colors flex items-center gap-1"
         >
-          <span>Back to home</span>
+          <span>{t("layout.backToHome")}</span>
         </Link>
       </header>
 
@@ -43,7 +45,7 @@ export default function AuthLayout() {
 
       {/* Minimal Footer */}
       <footer className="w-full max-w-[420px] pt-4 pb-1 text-center text-xs text-on-surface-variant/70">
-        <p>© {new Date().getFullYear()} SmartPFE · Academic Intelligence Platform</p>
+        <p>{t("layout.footer", { year: new Date().getFullYear() })}</p>
       </footer>
     </div>
   );

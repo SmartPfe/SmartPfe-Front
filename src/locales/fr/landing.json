@@ -1,0 +1,146 @@
+{
+  "nav": ["Fonctionnalités", "Comment ça marche", "Tarifs", "À propos", "Contact"],
+  "signIn": "Se connecter",
+  "getStarted": "Commencer gratuitement",
+  "menuToggle": "Ouvrir le menu de navigation",
+  "hero": {
+    "badge": "Espace SaaS avec IA pour les projets de fin d’études",
+    "title": "Structurez votre PFE.",
+    "titleEmphasis": "Soutenez-le avec confiance.",
+    "description": "Un espace de travail intelligent pour gérer tous les livrables de votre projet de fin d’études — de l’analyse des besoins à la simulation du jury.",
+    "createWorkspace": "Créer un espace gratuit",
+    "seeFeatures": "Voir les fonctionnalités",
+    "aiMetricValue": "Propulsé par l’IA",
+    "metrics": ["Modules guidés", "Phases du projet", "Conçu pour les étudiants", "Accompagnement et outils"]
+  },
+  "demo": {
+    "activeProject": "PROJET ACTIF",
+    "workspaceNav": ["Vue d’ensemble", "Problématique", "Acteurs", "Backlog", "Rapport", "Diagrammes UML", "Simulation du jury"],
+    "projectName": "Analyse du commerce par l’IA",
+    "onTrack": "Dans les temps",
+    "progress": "Progression",
+    "modules": "Modules",
+    "nextStep": "Prochaine étape",
+    "draftProblem": "Rédiger la problématique",
+    "recentActivityTitle": "Activité récente",
+    "recentActivity": ["Section des acteurs mise à jour", "Tâches du backlog priorisées", "Simulation du jury terminée"]
+  },
+  "challenge": {
+    "title": "Le défi",
+    "heading": "Les PFE échouent par manque de structure, pas d’idées.",
+    "description": "Les étudiants gèrent souvent leur PFE avec des documents, e-mails, notes, diapositives et outils dispersés. Même un travail de qualité devient difficile à suivre sans système commun.",
+    "problems": ["Aucune source unique de référence", "Des livrables créés séparément", "Un suivi de progression difficile", "Peu de préparation à la soutenance finale"],
+    "solutionTitle": "La solution",
+    "solutionHeading": "Un espace. Une méthode complète. Pensé pour le PFE.",
+    "solutionDescription": "PFE Guidance réunit la méthodologie, les éditeurs, l’assistance IA et le suivi de progression dans un parcours conçu pour les étudiants.",
+    "solutions": ["Méthodologie PFE structurée", "Plus de 14 modules connectés", "Éditeurs guidés", "Assistance par IA", "Suivi de progression", "Simulation du jury"]
+  },
+  "journey": {
+    "eyebrow": "Comment ça marche",
+    "heading": "Votre parcours, étape par étape.",
+    "steps": [
+      { "title": "Créez votre espace", "description": "Décrivez votre projet et son contexte technique." },
+      { "title": "Suivez la méthodologie", "description": "Avancez dans des modules PFE structurés." },
+      { "title": "Préparez vos livrables", "description": "Créez votre backlog, vos diagrammes UML, votre rapport, votre présentation et les autres livrables." },
+      { "title": "Réussissez votre soutenance", "description": "Préparez votre présentation et entraînez-vous avec la simulation de jury par IA." }
+    ]
+  },
+  "features": {
+    "eyebrow": "Fonctionnalités",
+    "heading": "Tout ce qu’il vous faut, au même endroit.",
+    "description": "Les modules guidés relient chaque livrable au même contexte de projet pour former un PFE cohérent.",
+    "items": [
+      { "title": "Problématique", "description": "Structurez le contexte, les objectifs et le périmètre du projet." },
+      { "title": "Acteurs", "description": "Identifiez et organisez les parties prenantes du projet." },
+      { "title": "Exigences", "description": "Gérez les exigences fonctionnelles et non fonctionnelles." },
+      { "title": "Récits utilisateurs", "description": "Générez et structurez les récits utilisateurs." },
+      { "title": "Backlog produit", "description": "Priorisez les tâches et les fonctionnalités du projet." },
+      { "title": "Solutions existantes", "description": "Analysez les solutions concurrentes ou déjà disponibles." },
+      { "title": "Diagrammes UML", "description": "Préparez l’architecture du projet et ses diagrammes techniques." },
+      { "title": "Création du rapport", "description": "Construisez le rapport de PFE chapitre par chapitre." },
+      { "title": "Création de la présentation", "description": "Préparez des diapositives professionnelles pour la soutenance." },
+      { "title": "Préparation du pitch", "description": "Préparez et améliorez votre présentation orale." },
+      { "title": "Simulation du jury", "description": "Entraînez-vous avec des questions de jury réalistes générées par l’IA." },
+      { "title": "Suivi de progression", "description": "Suivez les modules terminés et les prochaines étapes." }
+    ]
+  },
+  "ai": {
+    "eyebrow": "Aperçu de l’IA",
+    "heading": "Une IA qui comprend votre projet.",
+    "description": "Bien plus qu’un générateur de texte. PFE Guidance utilise le contexte de votre projet pour vous aider à créer des livrables cohérents, de la première idée à la soutenance finale.",
+    "points": ["Générer du contenu structuré", "Améliorer le travail existant", "Assurer la cohérence entre les livrables", "Repérer les informations manquantes", "Suggérer les prochaines étapes", "Générer des questions de jury", "Préparer votre soutenance"],
+    "assistantName": "Assistant IA PFE",
+    "contextGuidance": "Conseils adaptés au contexte",
+    "online": "En ligne",
+    "sampleQuestion": "J’ai remarqué que votre backlog mentionne la prévision des stocks, mais que votre problématique ne précise pas encore l’impact métier. Ajouter un objectif mesurable et concis ?",
+    "sampleReply": "Oui. Propose un objectif concis adapté à mon contexte.",
+    "sampleAnswer": "Objectif suggéré : réduire l’analyse manuelle des stocks en centralisant les indicateurs de ventes, de stock et de prévision dans un tableau de bord décisionnel.",
+    "promptPlaceholder": "Posez une question sur le rapport, les diapositives ou le jury…",
+    "sendPrompt": "Envoyer une question IA de démonstration"
+  },
+  "pricing": {
+    "eyebrow": "Tarifs",
+    "heading": "Des tarifs simples pour les étudiants.",
+    "mostPopular": "LE PLUS POPULAIRE",
+    "tiers": [
+      { "name": "Gratuit", "cadence": "Sans limite", "description": "Lancez votre espace PFE avec les fonctionnalités essentielles.", "benefits": ["Modules PFE essentiels", "Assistance IA de base", "Espace projet", "Suivi de progression", "Générations IA limitées"], "cta": "Commencer gratuitement" },
+      { "name": "Premium", "cadence": "/ mois", "description": "Un accompagnement renforcé pour la rédaction du rapport et la préparation de la soutenance.", "benefits": ["Tout le contenu de l’offre gratuite", "Davantage de générations IA", "Assistance IA avancée", "Génération avancée de rapports", "Aide à la présentation", "Simulation du jury", "Modèles Premium", "Accès prioritaire aux nouvelles fonctionnalités IA"], "cta": "Passer à Premium" }
+    ]
+  },
+  "stories": {
+    "eyebrow": "Conçu pour les étudiants",
+    "heading": "De l’idée de projet à une soutenance réussie.",
+    "demoLabel": "Contenu de démonstration",
+    "items": [
+      { "name": "Étudiant démo", "role": "Étudiant ingénieur — exemple", "quote": "Cet exemple sera remplacé par le témoignage d’un étudiant sur l’organisation des livrables, de la première idée de projet jusqu’à la fin." },
+      { "name": "Encadrant démo", "role": "Encadrant — exemple", "quote": "Cet exemple pourra être remplacé par un avis vérifié sur la clarté, la méthodologie et la préparation à la soutenance." },
+      { "name": "Équipe projet démo", "role": "Équipe — exemple", "quote": "Cet exemple est réservé à un futur témoignage vérifié sur la collaboration et le suivi de progression." }
+    ]
+  },
+  "faq": {
+    "eyebrow": "FAQ",
+    "heading": "Les premières questions des étudiants.",
+    "items": [
+      { "question": "Qu’est-ce que PFE Guidance ?", "answer": "PFE Guidance est un espace de travail intelligent qui aide les étudiants à structurer, réaliser et défendre les livrables de leur projet de fin d’études." },
+      { "question": "PFE Guidance est-il gratuit ?", "answer": "Oui. L’offre Free donne accès aux modules essentiels, à une aide IA de base, à un espace projet et au suivi de progression." },
+      { "question": "Que comprend Premium ?", "answer": "Premium ajoute davantage de générations IA, une aide avancée pour le rapport, une assistance à la présentation, la simulation du jury, des modèles et un accès prioritaire aux nouvelles fonctionnalités IA." },
+      { "question": "Puis-je l’utiliser pour n’importe quel PFE d’ingénierie ?", "answer": "Oui. Le parcours est conçu pour les PFE en ingénierie et en informatique, tout en restant adaptable à différents domaines techniques." },
+      { "question": "L’IA rédige-t-elle tout mon rapport ?", "answer": "Non. L’IA aide à structurer le travail, à en assurer la cohérence, à proposer des pistes et à préparer des brouillons. L’étudiant reste responsable de la vérification et de la rédaction finale." },
+      { "question": "Comment fonctionne la simulation du jury ?", "answer": "Elle utilise le contexte de votre projet pour générer des questions de soutenance réalistes et vous permettre de vous entraîner avant la présentation finale." },
+      { "question": "Puis-je exporter mon travail ?", "answer": "Les possibilités d’export dépendent des modules actifs de l’espace et évolueront avec les fonctionnalités de rapport, de présentation et de modèles." },
+      { "question": "Mes données de projet sont-elles privées ?", "answer": "Les données du projet sont traitées comme du contenu privé de l’espace de travail. Les équipes doivent tout de même éviter d’ajouter des secrets ou des données confidentielles de tiers, sauf si leurs règles l’autorisent." }
+    ]
+  },
+  "contact": {
+    "eyebrow": "Contact",
+    "heading": "Une question ? Parlons-en.",
+    "fullName": "Nom complet",
+    "namePlaceholder": "Votre nom",
+    "email": "E-mail",
+    "subject": "Objet",
+    "subjectPlaceholder": "Comment pouvons-nous vous aider ?",
+    "message": "Message",
+    "messagePlaceholder": "Rédigez votre message…",
+    "sending": "Envoi en cours…",
+    "send": "Envoyer le message",
+    "success": "Votre message a bien été envoyé.",
+    "error": "Impossible d’envoyer votre message. Veuillez réessayer plus tard.",
+    "infoHeading": "Coordonnées",
+    "location": "Tunisie",
+    "methodHeading": "Fondé sur la méthode PFE.",
+    "methodDescription": "Le produit accompagne les étudiants de l’analyse à la conception, à la réalisation, à la rédaction du rapport et à la préparation de la soutenance, dans un seul espace de travail."
+  },
+  "cta": {
+    "heading": "Prêt à commencer votre PFE ?",
+    "description": "Créez votre espace en moins d’une minute et commencez dès aujourd’hui à structurer votre projet.",
+    "button": "Créer un espace gratuit",
+    "reassurance": "Aucune carte bancaire requise."
+  },
+  "footer": {
+    "description": "L’espace intelligent qui aide les étudiants en ingénierie à structurer, réaliser et défendre leur projet de fin d’études avec confiance.",
+    "groups": ["Produit", "Ressources", "Entreprise"],
+    "links": [["Fonctionnalités", "Comment ça marche", "Tarifs"], ["Guides", "Modèles", "FAQ"], ["À propos", "Nous contacter", "Politique de confidentialité", "Conditions d’utilisation"]],
+    "copyright": "2026 PFE Guidance. Tous droits réservés.",
+    "location": "Conçu pour les étudiants en Tunisie et ailleurs."
+  }
+}

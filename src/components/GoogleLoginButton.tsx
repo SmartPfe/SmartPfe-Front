@@ -1,6 +1,7 @@
 /// <reference types="vite/client" />
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { fetchApi } from "../lib/api";
 
 declare global {
@@ -15,8 +16,10 @@ interface GoogleLoginButtonProps {
 }
 
 export default function GoogleLoginButton({ onError, onLoading }: GoogleLoginButtonProps) {
+  const { t, i18n } = useTranslation("auth");
   const navigate = useNavigate();
   const [isGoogleLoaded, setIsGoogleLoaded] = useState(false);
+  const callbackRef = useRef<(response: any) => void>(async () => undefined);
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || "YOUR_GOOGLE_CLIENT_ID";
 
   useEffect(() => {
@@ -29,20 +32,8 @@ export default function GoogleLoginButton({ onError, onLoading }: GoogleLoginBut
         
         window.google.accounts.id.initialize({
           client_id: googleClientId,
-          callback: handleGoogleCallback,
+          callback: (response: any) => callbackRef.current(response),
         });
-
-        const btnElement = document.getElementById("google-signin-btn");
-        if (btnElement) {
-          window.google.accounts.id.renderButton(btnElement, {
-            theme: "outline",
-            size: "large",
-            shape: "rectangular",
-            width: "360",
-            logo_alignment: "left",
-            text: "continue_with",
-          });
-        }
       }
     };
 
@@ -52,12 +43,30 @@ export default function GoogleLoginButton({ onError, onLoading }: GoogleLoginBut
     return () => clearInterval(interval);
   }, [googleClientId]);
 
+  useEffect(() => {
+    if (!isGoogleLoaded || !window.google?.accounts?.id) return;
+    const btnElement = document.getElementById("google-signin-btn");
+    if (!btnElement) return;
+
+    const uiLanguage = (i18n.resolvedLanguage || i18n.language || "en").toLowerCase().startsWith("fr") ? "fr" : "en";
+    btnElement.innerHTML = "";
+    window.google.accounts.id.renderButton(btnElement, {
+      theme: "outline",
+      size: "large",
+      shape: "rectangular",
+      width: "360",
+      logo_alignment: "left",
+      text: "continue_with",
+      locale: uiLanguage,
+    });
+  }, [isGoogleLoaded, i18n.resolvedLanguage, i18n.language]);
+
   const handleGoogleCallback = async (response: any) => {
     onLoading(true);
     onError("");
     try {
       if (!response.credential) {
-        throw new Error("No credential returned from Google");
+        throw new Error(t("google.noCredential"));
       }
 
       const data = await fetchApi("/auth/google", {
@@ -94,11 +103,13 @@ export default function GoogleLoginButton({ onError, onLoading }: GoogleLoginBut
       }
     } catch (err: any) {
       console.error("Google authentication error:", err);
-      onError(err.message || "Failed to authenticate with Google. Please try again.");
+      onError(err.message || t("google.failed"));
     } finally {
       onLoading(false);
     }
   };
+
+  callbackRef.current = handleGoogleCallback;
 
   return (
     <div className="w-full flex items-center justify-center min-h-[44px]">

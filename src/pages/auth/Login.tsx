@@ -1,10 +1,12 @@
 import React, { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { fetchApi } from "../../lib/api";
 import GoogleLoginButton from "../../components/GoogleLoginButton";
 import HugeiconsIcon from "../../components/ui/HugeiconsIcon";
 
 export default function Login() {
+  const { t } = useTranslation("auth");
   const navigate = useNavigate();
   const location = useLocation();
   const [formData, setFormData] = useState({
@@ -12,6 +14,7 @@ export default function Login() {
     password: "",
   });
   const [error, setError] = useState("");
+  const [errorKey, setErrorKey] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const locationMessage = (location.state as any)?.message;
@@ -19,6 +22,7 @@ export default function Login() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.id]: e.target.value });
     setError("");
+    setErrorKey("");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -70,11 +74,31 @@ export default function Login() {
         return;
       }
 
-      setError(err.message || "Failed to login. Please check your credentials.");
+      if (err.message) setError(err.message);
+      else setErrorKey("login.failed");
     } finally {
       setLoading(false);
     }
   };
+
+  const knownGoogleErrors = [
+    t("google.failed", { lng: "en" }),
+    t("google.failed", { lng: "fr" }),
+    t("google.noCredential", { lng: "en" }),
+    t("google.noCredential", { lng: "fr" }),
+  ];
+  const displayError = errorKey
+    ? t(errorKey)
+    : knownGoogleErrors.includes(error)
+      ? error === t("google.noCredential", { lng: "en" }) || error === t("google.noCredential", { lng: "fr" })
+        ? t("google.noCredential")
+        : t("google.failed")
+      : error;
+  const resetSuccessEn = t("reset.successNotice", { lng: "en" });
+  const resetSuccessFr = t("reset.successNotice", { lng: "fr" });
+  const displayLocationMessage = locationMessage === resetSuccessEn || locationMessage === resetSuccessFr
+    ? t("reset.successNotice")
+    : locationMessage;
 
   return (
     <div className="w-full bg-surface-container-lowest border border-outline-variant/80 rounded-2xl p-6 sm:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.3)]">
@@ -83,21 +107,21 @@ export default function Login() {
         <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center mb-3 shadow-2xs">
           <HugeiconsIcon icon="mortarboard-02" size={24} strokeWidth={1.8} />
         </div>
-        <h1 className="text-2xl font-bold tracking-tight text-on-surface">Welcome back</h1>
-        <p className="text-xs text-on-surface-variant mt-1">Sign in to your SmartPFE workspace</p>
+        <h1 className="text-2xl font-bold tracking-tight text-on-surface">{t("login.title")}</h1>
+        <p className="text-xs text-on-surface-variant mt-1">{t("login.subtitle")}</p>
       </div>
 
-      {locationMessage && !error && (
+      {displayLocationMessage && !displayError && (
         <div className="p-3 mb-4 rounded-xl bg-secondary/10 text-secondary border border-secondary/20 text-xs font-medium flex items-center gap-2">
           <HugeiconsIcon icon="checkmark-circle-02" size={16} strokeWidth={2} className="shrink-0" />
-          <span>{locationMessage}</span>
+          <span>{displayLocationMessage}</span>
         </div>
       )}
 
-      {error && (
+      {displayError && (
         <div className="p-3 mb-4 rounded-xl bg-error/10 text-error border border-error/20 text-xs font-medium flex items-center gap-2">
           <HugeiconsIcon icon="alert-circle" size={16} strokeWidth={2} className="shrink-0" />
-          <span>{error}</span>
+          <span>{displayError}</span>
         </div>
       )}
 
@@ -105,7 +129,7 @@ export default function Login() {
       <form className="space-y-4" onSubmit={handleSubmit}>
         <div>
           <label className="block text-xs font-semibold text-on-surface mb-1.5" htmlFor="email">
-            Email address
+            {t("login.email")}
           </label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-on-surface-variant/60">
@@ -119,7 +143,7 @@ export default function Login() {
               onChange={handleChange}
               autoComplete="email" 
               required 
-              placeholder="student@university.edu"
+              placeholder={t("login.emailPlaceholder")}
               className="block w-full h-11 pl-10 pr-3.5 bg-surface border border-outline-variant/80 rounded-xl text-sm text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
             />
           </div>
@@ -128,13 +152,13 @@ export default function Login() {
         <div>
           <div className="flex items-center justify-between mb-1.5">
             <label className="block text-xs font-semibold text-on-surface" htmlFor="password">
-              Password
+              {t("login.password")}
             </label>
             <Link 
               to="/forgot-password" 
               className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors"
             >
-              Forgot password?
+              {t("login.forgotPassword")}
             </Link> 
           </div>
           <div className="relative">
@@ -156,7 +180,7 @@ export default function Login() {
               type="button"
               onClick={() => setShowPassword((current) => !current)}
               className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-on-surface-variant/60 hover:text-on-surface transition-colors cursor-pointer"
-              aria-label={showPassword ? "Hide password" : "Show password"}
+              aria-label={t(showPassword ? "login.hidePassword" : "login.showPassword")}
             >
               <HugeiconsIcon icon={showPassword ? "eye-off" : "eye"} size={18} strokeWidth={1.6} />
             </button>
@@ -172,10 +196,10 @@ export default function Login() {
             {loading ? (
               <>
                 <div className="w-4 h-4 border-2 border-on-primary/30 border-t-on-primary rounded-full animate-spin" />
-                <span>Signing In...</span>
+                <span>{t("login.signingIn")}</span>
               </>
             ) : (
-              <span>Sign In</span>
+              <span>{t("login.signIn")}</span>
             )}
           </button>
         </div>
@@ -187,7 +211,7 @@ export default function Login() {
           <div className="w-full border-t border-outline-variant/60"></div>
         </div>
         <div className="relative bg-surface-container-lowest px-3 text-[11px] text-on-surface-variant font-bold uppercase tracking-wider">
-          or continue with
+          {t("login.continueWith")}
         </div>
       </div>
 
@@ -199,12 +223,12 @@ export default function Login() {
       {/* Footer link */}
       <div className="text-center pt-1">
         <p className="text-xs text-on-surface-variant">
-          Don't have an account?{" "}
+          {t("login.noAccount")}{" "}
           <Link 
             to="/signup" 
             className="font-semibold text-primary hover:text-primary/80 transition-colors ml-0.5"
           >
-            Sign up
+            {t("login.signUp")}
           </Link>
         </p>
       </div>

@@ -1,0 +1,177 @@
+{
+  "layout": {
+    "title": "Plateforme d’accompagnement des PFE",
+    "exitSetup": "Quitter la configuration"
+  },
+  "steps": {
+    "progress": "Étape {{step}} sur 4",
+    "back": "Retour",
+    "nextStep": "Étape suivante",
+    "reviewSummary": "Vérifier le récapitulatif",
+    "createProject": "Créer le projet",
+    "creating": "Création...",
+    "edit": "Modifier",
+    "notProvided": "Non renseigné",
+    "summaryReviewTitle": "Récapitulatif",
+    "summaryReviewDescription": "Vérifiez les détails de votre projet avant sa création.",
+    "completeRequiredFields": "Remplissez les champs obligatoires des étapes « Informations du projet » et « Description du projet » avant de créer l’espace de travail.",
+    "basics": "Informations du projet",
+    "description": "Description",
+    "technicalContext": "Contexte technique"
+  },
+  "basics": {
+    "title": "Informations du projet",
+    "description": "Définissez l’identité et le contexte académique de votre espace de PFE.",
+    "projectTitle": "Titre du projet",
+    "projectTitlePlaceholder": "Ex. : Plateforme de gestion de PFE assistée par l’IA",
+    "projectTitleHelper": "Choisissez un titre clair qui décrit la solution et son objectif.",
+    "projectType": "Type de projet",
+    "domain": "Domaine",
+    "reportLanguage": "Langue du rapport",
+    "academicYear": "Année universitaire",
+    "university": "Université",
+    "universityPlaceholder": "Votre université"
+  },
+  "description": {
+    "title": "Description du projet",
+    "description": "Décrivez le problème, l’objectif, les livrables et les parties prenantes pour aider les modules IA à produire des éléments adaptés au projet.",
+    "problemStatement": "Problématique",
+    "problemStatementPlaceholder": "Décrivez le problème, les personnes concernées et son importance.",
+    "problemStatementHelper": "Expliquez le problème actuel, la limite ou l’occasion à saisir. Ces informations serviront à générer la problématique formelle.",
+    "projectObjective": "Objectif du projet",
+    "projectObjectivePlaceholder": "Indiquez le principal objectif à atteindre.",
+    "projectObjectiveHelper": "Si possible, formulez le résultat attendu de manière mesurable.",
+    "expectedDeliverables": "Livrables attendus",
+    "expectedDeliverablesPlaceholder": "Ex. : application web, API, documentation, guide de déploiement",
+    "expectedDeliverablesHelper": "Indiquez les éléments que vous prévoyez de remettre ou de présenter.",
+    "stakeholders": "Parties prenantes",
+    "stakeholdersPlaceholder": "Ex. : étudiants, encadrants, administrateurs",
+    "stakeholdersHelper": "Citez les personnes ou organisations qui utilisent, évaluent ou bénéficient du projet.",
+    "internshipCompany": "Entreprise de stage",
+    "internshipCompanyPlaceholder": "Nom de l’entreprise, facultatif",
+    "internshipCompanyHelper": "Laissez ce champ vide pour un projet purement académique.",
+    "industrySector": "Secteur d’activité",
+    "industrySectorPlaceholder": "Ex. : éducation, technologies financières, santé",
+    "industrySectorHelper": "Ces informations permettent d’adapter les exemples, les risques et le contexte métier."
+  },
+  "technical": {
+    "title": "Contexte technique",
+    "description": "Décrivez la réalisation du projet afin que les éléments générés correspondent au périmètre réel de l’implémentation.",
+    "developmentType": "Type de développement",
+    "developmentTypeHelper": "Sélectionnez toutes les plateformes et catégories techniques qui s’appliquent à votre projet.",
+    "otherDevelopmentType": "Autre type de développement",
+    "otherDevelopmentTypePlaceholder": "Ex. : système AR/VR, système embarqué, application blockchain",
+    "otherDevelopmentTypeHelper": "Précisez le type réel du projet s’il ne figure pas dans la liste.",
+    "methodology": "Méthodologie",
+    "projectComplexity": "Complexité du projet",
+    "technologyStack": "Pile technologique",
+    "technologyStackHelper": "Sélectionnez les frameworks, langages, bases de données, outils cloud et bibliothèques d’IA utilisés.",
+    "otherTechnologies": "Autres technologies",
+    "otherTechnologiesPlaceholder": "Ex. : Odoo, Figma, MATLAB, Apache Kafka",
+    "otherTechnologiesHelper": "Utilisez ce champ uniquement pour les outils ou technologies absents de la liste.",
+    "targetUsers": "Utilisateurs cibles",
+    "targetUsersPlaceholder": "Ex. : étudiants, encadrants académiques ou professionnels, administrateurs",
+    "targetUsersHelper": "Ces informations aident l’IA à proposer des acteurs et des éléments de backlog pertinents.",
+    "teamSize": "Taille de l’équipe",
+    "duration": "Durée (mois)"
+  },
+  "summary": {
+    "projectTitle": "Titre du projet",
+    "projectType": "Type de projet",
+    "domain": "Domaine",
+    "reportLanguage": "Langue du rapport",
+    "academicYear": "Année universitaire",
+    "university": "Université",
+    "problemStatement": "Problématique",
+    "projectObjective": "Objectif du projet",
+    "expectedDeliverables": "Livrables attendus",
+    "internshipCompany": "Entreprise de stage",
+    "industrySector": "Secteur d’activité",
+    "stakeholders": "Parties prenantes",
+    "developmentType": "Type de développement",
+    "otherDevelopmentType": "Autre type de développement",
+    "methodology": "Méthodologie",
+    "technologyStack": "Pile technologique",
+    "otherTechnologies": "Autres technologies",
+    "targetUsers": "Utilisateurs cibles",
+    "projectComplexity": "Complexité du projet",
+    "teamSize": "Taille de l’équipe",
+    "duration": "Durée (mois)"
+  },
+  "projectSettings": {
+    "backToSettings": "Retour aux paramètres",
+    "title": "Spécifications du projet",
+    "description": "Modifiez les paramètres académiques et le contexte technique utilisés pour initialiser et générer les éléments de votre espace de PFE.",
+    "saveChanges": "Enregistrer les modifications",
+    "saving": "Enregistrement...",
+    "savedNotice": "Les spécifications du projet ont été mises à jour et synchronisées avec votre espace de travail.",
+    "academicBasicsTitle": "Informations académiques et identité",
+    "academicBasicsDescription": "Diplôme, titre, établissement et paramètres de langue.",
+    "projectContextTitle": "Problématique et contexte sectoriel",
+    "projectContextDescription": "Formulation du problème, objectifs du projet, livrables et organisme d’accueil.",
+    "technicalTitle": "Architecture technique et méthodologie",
+    "technicalDescription": "Choix d’implémentation utilisés pour générer les exigences, le backlog et la documentation technique.",
+    "developmentScopeType": "Périmètre et type de développement",
+    "resetDefaults": "Rétablir les valeurs par défaut de la configuration",
+    "saveProjectSettings": "Enregistrer les paramètres du projet",
+    "saveError": "Échec de l’enregistrement des paramètres du projet."
+  },
+  "controls": {
+    "selectOption": "Sélectionnez une option",
+    "showPassword": "Afficher le mot de passe",
+    "hidePassword": "Masquer le mot de passe",
+    "removeTag": "Supprimer {{tag}}",
+    "typeAndPressEnter": "Saisissez une valeur puis appuyez sur Entrée...",
+    "tagPlaceholder": "Saisissez une valeur puis appuyez sur Entrée..."
+  },
+  "options": {
+    "other": "Autre",
+    "projectType": {
+      "academic": "Projet académique",
+      "internship": "Projet de stage / industriel",
+      "startup": "Projet de startup",
+      "research": "Projet de recherche"
+    },
+    "projectTypeDescriptions": {
+      "academic": "Projet universitaire axé sur la validation académique.",
+      "internship": "Projet mené en entreprise pour répondre à un besoin métier réel.",
+      "startup": "Idée de produit avec un potentiel de marché et de croissance.",
+      "research": "Travail d’investigation comprenant des expériences ou des publications."
+    },
+    "generationLanguage": {
+      "english": "Anglais",
+      "french": "Français",
+      "arabic": "Arabe"
+    },
+    "domain": {
+      "softwareEngineering": "Génie logiciel",
+      "artificialIntelligence": "Intelligence artificielle",
+      "dataScience": "Science des données",
+      "cybersecurity": "Cybersécurité",
+      "cloudComputing": "Informatique en nuage",
+      "businessIntelligence": "Informatique décisionnelle"
+    },
+    "developmentType": {
+      "webApplication": "Application web",
+      "mobileApplication": "Application mobile",
+      "desktopApplication": "Application de bureau",
+      "aiMachineLearning": "IA / apprentissage automatique",
+      "dataEngineering": "Ingénierie des données",
+      "dataAnalytics": "Analyse des données",
+      "cloudPlatform": "Plateforme cloud",
+      "iotSystem": "Système IoT"
+    },
+    "methodology": {
+      "waterfall": "Cycle en cascade",
+      "hybrid": "Hybride",
+      "agile": "Agile",
+      "lean": "Lean",
+      "designThinking": "Design thinking"
+    },
+    "complexity": {
+      "low": "Faible",
+      "medium": "Moyenne",
+      "high": "Élevée"
+    }
+  }
+}

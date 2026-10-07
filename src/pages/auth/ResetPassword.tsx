@@ -1,14 +1,17 @@
 import React, { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { fetchApi } from "../../lib/api";
 import HugeiconsIcon, { LockPasswordIcon } from "../../components/ui/HugeiconsIcon";
 
 export default function ResetPassword() {
+  const { t } = useTranslation("auth");
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
+  const [errorKey, setErrorKey] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -16,14 +19,15 @@ export default function ResetPassword() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setErrorKey("");
 
     if (password.length < 6) {
-      setError("Password must be at least 6 characters.");
+      setErrorKey("reset.passwordTooShort");
       return;
     }
 
     if (password !== confirmPassword) {
-      setError("Passwords do not match.");
+      setErrorKey("reset.passwordsDoNotMatch");
       return;
     }
 
@@ -34,10 +38,10 @@ export default function ResetPassword() {
         method: "POST",
         body: JSON.stringify({ token, password }),
       });
-      navigate("/login", { state: { message: "Password updated successfully. You can sign in now." } });
+      navigate("/login", { state: { message: t("reset.successNotice") } });
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Failed to reset password. Please try again.";
-      setError(message);
+      if (err instanceof Error) setError(err.message);
+      else setErrorKey("reset.failed");
     } finally {
       setLoading(false);
     }
@@ -49,16 +53,16 @@ export default function ResetPassword() {
         <div className="w-12 h-12 rounded-2xl bg-error/10 text-error border border-error/20 flex items-center justify-center mx-auto shadow-2xs">
           <HugeiconsIcon icon="alert-circle" size={24} strokeWidth={1.8} />
         </div>
-        <h1 className="text-xl font-bold tracking-tight text-on-surface">Invalid Reset Link</h1>
+        <h1 className="text-xl font-bold tracking-tight text-on-surface">{t("reset.invalidTitle")}</h1>
         <p className="text-xs text-on-surface-variant max-w-[280px] mx-auto">
-          This password reset token is missing or has expired. Please generate a new link.
+          {t("reset.invalidDescription")}
         </p>
         <div className="pt-2">
           <Link
             to="/forgot-password"
             className="w-full h-11 flex items-center justify-center rounded-xl bg-primary text-on-primary font-semibold text-sm hover:bg-primary/90 active:scale-[0.99] transition-all cursor-pointer"
           >
-            Request New Reset Link
+            {t("reset.requestNewLink")}
           </Link>
         </div>
       </div>
@@ -72,16 +76,16 @@ export default function ResetPassword() {
         <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center mb-3 shadow-2xs">
           <HugeiconsIcon icon={LockPasswordIcon} size={24} strokeWidth={1.8} />
         </div>
-        <h1 className="text-2xl font-bold tracking-tight text-on-surface">Set new password</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-on-surface">{t("reset.title")}</h1>
         <p className="text-xs text-on-surface-variant mt-1 max-w-[280px]">
-          Choose a new secure password with at least 6 characters.
+          {t("reset.instructions")}
         </p>
       </div>
 
-      {error && (
+      {(errorKey || error) && (
         <div className="p-3 mb-4 rounded-xl bg-error/10 text-error border border-error/20 text-xs font-medium flex items-center gap-2">
           <HugeiconsIcon icon="alert-circle" size={16} strokeWidth={2} className="shrink-0" />
-          <span>{error}</span>
+          <span>{errorKey ? t(errorKey) : error}</span>
         </div>
       )}
 
@@ -89,7 +93,7 @@ export default function ResetPassword() {
       <form className="space-y-4" onSubmit={handleSubmit}>
         <div>
           <label className="block text-xs font-semibold text-on-surface mb-1.5" htmlFor="password">
-            New password
+            {t("reset.newPassword")}
           </label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-on-surface-variant/60">
@@ -103,6 +107,7 @@ export default function ResetPassword() {
               onChange={(e) => {
                 setPassword(e.target.value);
                 setError("");
+                setErrorKey("");
               }}
               autoComplete="new-password"
               required
@@ -114,7 +119,7 @@ export default function ResetPassword() {
               type="button"
               onClick={() => setShowPassword((current) => !current)}
               className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-on-surface-variant/60 hover:text-on-surface transition-colors cursor-pointer"
-              aria-label={showPassword ? "Hide password" : "Show password"}
+              aria-label={t(showPassword ? "reset.hidePassword" : "reset.showPassword")}
             >
               <HugeiconsIcon icon={showPassword ? "eye-off" : "eye"} size={18} strokeWidth={1.6} />
             </button>
@@ -123,7 +128,7 @@ export default function ResetPassword() {
 
         <div>
           <label className="block text-xs font-semibold text-on-surface mb-1.5" htmlFor="confirmPassword">
-            Confirm new password
+            {t("reset.confirmPassword")}
           </label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-on-surface-variant/60">
@@ -137,6 +142,7 @@ export default function ResetPassword() {
               onChange={(e) => {
                 setConfirmPassword(e.target.value);
                 setError("");
+                setErrorKey("");
               }}
               autoComplete="new-password"
               required
@@ -148,7 +154,7 @@ export default function ResetPassword() {
               type="button"
               onClick={() => setShowConfirmPassword((current) => !current)}
               className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-on-surface-variant/60 hover:text-on-surface transition-colors cursor-pointer"
-              aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+              aria-label={t(showConfirmPassword ? "reset.hidePassword" : "reset.showPassword")}
             >
               <HugeiconsIcon icon={showConfirmPassword ? "eye-off" : "eye"} size={18} strokeWidth={1.6} />
             </button>
@@ -164,10 +170,10 @@ export default function ResetPassword() {
             {loading ? (
               <>
                 <div className="w-4 h-4 border-2 border-on-primary/30 border-t-on-primary rounded-full animate-spin" />
-                <span>Updating Password...</span>
+                <span>{t("reset.updatingPassword")}</span>
               </>
             ) : (
-              <span>Update Password</span>
+              <span>{t("reset.updatePassword")}</span>
             )}
           </button>
         </div>
@@ -178,7 +184,7 @@ export default function ResetPassword() {
           to="/login" 
           className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors"
         >
-          Return to Sign In
+          {t("reset.returnToSignIn")}
         </Link>
       </div>
     </div>

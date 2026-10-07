@@ -5,7 +5,32 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script>
+      (() => {
+        let user = null;
+        let token = null;
+        let deviceLanguage = null;
+        try {
+          token = localStorage.getItem("token");
+          user = JSON.parse(localStorage.getItem("user") || "null");
+        } catch {
+          user = null;
+        }
+        try {
+          deviceLanguage = localStorage.getItem("smartpfe:uiLanguage");
+        } catch {
+          deviceLanguage = null;
+        }
+
+        const preference = token && user && user._id ? user.uiLanguage : deviceLanguage;
+        const language = preference === "fr" ? "fr" : "en";
+        const googleIdentityScript = document.createElement("script");
+        googleIdentityScript.src = `https://accounts.google.com/gsi/client?hl=${language}`;
+        googleIdentityScript.async = true;
+        googleIdentityScript.defer = true;
+        document.head.appendChild(googleIdentityScript);
+      })();
+    </script>
     <script src="https://unpkg.com/@plantuml/core@1.2026.6/viz-global.js"></script>
     <title>SmartPFE — Academic Thesis & PFE Intelligence Platform</title>
   </head>

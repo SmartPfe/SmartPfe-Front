@@ -1,80 +1,82 @@
 import OnboardingStep from "@/components/onboarding/OnboardingStep";
 import { TextAreaField, TextField } from "@/components/onboarding/FormControls";
 import { useOnboarding } from "@/context/OnboardingContext";
+import { useTranslation } from "react-i18next";
 
 export default function ProjectDescription() {
+  const { t } = useTranslation("onboarding");
   const { data, updateSection, isStepValid } = useOnboarding();
   const description = data.description;
 
   return (
     <OnboardingStep
       step={2}
-      title="Project Description"
-      description="Capture the problem, objective, deliverables, and stakeholders so AI modules can generate accurate project artifacts."
+      title={t("description.title")}
+      description={t("description.description")}
       backTo="/onboarding/1"
       nextTo="/onboarding/3"
-      nextLabel="Next Step"
+      nextLabel={t("steps.nextStep")}
       isNextDisabled={!isStepValid(2)}
     >
       <TextAreaField
         id="problem-statement"
-        label="Problem Statement"
+        label={t("description.problemStatement")}
         required
         rows={4}
         value={description.problemStatement}
         onChange={(problemStatement) => updateSection("description", { problemStatement })}
-        placeholder="Describe the problem, who is affected, and why it matters."
-        helperText="Explain the current pain point, limitation, or opportunity. This will be reused to generate the formal problem statement."
+        placeholder={t("description.problemStatementPlaceholder")}
+        helperText={t("description.problemStatementHelper")}
       />
 
       <TextAreaField
         id="project-objective"
-        label="Project Objective"
+        label={t("description.projectObjective")}
         required
         rows={3}
         value={description.objective}
         onChange={(objective) => updateSection("description", { objective })}
-        placeholder="State the main goal your project must achieve."
-        helperText="Write the desired outcome in measurable terms when possible."
+        placeholder={t("description.projectObjectivePlaceholder")}
+        helperText={t("description.projectObjectiveHelper")}
       />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-lg">
         <TextAreaField
           id="expected-deliverables"
-          label="Expected Deliverables"
+          label={t("description.expectedDeliverables")}
           rows={3}
           value={description.deliverables}
           onChange={(deliverables) => updateSection("description", { deliverables })}
-          placeholder="e.g. Web app, API, documentation, deployment guide"
-          helperText="List the outputs you expect to submit or demonstrate."
+          placeholder={t("description.expectedDeliverablesPlaceholder")}
+          helperText={t("description.expectedDeliverablesHelper")}
         />
         <TextAreaField
           id="stakeholders"
-          label="Stakeholders"
+          label={t("description.stakeholders")}
           rows={3}
           value={description.stakeholders}
           onChange={(stakeholders) => updateSection("description", { stakeholders })}
-          placeholder="e.g. Students, supervisors, administrators"
-          helperText="Mention people or organizations that use, review, or benefit from the project."
+          placeholder={t("description.stakeholdersPlaceholder")}
+          helperText={t("description.stakeholdersHelper")}
         />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-lg">
         <TextField
           id="internship-company"
-          label="Internship Company"
+          label={t("description.internshipCompany")}
           value={description.company}
           onChange={(company) => updateSection("description", { company })}
-          placeholder="Optional company name"
-          helperText="Leave empty for a purely academic project."
+          placeholder={t("description.internshipCompanyPlaceholder")}
+          helperText={t("description.internshipCompanyHelper")}
         />
         <TextField
           id="industry-sector"
-          label="Industry Sector"
+          label={t("description.industrySector")}
           value={description.industry}
           onChange={(industry) => updateSection("description", { industry })}
-          placeholder="e.g. Education, FinTech, Healthcare"
-          helperText="This helps tailor examples, risks, and business context."
+          placeholder={t("description.industrySectorPlaceholder")}
+          helperText={t("description.industrySectorHelper")}
         />
       </div>
     </OnboardingStep>
