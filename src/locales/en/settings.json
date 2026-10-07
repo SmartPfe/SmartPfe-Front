@@ -1,0 +1,33 @@
+{
+  "workspace": {
+    "title": "Settings",
+    "untitledProject": "Untitled Project",
+    "notSpecified": "Not specified",
+    "defaultMethodology": "Scrum",
+    "activeProject": "Active Project",
+    "synced": "Synced",
+    "universityLabel": "University:",
+    "methodologyLabel": "Method:",
+    "generationLanguageLabel": "Generation language:",
+    "projectSpecifications": "Project Specifications",
+    "contextBadge": "Context",
+    "projectSpecificationsDescription": "Edit thesis title, domain, problem formulation, deliverables, methodology, and tech stack.",
+    "projectSpecificationsDetails": "Domain, Tech, Objectives",
+    "edit": "Edit",
+    "accountSecurity": "Account & Security",
+    "profileBadge": "Profile",
+    "accountSecurityDescription": "Manage personal credentials, university email address, and authentication password.",
+    "studentAccount": "Student Account",
+    "manage": "Manage",
+    "creditHistory": "Credit History",
+    "creditHistoryDescription": "Track purchase requests, deposits and credit usage. Search and filter your complete history.",
+    "themeMode": "Theme Mode",
+    "darkThemeActive": "Dark theme active",
+    "lightThemeActive": "Light theme active",
+    "toggleTheme": "Toggle theme",
+    "exportConfig": "Export Config",
+    "exportConfigDescription": "Download project snapshot JSON",
+    "saved": "Saved!",
+    "export": "Export"
+  }
+}

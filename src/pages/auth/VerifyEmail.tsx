@@ -20,6 +20,7 @@ function persistSession(data: any) {
     emailVerified: data.emailVerified !== false,
     hasCompletedOnboarding: data.hasCompletedOnboarding,
     role: data.role || "etudiant",
+    uiLanguage: data.uiLanguage || "en",
   }));
 }
 

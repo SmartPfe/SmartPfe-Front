@@ -1,0 +1,33 @@
+{
+  "workspace": {
+    "title": "Paramètres",
+    "untitledProject": "Projet sans titre",
+    "notSpecified": "Non spécifiée",
+    "defaultMethodology": "Scrum",
+    "activeProject": "Projet actif",
+    "synced": "Synchronisé",
+    "universityLabel": "Université :",
+    "methodologyLabel": "Méthode :",
+    "generationLanguageLabel": "Langue de génération :",
+    "projectSpecifications": "Spécifications du projet",
+    "contextBadge": "Contexte",
+    "projectSpecificationsDescription": "Modifiez le titre du mémoire, le domaine, la formulation du problème, les livrables, la méthodologie et la pile technologique.",
+    "projectSpecificationsDetails": "Domaine, technologies, objectifs",
+    "edit": "Modifier",
+    "accountSecurity": "Compte et sécurité",
+    "profileBadge": "Profil",
+    "accountSecurityDescription": "Gérez vos identifiants, votre adresse e-mail universitaire et votre mot de passe.",
+    "studentAccount": "Compte étudiant",
+    "manage": "Gérer",
+    "creditHistory": "Historique des crédits",
+    "creditHistoryDescription": "Suivez les demandes d’achat, les dépôts et l’utilisation des crédits. Recherchez et filtrez l’historique complet.",
+    "themeMode": "Thème",
+    "darkThemeActive": "Thème sombre activé",
+    "lightThemeActive": "Thème clair activé",
+    "toggleTheme": "Changer de thème",
+    "exportConfig": "Exporter la configuration",
+    "exportConfigDescription": "Télécharger un instantané JSON du projet",
+    "saved": "Enregistré !",
+    "export": "Exporter"
+  }
+}

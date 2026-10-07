@@ -1,0 +1,9 @@
+{
+  "interfaceLanguage": "Interface language",
+  "languageHelp": "Choose the language of menus and controls. Your generation language and project content stay unchanged.",
+  "english": "English",
+  "french": "Français",
+  "saving": "Saving preference…",
+  "saveFailed": "Could not save your language preference. Please try again.",
+  "backHome": "Back to home"
+}

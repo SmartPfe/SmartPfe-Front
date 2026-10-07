@@ -1,0 +1,9 @@
+{
+  "interfaceLanguage": "Langue de l’interface",
+  "languageHelp": "Choisissez la langue des menus et des commandes. La langue de génération et le contenu de votre projet restent inchangés.",
+  "english": "English",
+  "french": "Français",
+  "saving": "Enregistrement de la préférence…",
+  "saveFailed": "Impossible d’enregistrer votre préférence de langue. Veuillez réessayer.",
+  "backHome": "Retour à l’accueil"
+}

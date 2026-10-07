@@ -1,5 +1,6 @@
 import { Outlet, Link } from "react-router-dom";
 import HugeiconsIcon from "@/components/ui/HugeiconsIcon";
+import LanguageSelector from "@/components/LanguageSelector";
 
 export default function AuthLayout() {
   return (
@@ -35,6 +36,7 @@ export default function AuthLayout() {
       </header>
 
       {/* Main Form Content */}
+      <div className="w-full max-w-[420px] mb-2"><LanguageSelector compact /></div>
       <main className="w-full max-w-[420px] my-auto py-4">
         <Outlet />
       </main>

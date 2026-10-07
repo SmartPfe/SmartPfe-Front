@@ -43,6 +43,7 @@ export default function Login() {
         emailVerified: data.emailVerified !== false,
         hasCompletedOnboarding: data.hasCompletedOnboarding,
         role: data.role || "etudiant",
+        uiLanguage: data.uiLanguage || "en",
       }));
 
       if (data.role === "admin") {

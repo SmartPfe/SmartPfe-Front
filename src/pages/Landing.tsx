@@ -1,5 +1,6 @@
 import { useState, type ChangeEvent, type FormEvent } from "react";
 import { Link } from "react-router-dom";
+import LanguageSelector from "@/components/LanguageSelector";
 import { motion } from "motion/react";
 import {
   ArrowRight,
@@ -277,6 +278,7 @@ export default function Landing() {
               </Link>
             </div>
 
+
             <button type="button" className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-indigo-100 bg-white text-slate-700 shadow-sm transition hover:border-indigo-200 hover:bg-indigo-50 lg:hidden" aria-label="Toggle navigation menu" aria-expanded={isMenuOpen} onClick={() => setIsMenuOpen((value) => !value)}>
               {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
@@ -539,6 +541,7 @@ export default function Landing() {
       </main>
 
       <footer className="bg-[#07111f] px-4 py-12 text-white sm:px-6 lg:px-8">
+        <div className="mx-auto mb-8 max-w-7xl"><LanguageSelector compact inverse /></div>
         <div className="mx-auto grid max-w-7xl grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,2fr)]"><div className="w-full min-w-0"><Link to="/" className="inline-flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-600 text-sm font-extrabold text-white">P</span><span className="text-lg font-extrabold">PFE Guidance</span></Link><p className="mt-5 w-full max-w-[28rem] text-sm leading-7 text-slate-300">The intelligent workspace helping engineering students structure, build and defend their Final Year Project with confidence.</p></div><div className="grid w-full min-w-0 grid-cols-1 gap-8 sm:grid-cols-3">{Object.entries(FOOTER_LINKS).map(([title, links]) => <div key={title}><h3 className="text-sm font-extrabold uppercase text-indigo-200">{title}</h3><div className="mt-4 grid gap-3">{links.map((link) => <a key={title + link.label} href={link.href} className="text-sm font-semibold text-slate-300 transition hover:text-white">{link.label}</a>)}</div></div>)}</div></div>
         <div className="mx-auto mt-10 flex max-w-7xl flex-col gap-3 border-t border-white/10 pt-6 text-sm font-semibold text-slate-400 sm:flex-row sm:items-center sm:justify-between"><span>{"\u00A9"} 2026 PFE Guidance. All rights reserved.</span><span>Built for students in Tunisia and beyond.</span></div>
       </footer>

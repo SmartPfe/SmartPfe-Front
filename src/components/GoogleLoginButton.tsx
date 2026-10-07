@@ -78,6 +78,7 @@ export default function GoogleLoginButton({ onError, onLoading }: GoogleLoginBut
           emailVerified: data.emailVerified !== false,
           hasCompletedOnboarding: data.hasCompletedOnboarding,
           role: data.role || "etudiant",
+          uiLanguage: data.uiLanguage || "en",
         })
       );
 

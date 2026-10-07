@@ -1,11 +1,14 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import HugeiconsIcon, { Folder01Icon } from "@/components/ui/HugeiconsIcon";
+import LanguageSelector from "@/components/LanguageSelector";
 import { useOnboarding } from "@/context/OnboardingContext";
 import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
 export default function Settings() {
+  const { t } = useTranslation<'settings'>("settings");
   const { data } = useOnboarding();
   const [user, setUser] = useState(() => JSON.parse(localStorage.getItem("user") || "{}"));
   const { isDarkMode, toggleTheme } = useTheme();
@@ -27,9 +30,9 @@ export default function Settings() {
     }
   };
 
-  const projectTitle = data?.basics?.title?.trim() || "Untitled Project";
-  const university = data?.basics?.university?.trim() || "Not specified";
-  const methodology = data?.technicalContext?.methodology || "Scrum";
+  const projectTitle = data?.basics?.title?.trim() || t("workspace.untitledProject");
+  const university = data?.basics?.university?.trim() || t("workspace.notSpecified");
+  const methodology = data?.technicalContext?.methodology || t("workspace.defaultMethodology");
   const language = data?.basics?.language || "English";
 
   return (
@@ -37,11 +40,11 @@ export default function Settings() {
       {/* Header */}
       <div className="mb-5">
         <h1 className="text-2xl font-bold tracking-tight text-on-surface">
-          Settings
+          {t("workspace.title")}
         </h1>
       </div>
 
-      {/* Active Project Ribbon */}
+{/* Active Project Ribbon */}
       <div className="mb-6 p-4 rounded-xl border border-outline-variant/80 bg-surface-container-lowest shadow-2xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
@@ -50,9 +53,9 @@ export default function Settings() {
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">Active Project</span>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">{t("workspace.activeProject")}</span>
                 <span className="w-1.5 h-1.5 rounded-full bg-secondary shrink-0" />
-                <span className="text-[11px] font-mono text-secondary font-semibold">Synced</span>
+                <span className="text-[11px] font-mono text-secondary font-semibold">{t("workspace.synced")}</span>
               </div>
               <h2 className="text-sm font-bold text-on-surface truncate" title={projectTitle}>
                 {projectTitle}
@@ -62,13 +65,13 @@ export default function Settings() {
 
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="text-[11px] px-2 py-0.5 rounded-md bg-surface border border-outline-variant text-on-surface font-semibold">
-              <span className="text-on-surface-variant font-normal mr-1">Uni:</span>{university}
+              <span className="text-on-surface-variant font-normal mr-1">{t("workspace.universityLabel")}</span>{university}
             </span>
             <span className="text-[11px] px-2 py-0.5 rounded-md bg-surface border border-outline-variant text-on-surface font-semibold">
-              <span className="text-on-surface-variant font-normal mr-1">Method:</span>{methodology}
+              <span className="text-on-surface-variant font-normal mr-1">{t("workspace.methodologyLabel")}</span>{methodology}
             </span>
             <span className="text-[11px] px-2 py-0.5 rounded-md bg-surface border border-outline-variant text-on-surface font-semibold">
-              <span className="text-on-surface-variant font-normal mr-1">Lang:</span>{language}
+              <span className="text-on-surface-variant font-normal mr-1">{t("workspace.generationLanguageLabel")}</span>{language}
             </span>
           </div>
         </div>
@@ -90,24 +93,24 @@ export default function Settings() {
                 </div>
                 <div className="min-w-0">
                   <h2 className="text-sm font-bold text-on-surface group-hover:text-primary transition-colors truncate">
-                    Project Specifications
+                    {t("workspace.projectSpecifications")}
                   </h2>
                 </div>
               </div>
               <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-surface-container text-on-surface-variant font-mono shrink-0">
-                Context
+                {t("workspace.contextBadge")}
               </span>
             </div>
 
             <p className="text-xs text-on-surface-variant font-normal leading-relaxed mb-4">
-              Edit thesis title, domain, problem formulation, deliverables, methodology, and tech stack.
+              {t("workspace.projectSpecificationsDescription")}
             </p>
           </div>
 
           <div className="flex items-center justify-between pt-3 border-t border-outline-variant/50 text-xs font-semibold text-primary group-hover:translate-x-0.5 transition-transform">
-            <span className="text-on-surface-variant text-[11px] font-medium">Domain, Tech, Objectives</span>
+            <span className="text-on-surface-variant text-[11px] font-medium">{t("workspace.projectSpecificationsDetails")}</span>
             <div className="flex items-center gap-1">
-              <span>Edit</span>
+              <span>{t("workspace.edit")}</span>
               <HugeiconsIcon icon="arrow-right" size={14} strokeWidth={2} />
             </div>
           </div>
@@ -127,24 +130,24 @@ export default function Settings() {
                 </div>
                 <div className="min-w-0">
                   <h2 className="text-sm font-bold text-on-surface group-hover:text-primary transition-colors truncate">
-                    Account & Security
+                    {t("workspace.accountSecurity")}
                   </h2>
                 </div>
               </div>
               <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-surface-container text-on-surface-variant font-mono shrink-0">
-                Profile
+                {t("workspace.profileBadge")}
               </span>
             </div>
 
             <p className="text-xs text-on-surface-variant font-normal leading-relaxed mb-4">
-              Manage personal credentials, university email address, and authentication password.
+              {t("workspace.accountSecurityDescription")}
             </p>
           </div>
 
           <div className="flex items-center justify-between pt-3 border-t border-outline-variant/50 text-xs font-semibold text-primary group-hover:translate-x-0.5 transition-transform">
-            <span className="text-on-surface-variant text-[11px] font-medium truncate max-w-[160px]">{user.fullName || "Student Account"}</span>
+            <span className="text-on-surface-variant text-[11px] font-medium truncate max-w-[160px]">{user.fullName || t("workspace.studentAccount")}</span>
             <div className="flex items-center gap-1 shrink-0">
-              <span>Manage</span>
+              <span>{t("workspace.manage")}</span>
               <HugeiconsIcon icon="arrow-right" size={14} strokeWidth={2} />
             </div>
           </div>
@@ -154,11 +157,12 @@ export default function Settings() {
       <Link to="/workspace/settings/credits" className="group mb-6 flex items-center justify-between gap-4 rounded-xl border border-amber-400/30 bg-amber-400/5 p-5 transition hover:border-primary/50 hover:shadow-xs">
         <div className="flex items-center gap-3">
           <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400"><HugeiconsIcon icon="wallet-02" size={20} /></div>
-          <div><h2 className="text-sm font-bold text-on-surface group-hover:text-primary">Credit History</h2><p className="mt-1 text-xs leading-relaxed text-on-surface-variant">Track purchase requests, deposits and credit usage. Search and filter your complete history.</p></div>
+          <div><h2 className="text-sm font-bold text-on-surface group-hover:text-primary">{t("workspace.creditHistory")}</h2><p className="mt-1 text-xs leading-relaxed text-on-surface-variant">{t("workspace.creditHistoryDescription")}</p></div>
         </div>
         <HugeiconsIcon icon="arrow-right" size={18} className="shrink-0 text-primary" />
       </Link>
 
+      <div className="mb-4"><LanguageSelector /></div>
       {/* Secondary Utilities Grid (2 clean cards) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {/* Workspace Theme Toggle */}
@@ -168,9 +172,9 @@ export default function Settings() {
               <HugeiconsIcon icon={isDarkMode ? "moon" : "sun"} size={18} strokeWidth={1.8} />
             </div>
             <div className="min-w-0">
-              <h3 className="text-xs font-bold text-on-surface">Theme Mode</h3>
+              <h3 className="text-xs font-bold text-on-surface">{t("workspace.themeMode")}</h3>
               <p className="text-[11px] text-on-surface-variant truncate">
-                {isDarkMode ? "Dark theme active" : "Light theme active"}
+                {isDarkMode ? t("workspace.darkThemeActive") : t("workspace.lightThemeActive")}
               </p>
             </div>
           </div>
@@ -182,7 +186,7 @@ export default function Settings() {
               "w-10 h-5.5 rounded-full p-0.5 transition-colors relative flex items-center shrink-0 cursor-pointer",
               isDarkMode ? "bg-primary" : "bg-outline-variant"
             )}
-            aria-label="Toggle theme"
+            aria-label={t("workspace.toggleTheme")}
           >
             <div
               className={cn(
@@ -200,9 +204,9 @@ export default function Settings() {
               <HugeiconsIcon icon="download" size={18} strokeWidth={1.8} />
             </div>
             <div className="min-w-0">
-              <h3 className="text-xs font-bold text-on-surface">Export Config</h3>
+              <h3 className="text-xs font-bold text-on-surface">{t("workspace.exportConfig")}</h3>
               <p className="text-[11px] text-on-surface-variant truncate">
-                Download project snapshot JSON
+                {t("workspace.exportConfigDescription")}
               </p>
             </div>
           </div>
@@ -215,12 +219,12 @@ export default function Settings() {
             {downloaded ? (
               <>
                 <HugeiconsIcon icon="check-circle" size={13} className="text-secondary" />
-                <span className="text-secondary">Saved!</span>
+                <span className="text-secondary">{t("workspace.saved")}</span>
               </>
             ) : (
               <>
                 <HugeiconsIcon icon="download" size={13} />
-                <span>Export</span>
+                <span>{t("workspace.export")}</span>
               </>
             )}
           </button>
@@ -229,5 +233,3 @@ export default function Settings() {
     </div>
   );
 }
-
-

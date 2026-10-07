@@ -45,10 +45,12 @@ import AdminProjects from "./pages/admin/AdminProjects";
 import AdminCredits from "./pages/admin/AdminCredits";
 import AdminCreditRequests from "./pages/admin/AdminCreditRequests";
 import { CreditProvider } from "./context/CreditContext";
+import { InterfaceLanguageProvider } from "./context/InterfaceLanguageContext";
   
 export default function App() {
   return (
     <BrowserRouter>
+      <InterfaceLanguageProvider>
       <CreditProvider>
        <Routes>
         <Route path="/" element={<Landing />} />
@@ -111,6 +113,7 @@ export default function App() {
         </Route>
        </Routes>
       </CreditProvider>
+      </InterfaceLanguageProvider>
     </BrowserRouter>
   );
 }

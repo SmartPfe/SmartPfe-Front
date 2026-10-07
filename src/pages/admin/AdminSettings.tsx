@@ -1,5 +1,11 @@
+import LanguageSelector from "@/components/LanguageSelector";
 import AccountSettings from "@/pages/workspace/AccountSettings";
 
 export default function AdminSettings() {
-  return <AccountSettings backTo="/admin/dashboard" backLabel="Back to Admin Dashboard" memberLabel="Administrator" />;
+  return (
+    <>
+      <LanguageSelector />
+      <AccountSettings backTo="/admin/dashboard" backLabel="Back to Admin Dashboard" memberLabel="Administrator" />
+    </>
+  );
 }
