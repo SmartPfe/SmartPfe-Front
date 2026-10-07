@@ -1,0 +1,193 @@
+{
+  "notifications": {
+    "title": "Notifications",
+    "liveUpdates": "Live updates",
+    "markAllAsRead": "Mark all as read",
+    "liveSyncActive": "Live sync active",
+    "connecting": "Connecting...",
+    "empty": "No new notifications",
+    "justNow": "Just now",
+    "minutesAgo_one": "{{countDisplay}} min ago",
+    "minutesAgo_other": "{{countDisplay}} min ago",
+    "hoursAgo_one": "{{countDisplay}}h ago",
+    "hoursAgo_other": "{{countDisplay}}h ago"
+  },
+  "revisionHistory": {
+    "title": "Revision History",
+    "description": "Track modifications across all PFE phases",
+    "close": "Close revision history",
+    "latestEdit": "Latest Edit",
+    "restore": "Restore",
+    "entries": {
+      "1": {
+        "time": "Just now",
+        "date": "Today, 10:50 AM",
+        "action": "Updated UML Diagrams",
+        "details": "Added 'AnalyticsEngine' class and defined relation with Dashboard component in Class Diagram.",
+        "phase": "UML Preparation"
+      },
+      "2": {
+        "time": "2 hours ago",
+        "date": "Today, 8:30 AM",
+        "action": "Validated Phase: Product Backlog",
+        "details": "Approved 12 Backlog Items and moved sprint velocity metric to 42 points.",
+        "phase": "Product Backlog"
+      },
+      "3": {
+        "time": "Yesterday",
+        "date": "Jun 16, 4:15 PM",
+        "action": "Added Review Comment",
+        "details": "\"Please consider scaling implications. Add a Non-Functional Requirement for at least 10,000 concurrent users.\"",
+        "phase": "Non-Functional Reqs"
+      },
+      "4": {
+        "time": "Yesterday",
+        "date": "Jun 16, 1:20 PM",
+        "action": "Restructured Report Sections",
+        "details": "Reordered 'Technical Stack' to appear before 'Implementation Details'. Added Chapter 4.",
+        "phase": "Report Structure"
+      },
+      "5": {
+        "time": "2 days ago",
+        "date": "Jun 15, 11:00 AM",
+        "action": "Project Initialization",
+        "details": "Created 'AI-Powered Analytics Platform for Retail' project workspace and defined core Domain.",
+        "phase": "Overview"
+      }
+    }
+  },
+  "saveStatus": {
+    "saved": "All changes saved",
+    "saving": "Autosaving...",
+    "unsaved": "Unsaved changes",
+    "saveNow": "Save now"
+  },
+  "creditBadge": {
+    "paused": "PAUSED",
+    "free": "FREE",
+    "freeUsesRemaining_one": "{{countDisplay}} free use remaining today, then {{credits}} credits",
+    "freeUsesRemaining_other": "{{countDisplay}} free uses remaining today, then {{credits}} credits",
+    "freeUsesPerDay_one": "{{countDisplay}} free use each day, then {{credits}} credits",
+    "freeUsesPerDay_other": "{{countDisplay}} free uses each day, then {{credits}} credits",
+    "creditsAmount_one": "{{credits}} credit",
+    "creditsAmount_other": "{{credits}} credits"
+  },
+  "creditWallet": {
+    "title": "Credit wallet",
+    "creditsAlt": "Credits",
+    "availableCredits": "Available credits",
+    "closeWallet": "Close wallet",
+    "dailyWelcome": "Daily & welcome",
+    "purchased": "Purchased",
+    "addMoreCredits": "Add More Credits",
+    "latestRequests": "Latest requests",
+    "creditsUnit": "credits",
+    "noRequests": "No credit requests yet.",
+    "status": {
+      "pending": "Pending",
+      "confirmed": "Confirmed",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "recentActivity": "Recent activity",
+    "noActivity": "No credit activity yet.",
+    "viewFullHistory": "View full credit history",
+    "refillNote": "Promotional credits refill up to {{amount}} each day and are used first.",
+    "requestReceived": "Request received",
+    "allSet": "You're all set!",
+    "requestSubmitted": "Your credit request has been submitted successfully. A team member will contact you as soon as possible to explain the payment steps.",
+    "paymentVerified": "Your credits will be added to your wallet after your payment is verified.",
+    "receiptSent": "A receipt with your request details has been sent to your email. You can also track your request in Credit History.",
+    "receiptNotSent": "Your request is saved, but we couldn't send your receipt email. All your request details are available in Credit History.",
+    "gotIt": "Got it",
+    "trackRequest": "Track my request",
+    "requestInstructions": "Our team will contact you with payment instructions. Credits are added after payment is verified.",
+    "closeRequest": "Close credit request",
+    "studentEmail": "Student email",
+    "phoneNumber": "Phone number",
+    "purchaseMode": "Credit purchase mode",
+    "customAmount": "Custom amount",
+    "creditUnit": "credit",
+    "desiredCredits": "Desired credits",
+    "creditsRequested": "Credits requested",
+    "estimatedPrice": "Estimated price",
+    "cancel": "Cancel",
+    "submitting": "Submitting...",
+    "submitRequest": "Submit Request",
+    "errors": {
+      "validPhone": "Enter a valid phone number so the admin can contact you.",
+      "optionsLoading": "Purchase options are still loading. Please try again in a moment.",
+      "creditRange": "Choose between 1 and 100,000 credits.",
+      "submitFailed": "Could not submit your credit request."
+    },
+    "activity": {
+      "creditPurchase": "Credit purchase",
+      "welcomeCredits": "Welcome credits",
+      "dailyRefill": "Daily refill",
+      "walletAdjustment": "Wallet adjustment",
+      "creditRefund": "Credit refund",
+      "aiActivity": "AI activity"
+    },
+    "actions": {
+      "problemStatement": "Problem Statement",
+      "actors": "Actors & Stakeholders",
+      "existingSolutions": "Existing Solutions",
+      "functionalRequirements": "Functional Requirements",
+      "nonFunctionalRequirements": "Non-Functional Requirements",
+      "productBacklog": "Product Backlog",
+      "umlPreparation": "UML Architecture",
+      "reportStructure": "Report Structure",
+      "reportSection": "Report Section",
+      "quickPolish": "Quick Polish",
+      "contextualReportPolish": "Contextual Report Polish",
+      "completeReportCompilation": "Complete Report Compilation",
+      "presentationDeck": "Presentation Deck",
+      "presentationSlide": "Presentation Slide",
+      "pitchSpeech": "Pitch Speech",
+      "pitchSlide": "Pitch Slide",
+      "jurySimulation": "Jury Simulation",
+      "juryQaSession": "Jury Q&A Session",
+      "includedJuryQaSteps": "Included Jury Q&A Steps",
+      "translation": "Translation"
+    }
+  },
+  "aiToolbar": {
+    "generateWithAi": "Generate with AI",
+    "refineWithAi": "Refine with AI",
+    "refinePlaceholder": "Tell AI what you'd like to improve (optional)...",
+    "translate": "Translate",
+    "generating": "Generating...",
+    "refining": "Refining...",
+    "translating": "Translating...",
+    "refineInstructions": "Refine Instructions",
+    "cancel": "Cancel",
+    "refine": "Refine"
+  },
+  "aiBanner": {
+    "generating": "Generating {{moduleName}}",
+    "refining": "Refining {{moduleName}}",
+    "translating": "Translating {{moduleName}}",
+    "processing": "Processing {{moduleName}}",
+    "backgroundTask": "Background task",
+    "explorePages": "Feel free to explore other pages — your progress won't be lost.",
+    "stopTooltip": "Stop and cancel this generation",
+    "stop": "Stop"
+  },
+  "aiDock": {
+    "activeGenerations": "Active Generations",
+    "defaultTitle": "AI Generation",
+    "readyToView": "Ready to view",
+    "ready": "Ready",
+    "failed": "Failed",
+    "generatingInBackground": "Generating in background...",
+    "generationFailed": "Generation failed",
+    "concurrentTitle": "Maximum Concurrent Generations",
+    "concurrentDescription_one": "You can generate up to {{count}} section in parallel. Please wait for one to finish.",
+    "concurrentDescription_other": "You can generate up to {{count}} sections in parallel. Please wait for one to finish.",
+    "jumpToSection": "Jump to this section",
+    "view": "View",
+    "stopTooltip": "Stop and cancel this generation",
+    "stop": "Stop",
+    "close": "Close notification"
+  }
+}

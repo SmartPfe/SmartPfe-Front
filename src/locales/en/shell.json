@@ -1,0 +1,219 @@
+{
+  "navigation": {
+    "thesisWorkspace": "Thesis Workspace",
+    "hub": "Hub",
+    "breadcrumb": "Breadcrumb",
+    "workspace": "Workspace",
+    "groups": {
+      "specification": "Specification",
+      "engineering": "Engineering & Backlog",
+      "delivery": "Academic Delivery"
+    },
+    "sidebarLabels": {
+      "projectOverview": "Project Overview",
+      "problemStatement": "Problem Statement",
+      "actorsStakeholders": "Actors & Stakeholders",
+      "existingSolutions": "Existing Solutions",
+      "functionalRequirementsShort": "Functional Req.",
+      "nonFunctionalRequirementsShort": "Non-Functional Req.",
+      "productBacklog": "Product Backlog",
+      "umlArchitecture": "UML Architecture",
+      "reportStructure": "Report Structure",
+      "reportBuilder": "Report Builder",
+      "presentationDeck": "Presentation Deck",
+      "pitchSpeech": "Pitch Speech",
+      "jurySimulation": "Jury Simulation",
+      "settings": "Settings"
+    },
+    "topbarLabels": {
+      "overview": "Overview",
+      "problem": "Problem",
+      "actors": "Actors",
+      "solutions": "Solutions",
+      "functionalRequirementsShort": "Func Reqs",
+      "nonFunctionalRequirementsShort": "Non-Func Reqs",
+      "backlog": "Backlog",
+      "uml": "UML",
+      "structure": "Structure",
+      "report": "Report",
+      "presentation": "Presentation",
+      "pitch": "Pitch",
+      "jurySimulationShort": "Jury Sim",
+      "settings": "Settings",
+      "account": "Account",
+      "creditHistory": "Credit History"
+    },
+    "tooltips": {
+      "overview": "Define the core premise, goals, and domain of your project.",
+      "problemStatement": "Clearly articulate the issue your project aims to solve.",
+      "actors": "Identify all users and systems interacting with your application.",
+      "solutions": "Outline the technical and functional solutions to the problem.",
+      "functionalRequirements": "Specify the exact behaviors and features the system must support.",
+      "nonFunctionalRequirements": "Define system attributes like performance, security, and scalability.",
+      "backlog": "Organize and prioritize all pending tasks and features.",
+      "umlPreparation": "Design the system architecture using Unified Modeling Language diagrams.",
+      "reportStructure": "Outline the chapters and sections of your final PFE report.",
+      "reportBuilder": "Draft and assemble the content for your final report.",
+      "presentation": "Prepare the slides and material for your project defense.",
+      "pitch": "Craft a concise and compelling summary of your project.",
+      "jurySimulation": "Simulate a real oral defense with AI jury members."
+    }
+  },
+  "sidebar": {
+    "roadmapProgress": "Roadmap Progress",
+    "stepsDone": "{{completed}} of {{total}} steps done",
+    "methodologyNavigation": "Project methodology",
+    "toggleTheme": "Toggle theme",
+    "darkMode": "Dark Mode",
+    "lightMode": "Light Mode"
+  },
+  "topbar": {
+    "defaultProjectTitle": "PFE Project",
+    "toggleSidebar": "Toggle sidebar",
+    "saving": "Saving...",
+    "saved": "Saved",
+    "lastSynced": "Last synced {{time}}",
+    "justNow": "just now",
+    "oneMinuteAgo": "1 min ago",
+    "searchWorkspace": "Search workspace (Ctrl+K)",
+    "search": "Search...",
+    "revisionHistoryTitle": "Revision History & Versions",
+    "revisionHistory": "Revision History",
+    "liveWorkspaceEvents": "Live workspace events",
+    "userAccount": "User Account",
+    "userAvatar": "{{name}} avatar",
+    "userAvatarFallback": "User avatar",
+    "studentAccount": "Student Account",
+    "defaultEmail": "student@university.edu",
+    "pfeCandidate": "PFE Candidate",
+    "accountProfile": "Account Profile",
+    "workspaceSettings": "Workspace Settings",
+    "commandPalette": "Command Palette",
+    "logOut": "Log Out"
+  },
+  "search": {
+    "tabs": {
+      "all": "All Items",
+      "phases": "Phases",
+      "architecture": "Architecture",
+      "deliverables": "Deliverables",
+      "actions": "Quick Actions"
+    },
+    "categories": {
+      "phases": "Methodology Phase",
+      "architecture": "Architecture & Modeling",
+      "reportsStudio": "Reports & Studio",
+      "defensePreparation": "Defense Preparation",
+      "preferences": "Preferences",
+      "userAccount": "User Account"
+    },
+    "items": {
+      "overview": {
+        "label": "Project Overview",
+        "description": "Define core premise, academic domain, goals, and team members."
+      },
+      "problemStatement": {
+        "label": "Problem Statement",
+        "description": "Articulate the exact problem, existing challenges, and objectives."
+      },
+      "actors": {
+        "label": "Actors & Personas",
+        "description": "Map primary, secondary, and external systems interacting with the solution."
+      },
+      "solutions": {
+        "label": "Existing Solutions (SOTA)",
+        "description": "State-of-the-art comparative matrix of existing market alternatives."
+      },
+      "functionalRequirements": {
+        "label": "Functional Requirements",
+        "description": "Specify system behaviors (RF-01, RF-02...) and feature specifications."
+      },
+      "nonFunctionalRequirements": {
+        "label": "Non-Functional Requirements",
+        "description": "Define system performance, security, availability, and ISO quality attributes."
+      },
+      "backlog": {
+        "label": "Product Backlog",
+        "description": "Sprint-ready user stories, story points, and priority backlog items."
+      },
+      "uml": {
+        "label": "UML Architecture & Diagrams",
+        "description": "Generate and edit PlantUML Class, Sequence, and Use Case diagrams."
+      },
+      "reportStructure": {
+        "label": "Report Structure (Thesis Outline)",
+        "description": "Academic thesis table of contents compliant with university norms."
+      },
+      "reportBuilder": {
+        "label": "Report Studio (Editor & Generator)",
+        "description": "Rich academic editor with Corrective RAG section generation."
+      },
+      "presentation": {
+        "label": "Defense Slides & Presentation",
+        "description": "Generate structured presentation slides and keynote bullet points."
+      },
+      "pitch": {
+        "label": "Elevator Pitch & Timed Speech",
+        "description": "Craft a high-impact 3-minute oral defense pitch script."
+      },
+      "jurySimulation": {
+        "label": "Jury Q&A Simulation",
+        "description": "Simulate a live oral defense with adversarial AI academic jury members."
+      },
+      "settings": {
+        "label": "Workspace Settings",
+        "description": "Configure project API keys, language, and workspace preferences."
+      },
+      "account": {
+        "label": "Account Profile",
+        "description": "Manage your user profile, avatar, and credentials."
+      }
+    },
+    "dialogLabel": "Workspace search",
+    "inputLabel": "Search workspace pages and documents",
+    "placeholder": "Search workspace pages, documents, phases...",
+    "clearQuery": "Clear query",
+    "locked": "Locked",
+    "jump": "Jump",
+    "noMatchingItems": "No matching workspace items",
+    "trySuggestions": "No results found for “{{query}}”. Try searching for <uml>UML</uml>, <report>Report</report>, or <requirements>Requirements</requirements>.",
+    "suggestions": {
+      "uml": "UML",
+      "report": "Report",
+      "requirements": "Requirements"
+    },
+    "navigate": "navigate",
+    "open": "open",
+    "dismiss": "dismiss",
+    "quickSwitcher": "SmartPFE Quick Switcher"
+  },
+  "workspace": {
+    "verifyingMethodologyAccess": "Verifying methodology access..."
+  },
+  "admin": {
+    "navigation": {
+      "overview": "Overview",
+      "overviewHelper": "Platform pulse",
+      "users": "Users",
+      "usersHelper": "Accounts & wallets",
+      "projects": "Projects",
+      "projectsHelper": "Student workspaces",
+      "creditEconomy": "Credit Economy",
+      "creditEconomyHelper": "Pricing & allowances",
+      "creditRequests": "Credit Requests",
+      "creditRequestsHelper": "Manual top-ups",
+      "adminAccount": "Admin Account",
+      "adminAccountHelper": "Profile & security"
+    },
+    "closeMenu": "Close admin menu",
+    "openMenu": "Open admin menu",
+    "management": "Management",
+    "title": "Administration",
+    "administrator": "Administrator",
+    "logOut": "Log out",
+    "admin": "Admin",
+    "liveSystemUpdates": "Live system updates",
+    "adminAccountTitle": "Admin account",
+    "adminAvatar": "Admin avatar"
+  }
+}

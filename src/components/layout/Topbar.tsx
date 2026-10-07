@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useLocation, useNavigate, Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import SearchPalette from "./SearchPalette";
 import RevisionHistoryDrawer from "./RevisionHistoryDrawer";
 import NotificationBell from "./NotificationBell";
@@ -8,6 +9,8 @@ import { useOnboarding } from "@/context/OnboardingContext";
 import { WORKSPACE_PHASES } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import CreditWalletButton from "@/components/credits/CreditWalletButton";
+import LanguageSelector from "@/components/LanguageSelector";
+import { topbarPhaseLabelKey, workspaceTooltipKey } from "@/lib/workspaceLabels";
 
 interface TopbarProps {
   toggleSidebar: () => void;
@@ -32,6 +35,7 @@ const PHASE_ICONS: Record<string, string> = {
 };
 
 export default function Topbar({ toggleSidebar }: TopbarProps) {
+  const { t } = useTranslation("shell");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -43,17 +47,17 @@ export default function Topbar({ toggleSidebar }: TopbarProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const onboarding = useOnboarding();
-  const projectTitle = onboarding?.data?.basics?.title?.trim() || "PFE Project";
+  const projectTitle = onboarding?.data?.basics?.title?.trim() || t("topbar.defaultProjectTitle");
 
   // Determine current active phase for breadcrumb
   const currentPhase = useMemo(() => {
     const path = location.pathname;
     const match = WORKSPACE_PHASES.find((p) => p.path === path);
-    if (match) return match;
-    if (path === "/workspace/settings/credits") return { id: "settings", label: "Credit History", path };
-    if (path.includes("/workspace/settings")) return { id: "settings", label: "Settings", path };
-    if (path.includes("/workspace/account")) return { id: "account", label: "Account", path };
-    return { id: "overview", label: "Overview", path: "/workspace/overview" };
+    if (match) return { id: match.id, labelKey: topbarPhaseLabelKey(match.id), tooltipKey: workspaceTooltipKey(match.id), path: match.path };
+    if (path === "/workspace/settings/credits") return { id: "settings", labelKey: topbarPhaseLabelKey("credit-history"), path };
+    if (path.includes("/workspace/settings")) return { id: "settings", labelKey: topbarPhaseLabelKey("settings"), path };
+    if (path.includes("/workspace/account")) return { id: "account", labelKey: topbarPhaseLabelKey("account"), path };
+    return { id: "overview", labelKey: topbarPhaseLabelKey("overview"), tooltipKey: workspaceTooltipKey("overview"), path: "/workspace/overview" };
   }, [location.pathname]);
 
   const initials = user.fullName
@@ -155,21 +159,21 @@ export default function Topbar({ toggleSidebar }: TopbarProps) {
             onClick={toggleSidebar}
             type="button"
             className="flex items-center justify-center w-8 h-8 rounded-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high/80 active:scale-95 transition-all cursor-pointer"
-            title="Toggle sidebar"
-            aria-label="Toggle sidebar"
+            title={t("topbar.toggleSidebar")}
+            aria-label={t("topbar.toggleSidebar")}
           >
             <HugeiconsIcon icon="sidebar-left" size={17} strokeWidth={1.75} />
           </button>
 
           {/* Breadcrumb Trail */}
-          <nav aria-label="Breadcrumb" className="flex items-center gap-1 sm:gap-1.5 text-xs sm:text-sm min-w-0">
+          <nav aria-label={t("navigation.breadcrumb")} className="flex items-center gap-1 sm:gap-1.5 text-xs sm:text-sm min-w-0">
             {/* Workspace Root */}
             <Link
               to="/workspace/overview"
               className="hidden sm:inline-flex items-center gap-1.5 px-1.5 py-1 rounded-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high/60 transition-colors font-medium"
             >
               <HugeiconsIcon icon={Folder01Icon} size={15} className="text-on-surface-variant shrink-0" strokeWidth={1.75} />
-              <span>Workspace</span>
+              <span>{t("navigation.workspace")}</span>
             </Link>
 
             <span className="hidden sm:inline text-outline-variant select-none">/</span>
@@ -187,7 +191,7 @@ export default function Topbar({ toggleSidebar }: TopbarProps) {
             {/* Current Active Phase */}
             <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-surface-container-low/90 border border-outline-variant/50 text-on-surface font-semibold shadow-2xs min-w-0">
               <HugeiconsIcon icon={activeIcon} size={14} className="text-primary shrink-0" strokeWidth={1.75} />
-              <span className="truncate max-w-[150px] sm:max-w-[220px]">{currentPhase.label}</span>
+              <span className="truncate max-w-[150px] sm:max-w-[220px]" title={currentPhase.tooltipKey ? t(currentPhase.tooltipKey) : undefined}>{t(currentPhase.labelKey)}</span>
             </div>
           </nav>
 
@@ -196,12 +200,12 @@ export default function Topbar({ toggleSidebar }: TopbarProps) {
             {saveState === "saving" ? (
               <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium text-primary bg-primary/10 border border-primary/20 transition-all">
                 <HugeiconsIcon icon="cloud-sync" size={12} className="animate-spin text-primary" strokeWidth={2} />
-                <span>Saving...</span>
+                <span>{t("topbar.saving")}</span>
               </div>
             ) : (
-              <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium text-on-surface-variant/80 hover:text-on-surface transition-colors" title={`Last synced ${timeText}`}>
+              <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium text-on-surface-variant/80 hover:text-on-surface transition-colors" title={t("topbar.lastSynced", { time: t(timeText === "just now" ? "topbar.justNow" : "topbar.oneMinuteAgo") })}>
                 <span className="w-1.5 h-1.5 rounded-full bg-secondary shrink-0"></span>
-                <span>Saved</span>
+                <span>{t("topbar.saved")}</span>
               </div>
             )}
           </div>
@@ -215,11 +219,11 @@ export default function Topbar({ toggleSidebar }: TopbarProps) {
             onClick={() => setIsSearchOpen(true)}
             type="button"
             className="group flex items-center gap-2.5 h-8 px-2.5 sm:px-3 rounded-md bg-surface-container-low/80 hover:bg-surface-container border border-outline-variant/60 hover:border-outline-variant text-on-surface-variant transition-all cursor-pointer shadow-2xs"
-            title="Search workspace (Ctrl+K)"
+            title={t("topbar.searchWorkspace")}
           >
             <HugeiconsIcon icon="search" size={15} className="text-outline group-hover:text-on-surface transition-colors shrink-0" strokeWidth={1.75} />
             <span className="hidden sm:inline text-xs text-on-surface-variant group-hover:text-on-surface transition-colors">
-              Search...
+              {t("topbar.search")}
             </span>
             <kbd className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-surface border border-outline-variant text-[10px] font-mono font-medium text-outline-variant group-hover:text-on-surface-variant group-hover:border-outline transition-colors">
               <span className="text-[9px]">⌘</span>K
@@ -231,27 +235,27 @@ export default function Topbar({ toggleSidebar }: TopbarProps) {
             onClick={() => setIsHistoryOpen(true)}
             type="button"
             className="w-8 h-8 flex items-center justify-center rounded-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high/80 active:scale-95 transition-all cursor-pointer"
-            title="Revision History & Versions"
-            aria-label="Revision History"
+            title={t("topbar.revisionHistoryTitle")}
+            aria-label={t("topbar.revisionHistory")}
           >
             <HugeiconsIcon icon="history" size={17} strokeWidth={1.75} />
           </button>
 
           {/* Notification Bell */}
-          <NotificationBell label="Live workspace events" />
+          <NotificationBell label={t("topbar.liveWorkspaceEvents")} />
 
           {/* User Profile Avatar & Notion-Style Dropdown */}
           <div ref={profileRef} className="relative ml-1">
             <button
               onClick={() => setIsProfileOpen(!isProfileOpen)}
               type="button"
-              title={user.fullName || "User Account"}
+              title={user.fullName || t("topbar.userAccount")}
               className="w-8 h-8 rounded-full bg-primary/10 text-primary border border-primary/20 hover:border-primary/40 flex items-center justify-center text-xs font-bold hover:shadow-xs transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/40 overflow-hidden"
             >
               {user.avatar ? (
                 <img
                   src={user.avatar}
-                  alt={user.fullName ? `${user.fullName} avatar` : "User avatar"}
+                  alt={user.fullName ? t("topbar.userAvatar", { name: user.fullName }) : t("topbar.userAvatarFallback")}
                   className="w-full h-full object-cover"
                   referrerPolicy="no-referrer"
                 />
@@ -264,11 +268,11 @@ export default function Topbar({ toggleSidebar }: TopbarProps) {
               <div className="absolute right-0 mt-2 w-56 bg-surface rounded-xl shadow-xl border border-outline-variant/80 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-100 font-sans">
                 {/* User Profile Header */}
                 <div className="px-3.5 py-2.5 border-b border-outline-variant/60">
-                  <p className="text-xs font-semibold text-on-surface truncate">{user.fullName || "Student Account"}</p>
-                  <p className="text-[11px] text-on-surface-variant truncate mt-0.5">{user.email || "student@university.edu"}</p>
+                  <p className="text-xs font-semibold text-on-surface truncate">{user.fullName || t("topbar.studentAccount")}</p>
+                  <p className="text-[11px] text-on-surface-variant truncate mt-0.5">{user.email || t("topbar.defaultEmail")}</p>
                   <div className="mt-2 inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-primary/10 text-primary text-[10px] font-semibold tracking-wide uppercase">
                     <HugeiconsIcon icon="school" size={12} strokeWidth={1.75} />
-                    <span>PFE Candidate</span>
+                    <span>{t("topbar.pfeCandidate")}</span>
                   </div>
                 </div>
 
@@ -283,7 +287,7 @@ export default function Topbar({ toggleSidebar }: TopbarProps) {
                       className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs text-on-surface hover:bg-surface-container-high/70 transition-colors text-left"
                     >
                       <HugeiconsIcon icon="user-circle" size={15} className="text-on-surface-variant" strokeWidth={1.75} />
-                      <span>Account Profile</span>
+                      <span>{t("topbar.accountProfile")}</span>
                     </button>
                     <button
                       type="button"
@@ -294,7 +298,7 @@ export default function Topbar({ toggleSidebar }: TopbarProps) {
                       className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs text-on-surface hover:bg-surface-container-high/70 transition-colors text-left"
                     >
                       <HugeiconsIcon icon="settings-02" size={15} className="text-on-surface-variant" strokeWidth={1.75} />
-                      <span>Workspace Settings</span>
+                      <span>{t("topbar.workspaceSettings")}</span>
                     </button>
                     <button
                       type="button"
@@ -306,10 +310,14 @@ export default function Topbar({ toggleSidebar }: TopbarProps) {
                     >
                       <div className="flex items-center gap-2.5">
                         <HugeiconsIcon icon="command" size={15} className="text-on-surface-variant" strokeWidth={1.75} />
-                        <span>Command Palette</span>
+                        <span>{t("topbar.commandPalette")}</span>
                       </div>
                       <kbd className="text-[10px] font-mono text-outline-variant bg-surface-container px-1 py-0.5 rounded border border-outline-variant/60">⌘K</kbd>
                     </button>
+                  </div>
+
+                  <div className="px-3.5 py-2">
+                    <LanguageSelector compact />
                   </div>
 
                   {/* Divider & Logout */}
@@ -323,7 +331,7 @@ export default function Topbar({ toggleSidebar }: TopbarProps) {
                     className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs text-error hover:bg-error/10 transition-colors text-left font-medium"
                   >
                     <HugeiconsIcon icon="logout-01" size={15} className="text-error" strokeWidth={1.75} />
-                    <span>Log Out</span>
+                    <span>{t("topbar.logOut")}</span>
                   </button>
                 </div>
             )}

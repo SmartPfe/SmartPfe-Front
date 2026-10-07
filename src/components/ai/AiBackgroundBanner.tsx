@@ -1,6 +1,7 @@
 import React from "react";
 import { cn } from "@/lib/utils";
 import HugeiconsIcon from "@/components/ui/HugeiconsIcon";
+import { useTranslation } from "react-i18next";
 
 interface AiBackgroundBannerProps {
   isVisible: boolean;
@@ -19,16 +20,17 @@ export default function AiBackgroundBanner({
   onCancel,
   className,
 }: AiBackgroundBannerProps) {
+  const { t } = useTranslation("controls");
   if (!isVisible) return null;
 
   const defaultActionText =
     action === "generating"
-      ? `Generating ${moduleName}`
+      ? t("aiBanner.generating", { moduleName })
       : action === "refining"
-      ? `Refining ${moduleName}`
+      ? t("aiBanner.refining", { moduleName })
       : action === "translating"
-      ? `Translating ${moduleName}`
-      : `Processing ${moduleName}`;
+      ? t("aiBanner.translating", { moduleName })
+      : t("aiBanner.processing", { moduleName });
 
   const message = customMessage || defaultActionText;
 
@@ -73,12 +75,12 @@ export default function AiBackgroundBanner({
               </span>
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-[10px] font-semibold text-primary">
                 <HugeiconsIcon icon="flash" size={13} strokeWidth={2} />
-                Background task
+                {t("aiBanner.backgroundTask")}
               </span>
             </div>
             <p className="text-[11px] text-on-surface-variant font-normal mt-0.5 flex items-center gap-1.5">
               <HugeiconsIcon icon="information-circle" size={14} strokeWidth={1.5} className="text-primary/80 shrink-0" />
-              Feel free to explore other pages — your progress won't be lost.
+              {t("aiBanner.explorePages")}
             </p>
           </div>
         </div>
@@ -90,10 +92,10 @@ export default function AiBackgroundBanner({
               type="button"
               onClick={onCancel}
               className="h-7 px-2.5 rounded-lg text-on-surface-variant hover:text-error hover:bg-error-container/30 transition-colors flex items-center gap-1 text-[11px] font-semibold cursor-pointer border border-outline-variant/60"
-              title="Stop and cancel this generation"
+              title={t("aiBanner.stopTooltip")}
             >
               <HugeiconsIcon icon="cancel-circle" size={14} strokeWidth={1.75} />
-              <span>Stop</span>
+              <span>{t("aiBanner.stop")}</span>
             </button>
           </div>
         )}

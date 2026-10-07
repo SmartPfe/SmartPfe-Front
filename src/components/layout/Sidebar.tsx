@@ -2,38 +2,39 @@ import { Link, NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useWorkflow } from "@/context/WorkflowContext";
 import HugeiconsIcon, { Mortarboard02Icon } from "@/components/ui/HugeiconsIcon";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@/lib/theme";
 import { useMemo, useState, useEffect } from "react";
+import { sidebarPhaseLabelKey, workspaceGroupKey } from "@/lib/workspaceLabels";
 
 interface MethodologyStep {
   stepNumber: number;
   path: string;
-  label: string;
   icon: string;
   group: "Specification" | "Engineering" | "Delivery";
 }
 
-const METHODOLOGY_GROUPS: { group: "Specification" | "Engineering" | "Delivery"; title: string }[] = [
-  { group: "Specification", title: "Specification" },
-  { group: "Engineering", title: "Engineering & Backlog" },
-  { group: "Delivery", title: "Academic Delivery" },
+const METHODOLOGY_GROUPS: { group: "Specification" | "Engineering" | "Delivery" }[] = [
+  { group: "Specification" },
+  { group: "Engineering" },
+  { group: "Delivery" },
 ];
 
 const METHODOLOGY_STEPS: MethodologyStep[] = [
-  { stepNumber: 1, path: "/workspace/problem-statement", label: "Problem Statement", icon: "document", group: "Specification" },
-  { stepNumber: 2, path: "/workspace/actors", label: "Actors & Stakeholders", icon: "group", group: "Specification" },
-  { stepNumber: 3, path: "/workspace/solutions", label: "Existing Solutions", icon: "search", group: "Specification" },
+  { stepNumber: 1, path: "/workspace/problem-statement", icon: "document", group: "Specification" },
+  { stepNumber: 2, path: "/workspace/actors", icon: "group", group: "Specification" },
+  { stepNumber: 3, path: "/workspace/solutions", icon: "search", group: "Specification" },
 
-  { stepNumber: 4, path: "/workspace/functional-requirements", label: "Functional Req.", icon: "tune", group: "Engineering" },
-  { stepNumber: 5, path: "/workspace/non-functional-requirements", label: "Non-Functional Req.", icon: "shield", group: "Engineering" },
-  { stepNumber: 6, path: "/workspace/backlog", label: "Product Backlog", icon: "list-ordered", group: "Engineering" },
-  { stepNumber: 7, path: "/workspace/uml-preparation", label: "UML Architecture", icon: "account-tree", group: "Engineering" },
+  { stepNumber: 4, path: "/workspace/functional-requirements", icon: "tune", group: "Engineering" },
+  { stepNumber: 5, path: "/workspace/non-functional-requirements", icon: "shield", group: "Engineering" },
+  { stepNumber: 6, path: "/workspace/backlog", icon: "list-ordered", group: "Engineering" },
+  { stepNumber: 7, path: "/workspace/uml-preparation", icon: "account-tree", group: "Engineering" },
 
-  { stepNumber: 8, path: "/workspace/report-structure", label: "Report Structure", icon: "schema", group: "Delivery" },
-  { stepNumber: 9, path: "/workspace/report-builder", label: "Report Builder", icon: "book-open", group: "Delivery" },
-  { stepNumber: 10, path: "/workspace/presentation", label: "Presentation Deck", icon: "presentation", group: "Delivery" },
-  { stepNumber: 11, path: "/workspace/pitch", label: "Pitch Speech", icon: "mic", group: "Delivery" },
-  { stepNumber: 12, path: "/workspace/jury-simulation", label: "Jury Simulation", icon: "groups", group: "Delivery" },
+  { stepNumber: 8, path: "/workspace/report-structure", icon: "schema", group: "Delivery" },
+  { stepNumber: 9, path: "/workspace/report-builder", icon: "book-open", group: "Delivery" },
+  { stepNumber: 10, path: "/workspace/presentation", icon: "presentation", group: "Delivery" },
+  { stepNumber: 11, path: "/workspace/pitch", icon: "mic", group: "Delivery" },
+  { stepNumber: 12, path: "/workspace/jury-simulation", icon: "groups", group: "Delivery" },
 ];
 
 interface SidebarProps {
@@ -42,6 +43,7 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ isOpen, setIsSidebarOpen }: SidebarProps) {
+  const { t } = useTranslation("shell");
   const { steps } = useWorkflow();
   const { isDarkMode, toggleTheme } = useTheme();
   const location = useLocation();
@@ -88,7 +90,7 @@ export default function Sidebar({ isOpen, setIsSidebarOpen }: SidebarProps) {
                 SmartPFE
               </span>
               <span className="text-[10px] text-on-surface-variant font-medium tracking-wider uppercase">
-                Thesis Workspace
+                {t("navigation.thesisWorkspace")}
               </span>
             </div>
           </Link>
@@ -113,7 +115,7 @@ export default function Sidebar({ isOpen, setIsSidebarOpen }: SidebarProps) {
                 strokeWidth={1.8}
                 className={isOverviewActive ? "text-on-primary" : "text-primary"}
               />
-              <span className="truncate">Project Overview</span>
+              <span className="truncate">{t(sidebarPhaseLabelKey("overview"))}</span>
             </div>
             <span
               className={cn(
@@ -123,7 +125,7 @@ export default function Sidebar({ isOpen, setIsSidebarOpen }: SidebarProps) {
                   : "bg-surface-container text-on-surface-variant"
               )}
             >
-              Hub
+              {t("navigation.hub")}
             </span>
           </NavLink>
         </div>
@@ -132,7 +134,7 @@ export default function Sidebar({ isOpen, setIsSidebarOpen }: SidebarProps) {
         <div className="px-3 pb-2 shrink-0">
           <div className="p-2.5 rounded-xl bg-surface border border-outline-variant/60 shadow-2xs">
             <div className="flex items-center justify-between text-[11px] font-semibold text-on-surface mb-1.5">
-              <span className="text-on-surface-variant font-medium">Roadmap Progress</span>
+              <span className="text-on-surface-variant font-medium">{t("sidebar.roadmapProgress")}</span>
               <span className="font-mono text-primary font-bold">{progressPercent}%</span>
             </div>
             <div className="w-full h-1.5 rounded-full bg-surface-container-high overflow-hidden">
@@ -142,7 +144,7 @@ export default function Sidebar({ isOpen, setIsSidebarOpen }: SidebarProps) {
               />
             </div>
             <div className="flex items-center justify-between text-[10px] text-on-surface-variant font-medium mt-1.5">
-              <span>{completedCount} of {totalCount} steps done</span>
+              <span>{t("sidebar.stepsDone", { completed: completedCount, total: totalCount })}</span>
             </div>
           </div>
         </div>
@@ -155,10 +157,10 @@ export default function Sidebar({ isOpen, setIsSidebarOpen }: SidebarProps) {
             return (
               <div key={group.group} className="space-y-1">
                 <div className="px-2.5 text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/70 font-mono">
-                  {group.title}
+                  {t(workspaceGroupKey(group.group))}
                 </div>
 
-                <nav className="space-y-0.5">
+                <nav aria-label={t("sidebar.methodologyNavigation")} className="space-y-0.5">
                   {groupSteps.map((step) => {
                     const stepState = steps[step.path] || { status: "Locked", isCompleted: false };
                     const isLocked = stepState.status === "Locked";
@@ -203,7 +205,7 @@ export default function Sidebar({ isOpen, setIsSidebarOpen }: SidebarProps) {
                                     : "text-on-surface-variant group-hover:text-on-surface"
                                 )}
                               />
-                              <span className="truncate">{step.label}</span>
+                              <span className="truncate" title={t(sidebarPhaseLabelKey(step.path.split("/").pop() || "overview"))}>{t(sidebarPhaseLabelKey(step.path.split("/").pop() || "overview"))}</span>
                             </div>
 
                             {/* Status Icon Badge */}
@@ -252,6 +254,7 @@ export default function Sidebar({ isOpen, setIsSidebarOpen }: SidebarProps) {
             type="button"
             onClick={toggleTheme}
             className="w-full flex items-center justify-between px-2.5 py-1.5 text-xs text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high/60 rounded-lg transition-colors font-medium cursor-pointer group"
+            aria-label={t("sidebar.toggleTheme")}
           >
             <div className="flex items-center gap-2">
               <HugeiconsIcon
@@ -260,7 +263,7 @@ export default function Sidebar({ isOpen, setIsSidebarOpen }: SidebarProps) {
                 className="text-on-surface-variant group-hover:text-primary transition-colors"
                 strokeWidth={1.75}
               />
-              <span>{isDarkMode ? "Dark Mode" : "Light Mode"}</span>
+              <span>{isDarkMode ? t("sidebar.darkMode") : t("sidebar.lightMode")}</span>
             </div>
             <div
               className={cn(
@@ -289,7 +292,7 @@ export default function Sidebar({ isOpen, setIsSidebarOpen }: SidebarProps) {
               className="text-on-surface-variant group-hover:text-primary transition-colors"
               strokeWidth={1.75}
             />
-            <span>Settings</span>
+            <span>{t(sidebarPhaseLabelKey("settings"))}</span>
           </Link>
         </div>
       </aside>

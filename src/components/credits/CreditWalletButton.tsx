@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import CreditDialog from "./CreditDialog";
-import { CREDIT_HISTORY_PATH, creditMoney, transactionLabel, transactionDelta, type CreditRequest } from "@/lib/creditHistory";
+import { CREDIT_HISTORY_PATH, transactionLabel, transactionDelta, type CreditRequest, type CreditTransaction } from "@/lib/creditHistory";
 import creditCoin from "@/assets/credit-coin.png";
 import { useCredits } from "@/context/CreditContext";
 import HugeiconsIcon from "@/components/ui/HugeiconsIcon";
 import { fetchApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
+import { formatInterfaceDate, formatInterfaceNumber } from "@/lib/localeFormat";
 
 type PurchasePackage = {
   key: string;
@@ -23,8 +25,46 @@ const statusTone: Record<string, string> = {
   CANCELLED: "bg-error/10 text-error",
 };
 
-const formatDate = (value: string) =>
-  new Intl.DateTimeFormat("en", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
+const formatDate = (value: string, language: "en" | "fr") =>
+  formatInterfaceDate(new Date(value), language, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+
+const creditActionTranslationKeys: Record<string, string> = {
+  problem_statement: "creditWallet.actions.problemStatement",
+  actors: "creditWallet.actions.actors",
+  existing_solutions: "creditWallet.actions.existingSolutions",
+  functional_requirements: "creditWallet.actions.functionalRequirements",
+  nonfunctional_requirements: "creditWallet.actions.nonFunctionalRequirements",
+  product_backlog: "creditWallet.actions.productBacklog",
+  uml_preparation: "creditWallet.actions.umlPreparation",
+  report_structure: "creditWallet.actions.reportStructure",
+  report_section: "creditWallet.actions.reportSection",
+  report_polish_light: "creditWallet.actions.quickPolish",
+  report_polish_contextual: "creditWallet.actions.contextualReportPolish",
+  final_report_compile: "creditWallet.actions.completeReportCompilation",
+  presentation_full: "creditWallet.actions.presentationDeck",
+  presentation_slide: "creditWallet.actions.presentationSlide",
+  pitch_full: "creditWallet.actions.pitchSpeech",
+  pitch_slide: "creditWallet.actions.pitchSlide",
+  jury_simulation: "creditWallet.actions.jurySimulation",
+  jury_qa_session: "creditWallet.actions.juryQaSession",
+  jury_qa_included: "creditWallet.actions.includedJuryQaSteps",
+  translation: "creditWallet.actions.translation",
+};
+
+function getTransactionLabel(item: CreditTransaction, t: (key: string) => string) {
+  if (item.reference?.startsWith("credit-request:")) return t("creditWallet.activity.creditPurchase");
+  if (item.kind === "welcome") return t("creditWallet.activity.welcomeCredits");
+  if (item.kind === "daily_refill") return t("creditWallet.activity.dailyRefill");
+  if (item.kind === "admin_adjustment") return item.reason || t("creditWallet.activity.walletAdjustment");
+  if (item.kind === "purchase") return t("creditWallet.activity.creditPurchase");
+  if (item.kind === "refund") return t("creditWallet.activity.creditRefund");
+  if (!item.actionKey) return t("creditWallet.activity.aiActivity");
+  const actionKey = item.actionKey ? creditActionTranslationKeys[item.actionKey] : undefined;
+  return actionKey ? t(actionKey) : transactionLabel(item);
+}
+
+const formatCreditMoney = (price: number, currency: string, language: "en" | "fr") =>
+  `${formatInterfaceNumber(price, language, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
 
 const readCurrentUser = () => {
   try {
@@ -40,6 +80,8 @@ const readCurrentUserId = () => {
 };
 
 export default function CreditWalletButton() {
+  const { t, i18n } = useTranslation("controls");
+  const language = i18n.resolvedLanguage === "fr" ? "fr" : "en";
   const { wallet, transactions, loading, walletOpenRequest, refresh, loadTransactions } = useCredits();
   const [open, setOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
@@ -106,35 +148,35 @@ export default function CreditWalletButton() {
         type="button"
         onClick={() => setOpen((value) => !value)}
         className="inline-flex h-8 items-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-400/10 px-2.5 text-xs font-bold text-on-surface shadow-2xs transition hover:bg-amber-400/15"
-        title="Credit wallet"
+        title={t("creditWallet.title")}
       >
-        <img src={creditCoin} alt="Credits" className="h-5 w-5" />
-        <span>{loading && !wallet ? "-" : wallet?.total ?? 0}</span>
+        <img src={creditCoin} alt={t("creditWallet.creditsAlt")} className="h-5 w-5" />
+        <span>{loading && !wallet ? "-" : formatInterfaceNumber(wallet?.total ?? 0, language)}</span>
       </button>
 
       {open && (
         <div className="absolute right-0 top-full z-50 mt-2 w-[min(24rem,calc(100vw-1.5rem))] overflow-hidden rounded-2xl border border-outline-variant/80 bg-surface shadow-2xl">
           <div className="flex items-center justify-between border-b border-outline-variant/60 bg-gradient-to-br from-amber-400/15 to-primary/5 p-4">
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">Available credits</p>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">{t("creditWallet.availableCredits")}</p>
               <div className="mt-1 flex items-center gap-2">
                 <img src={creditCoin} alt="" className="h-8 w-8" />
-                <span className="text-2xl font-extrabold text-on-surface">{wallet?.total ?? 0}</span>
+                <span className="text-2xl font-extrabold text-on-surface">{formatInterfaceNumber(wallet?.total ?? 0, language)}</span>
               </div>
             </div>
-            <button type="button" onClick={() => setOpen(false)} className="grid h-8 w-8 place-items-center rounded-lg text-on-surface-variant hover:bg-surface/70" aria-label="Close wallet">
+            <button type="button" onClick={() => setOpen(false)} className="grid h-8 w-8 place-items-center rounded-lg text-on-surface-variant hover:bg-surface/70" aria-label={t("creditWallet.closeWallet")}>
               <HugeiconsIcon icon="close" size={16} />
             </button>
           </div>
 
           <div className="grid grid-cols-2 gap-2 p-3">
             <div className="rounded-xl bg-surface-container-low p-3">
-              <p className="text-[10px] font-bold uppercase text-on-surface-variant">Daily & welcome</p>
-              <p className="mt-1 text-lg font-bold text-on-surface">{wallet?.promotional ?? 0}</p>
+              <p className="text-[10px] font-bold uppercase text-on-surface-variant">{t("creditWallet.dailyWelcome")}</p>
+              <p className="mt-1 text-lg font-bold text-on-surface">{formatInterfaceNumber(wallet?.promotional ?? 0, language)}</p>
             </div>
             <div className="rounded-xl bg-surface-container-low p-3">
-              <p className="text-[10px] font-bold uppercase text-on-surface-variant">Purchased</p>
-              <p className="mt-1 text-lg font-bold text-on-surface">{wallet?.purchased ?? 0}</p>
+              <p className="text-[10px] font-bold uppercase text-on-surface-variant">{t("creditWallet.purchased")}</p>
+              <p className="mt-1 text-lg font-bold text-on-surface">{formatInterfaceNumber(wallet?.purchased ?? 0, language)}</p>
             </div>
           </div>
 
@@ -145,49 +187,49 @@ export default function CreditWalletButton() {
               className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-primary text-xs font-extrabold text-on-primary shadow-xs transition hover:bg-primary/90"
             >
               <HugeiconsIcon icon="coin" size={16} />
-              <span>Add More Credits</span>
+              <span>{t("creditWallet.addMoreCredits")}</span>
             </button>
           </div>
 
           <div className="border-t border-outline-variant/60 px-3 py-2">
-            <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">Latest requests</p>
+            <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">{t("creditWallet.latestRequests")}</p>
             <div className="max-h-40 overflow-y-auto">
               {requests.length ? requests.slice(0, 3).map((item) => (
                 <Link key={item._id} to={`${CREDIT_HISTORY_PATH}?request=${item._id}`} onClick={() => setOpen(false)} className="flex items-center justify-between gap-3 rounded-lg border-b border-outline-variant/40 px-1 py-2 transition hover:bg-primary/5 last:border-0">
                   <div className="min-w-0">
-                    <p className="truncate text-xs font-bold text-on-surface">{item.requestedCredits} credits · {item.price} {item.currency}</p>
-                    <p className="text-[10px] text-on-surface-variant">{formatDate(item.createdAt)}</p>
+                    <p className="truncate text-xs font-bold text-on-surface">{formatInterfaceNumber(item.requestedCredits, language)} {t("creditWallet.creditsUnit")} · {formatInterfaceNumber(item.price, language)} {item.currency}</p>
+                    <p className="text-[10px] text-on-surface-variant">{formatDate(item.createdAt, language)}</p>
                   </div>
                   <span className={cn("shrink-0 rounded-md px-2 py-0.5 text-[9px] font-extrabold", statusTone[item.status])}>
-                    {item.status.toLowerCase()}
+                    {t(`creditWallet.status.${item.status.toLowerCase()}`)}
                   </span>
                 </Link>
-              )) : <p className="py-3 text-xs text-on-surface-variant">No credit requests yet.</p>}
+              )) : <p className="py-3 text-xs text-on-surface-variant">{t("creditWallet.noRequests")}</p>}
             </div>
           </div>
 
           <div className="border-t border-outline-variant/60 px-3 py-2">
-            <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">Recent activity</p>
+            <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">{t("creditWallet.recentActivity")}</p>
             <div className="max-h-44 overflow-y-auto">
-              {transactions.length ? transactions.slice(0, 3).map((item: any) => {
+              {transactions.length ? transactions.slice(0, 3).map((item: CreditTransaction) => {
                 const delta = transactionDelta(item);
                 return (
                   <div key={item._id} className="flex items-center justify-between gap-3 border-b border-outline-variant/40 py-2 last:border-0">
-                    <span className="truncate text-xs font-medium capitalize text-on-surface">{transactionLabel(item)}</span>
+                    <span className="truncate text-xs font-medium capitalize text-on-surface">{getTransactionLabel(item, t)}</span>
                     <span className={`text-xs font-bold ${delta > 0 ? "text-secondary" : delta < 0 ? "text-on-surface" : "text-on-surface-variant"}`}>
                       {delta > 0 ? "+" : ""}{delta}
                     </span>
                   </div>
                 );
-              }) : <p className="py-3 text-xs text-on-surface-variant">No credit activity yet.</p>}
+              }) : <p className="py-3 text-xs text-on-surface-variant">{t("creditWallet.noActivity")}</p>}
             </div>
           </div>
 
           <Link to={CREDIT_HISTORY_PATH} onClick={() => setOpen(false)} className="flex items-center justify-between border-t border-outline-variant/60 px-4 py-3 text-xs font-bold text-primary hover:bg-primary/5">
-            View full credit history <HugeiconsIcon icon="arrow-right" size={15} />
+            {t("creditWallet.viewFullHistory")} <HugeiconsIcon icon="arrow-right" size={15} />
           </Link>
           <p className="border-t border-outline-variant/60 px-4 py-2.5 text-[10px] leading-relaxed text-on-surface-variant">
-            Promotional credits refill up to {wallet?.dailyRefillTarget ?? 20} each day and are used first.
+            {t("creditWallet.refillNote", { count: wallet?.dailyRefillTarget ?? 20, amount: formatInterfaceNumber(wallet?.dailyRefillTarget ?? 20, language) })}
           </p>
         </div>
       )}
@@ -207,20 +249,20 @@ export default function CreditWalletButton() {
             <div className="mx-auto mb-5 grid h-16 w-16 place-items-center rounded-full border border-secondary/25 bg-secondary/10 text-secondary">
               <HugeiconsIcon icon="checkmark-circle-02" size={34} />
             </div>
-            <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-secondary">Request received</p>
-            <h2 id="credit-success-title" className="mt-2 text-2xl font-extrabold text-on-surface">You're all set!</h2>
-            <p className="mt-3 text-sm leading-relaxed text-on-surface-variant">Your credit request has been submitted successfully. A team member will contact you as soon as possible to explain the payment steps.</p>
-            <p className="mt-2 text-sm leading-relaxed text-on-surface-variant">Your credits will be added to your wallet after your payment is verified.</p>
+            <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-secondary">{t("creditWallet.requestReceived")}</p>
+            <h2 id="credit-success-title" className="mt-2 text-2xl font-extrabold text-on-surface">{t("creditWallet.allSet")}</h2>
+            <p className="mt-3 text-sm leading-relaxed text-on-surface-variant">{t("creditWallet.requestSubmitted")}</p>
+            <p className="mt-2 text-sm leading-relaxed text-on-surface-variant">{t("creditWallet.paymentVerified")}</p>
             <div className="mt-5 flex items-center justify-between gap-3 rounded-2xl border border-outline-variant bg-surface-container-low p-4 text-left">
-              <span className="flex items-center gap-2 text-sm font-bold text-on-surface"><img src={creditCoin} alt="" className="h-6 w-6" />{confirmation.request.requestedCredits} credits</span>
-              <span className="text-sm font-bold text-on-surface">{creditMoney(confirmation.request.price, confirmation.request.currency)}</span>
+              <span className="flex items-center gap-2 text-sm font-bold text-on-surface"><img src={creditCoin} alt="" className="h-6 w-6" />{formatInterfaceNumber(confirmation.request.requestedCredits, language)} {t("creditWallet.creditsUnit")}</span>
+              <span className="text-sm font-bold text-on-surface">{formatCreditMoney(confirmation.request.price, confirmation.request.currency, language)}</span>
             </div>
             <p className={cn("mt-4 text-xs leading-relaxed", confirmation.studentEmailSent ? "text-on-surface-variant" : "text-amber-700 dark:text-amber-300")}>
-              {confirmation.studentEmailSent ? "A receipt with your request details has been sent to your email. You can also track your request in Credit History." : "Your request is saved, but we couldn't send your receipt email. All your request details are available in Credit History."}
+              {confirmation.studentEmailSent ? t("creditWallet.receiptSent") : t("creditWallet.receiptNotSent")}
             </p>
             <div className="mt-6 flex flex-col gap-2 sm:flex-row">
-              <button type="button" onClick={() => setConfirmation(null)} className="h-11 flex-1 rounded-xl border border-outline-variant text-sm font-bold text-on-surface hover:bg-surface-container">Got it</button>
-              <Link to={`${CREDIT_HISTORY_PATH}?request=${confirmation.request._id}`} onClick={() => setConfirmation(null)} className="flex h-11 flex-1 items-center justify-center rounded-xl bg-primary text-sm font-bold text-on-primary hover:bg-primary/90">Track my request</Link>
+              <button type="button" onClick={() => setConfirmation(null)} className="h-11 flex-1 rounded-xl border border-outline-variant text-sm font-bold text-on-surface hover:bg-surface-container">{t("creditWallet.gotIt")}</button>
+              <Link to={`${CREDIT_HISTORY_PATH}?request=${confirmation.request._id}`} onClick={() => setConfirmation(null)} className="flex h-11 flex-1 items-center justify-center rounded-xl bg-primary text-sm font-bold text-on-primary hover:bg-primary/90">{t("creditWallet.trackRequest")}</Link>
             </div>
           </div>
         </CreditDialog>
@@ -242,6 +284,8 @@ function CreditRequestModal({
   onClose: () => void;
   onSubmitted: (result: { request: CreditRequest; studentEmailSent: boolean }) => void;
 }) {
+  const { t, i18n } = useTranslation("controls");
+  const language = i18n.resolvedLanguage === "fr" ? "fr" : "en";
   const user = readCurrentUser();
   const packages = options?.packages || [];
   const [mode, setMode] = useState(packages[0]?.key || "custom");
@@ -265,12 +309,12 @@ function CreditRequestModal({
   const submit = async () => {
     const digits = phone.replace(/\D/g, "");
     if (digits.length < 6 || digits.length > 15) {
-      setError("Enter a valid phone number so the admin can contact you.");
+      setError(t("creditWallet.errors.validPhone"));
       return;
     }
-    if (!options) { setError("Purchase options are still loading. Please try again in a moment."); return; }
+    if (!options) { setError(t("creditWallet.errors.optionsLoading")); return; }
     if (!requestedCredits || requestedCredits <= 0 || requestedCredits > 100000) {
-      setError("Choose between 1 and 100,000 credits.");
+      setError(t("creditWallet.errors.creditRange"));
       return;
     }
     setSubmitting(true);
@@ -286,7 +330,7 @@ function CreditRequestModal({
       });
       onSubmitted({ request: data.request, studentEmailSent: data.studentEmailSent === true });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not submit your credit request.");
+      setError(err instanceof Error ? err.message : t("creditWallet.errors.submitFailed"));
     } finally {
       setSubmitting(false);
     }
@@ -296,10 +340,10 @@ function CreditRequestModal({
     <CreditDialog titleId="credit-request-title" onClose={onClose} busy={submitting}>
         <header className="flex items-start justify-between gap-3 border-b border-outline-variant/60 bg-surface-container-low/50 p-4">
           <div className="min-w-0">
-            <p id="credit-request-title" className="text-sm font-extrabold text-on-surface">Add More Credits</p>
-            <p className="text-xs leading-relaxed text-on-surface-variant">Our team will contact you with payment instructions. Credits are added after payment is verified.</p>
+            <p id="credit-request-title" className="text-sm font-extrabold text-on-surface">{t("creditWallet.addMoreCredits")}</p>
+            <p className="text-xs leading-relaxed text-on-surface-variant">{t("creditWallet.requestInstructions")}</p>
           </div>
-          <button type="button" onClick={onClose} disabled={submitting} className="grid h-8 w-8 place-items-center rounded-lg text-on-surface-variant hover:bg-surface-container disabled:opacity-50" aria-label="Close">
+          <button type="button" onClick={onClose} disabled={submitting} className="grid h-8 w-8 place-items-center rounded-lg text-on-surface-variant hover:bg-surface-container disabled:opacity-50" aria-label={t("creditWallet.closeRequest")}>
             <HugeiconsIcon icon="close" size={16} />
           </button>
         </header>
@@ -313,7 +357,7 @@ function CreditRequestModal({
           )}
 
           <label className="block text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
-            Student email
+            {t("creditWallet.studentEmail")}
             <input
               value={user.email || ""}
               readOnly
@@ -322,7 +366,7 @@ function CreditRequestModal({
           </label>
 
           <label className="block text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
-            Phone number <span className="text-error">*</span>
+            {t("creditWallet.phoneNumber")} <span className="text-error">*</span>
             <input
               value={phone}
               onChange={(event) => setPhone(event.target.value)}
@@ -332,7 +376,7 @@ function CreditRequestModal({
           </label>
 
           <section>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">Credit purchase mode</p>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">{t("creditWallet.purchaseMode")}</p>
             <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
               {packages.map((item) => (
                 <button
@@ -344,8 +388,8 @@ function CreditRequestModal({
                     mode === item.key ? "border-primary bg-primary/10 text-primary" : "border-outline-variant bg-surface-container-lowest text-on-surface hover:border-primary/40"
                   )}
                 >
-                  <span className="block text-sm font-extrabold">{item.credits} credits</span>
-                  <span className="mt-1 block text-xs font-semibold text-on-surface-variant">{item.price} {item.currency}</span>
+                  <span className="block text-sm font-extrabold">{formatInterfaceNumber(item.credits, language)} {t("creditWallet.creditsUnit")}</span>
+                  <span className="mt-1 block text-xs font-semibold text-on-surface-variant">{formatInterfaceNumber(item.price, language)} {item.currency}</span>
                 </button>
               ))}
               <button
@@ -356,15 +400,15 @@ function CreditRequestModal({
                   isCustom ? "border-primary bg-primary/10 text-primary" : "border-outline-variant bg-surface-container-lowest text-on-surface hover:border-primary/40"
                 )}
               >
-                <span className="block text-sm font-extrabold">Custom amount</span>
-                <span className="mt-1 block text-xs font-semibold text-on-surface-variant">{options?.pricePerCredit ?? 0.05} {currency} / credit</span>
+                <span className="block text-sm font-extrabold">{t("creditWallet.customAmount")}</span>
+                <span className="mt-1 block text-xs font-semibold text-on-surface-variant">{formatInterfaceNumber(options?.pricePerCredit ?? 0.05, language)} {currency} / {t("creditWallet.creditUnit")}</span>
               </button>
             </div>
           </section>
 
           {isCustom && (
             <label className="block text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
-              Desired credits
+              {t("creditWallet.desiredCredits")}
               <input
                 type="number"
                 min="1"
@@ -379,19 +423,19 @@ function CreditRequestModal({
 
           <div className="rounded-2xl border border-amber-400/30 bg-amber-400/10 p-4">
             <div className="flex items-center justify-between gap-3">
-              <span className="text-xs font-bold text-on-surface-variant">Credits requested</span>
-              <span className="font-mono text-lg font-extrabold text-on-surface">{requestedCredits.toLocaleString()}</span>
+              <span className="text-xs font-bold text-on-surface-variant">{t("creditWallet.creditsRequested")}</span>
+              <span className="font-mono text-lg font-extrabold text-on-surface">{formatInterfaceNumber(requestedCredits, language)}</span>
             </div>
             <div className="mt-2 flex items-center justify-between gap-3">
-              <span className="text-xs font-bold text-on-surface-variant">Estimated price</span>
-              <span className="font-mono text-lg font-extrabold text-on-surface">{price.toLocaleString()} {currency}</span>
+              <span className="text-xs font-bold text-on-surface-variant">{t("creditWallet.estimatedPrice")}</span>
+              <span className="font-mono text-lg font-extrabold text-on-surface">{formatInterfaceNumber(price, language)} {currency}</span>
             </div>
           </div>
         </div>
 
         <footer className="flex flex-col-reverse gap-2 border-t border-outline-variant/60 bg-surface-container-low/40 p-4 sm:flex-row sm:items-center sm:justify-end">
           <button type="button" onClick={onClose} disabled={submitting} className="h-10 w-full rounded-xl border border-outline-variant bg-surface px-4 text-xs font-bold text-on-surface hover:bg-surface-container disabled:opacity-50 sm:w-auto">
-            Cancel
+            {t("creditWallet.cancel")}
           </button>
           <button
             type="button"
@@ -400,7 +444,7 @@ function CreditRequestModal({
             className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 text-xs font-extrabold text-on-primary shadow-xs hover:bg-primary/90 disabled:opacity-50 sm:w-auto"
           >
             {submitting && <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />}
-            <span>{submitting ? "Submitting..." : "Submit Request"}</span>
+            <span>{submitting ? t("creditWallet.submitting") : t("creditWallet.submitRequest")}</span>
           </button>
         </footer>
     </CreditDialog>

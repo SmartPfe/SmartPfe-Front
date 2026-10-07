@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { Window } from 'happy-dom';
 import React, { act, useState } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
@@ -251,9 +251,29 @@ test('English and French dictionaries contain matching keys', () => {
       : [path];
   });
 
-  for (const namespace of ['common', 'settings']) {
+  const namespaces = readdirSync(new URL('../src/locales/en/', import.meta.url)).filter(file => file.endsWith('.json')).map(file => file.slice(0, -5));
+  assert.deepEqual(readdirSync(new URL('../src/locales/fr/', import.meta.url)).filter(file => file.endsWith('.json')).sort(), namespaces.map(namespace => namespace + '.json').sort());
+  for (const namespace of namespaces) {
     const english = flattenKeys(readDictionary('en', namespace)).sort();
     const french = flattenKeys(readDictionary('fr', namespace)).sort();
     assert.deepEqual(french, english, `${namespace} keys must stay aligned`);
+  }
+});
+
+test('translated UI messages preserve interpolation arguments', () => {
+  const namespaces = readdirSync(new URL('../src/locales/en/', import.meta.url)).filter(file => file.endsWith('.json'));
+  const entries = (value: Record<string, unknown>, prefix = ''): [string, string][] => Object.entries(value).flatMap(([key, child]) => {
+    const name = prefix ? `${prefix}.${key}` : key;
+    return child && typeof child === 'object' && !Array.isArray(child)
+      ? entries(child as Record<string, unknown>, name)
+      : typeof child === 'string' ? [[name, child] as [string, string]] : [];
+  });
+  for (const namespace of namespaces) {
+    const english = entries(JSON.parse(readFileSync(new URL(`../src/locales/en/${namespace}`, import.meta.url), 'utf8')));
+    const french = new Map(entries(JSON.parse(readFileSync(new URL(`../src/locales/fr/${namespace}`, import.meta.url), 'utf8'))));
+    const argumentsOf = (message: string) => [...message.matchAll(/{{\s*([^},]+)(?:,[^}]*)?\s*}}/g)].map(match => match[1].trim()).sort();
+    for (const [key, message] of english) {
+      assert.deepEqual(argumentsOf(french.get(key) || ''), argumentsOf(message), `${namespace}:${key} interpolation must match`);
+    }
   }
 });

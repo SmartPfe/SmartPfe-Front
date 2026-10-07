@@ -3,8 +3,10 @@ import { useLocation } from "react-router-dom";
 import { useAiGeneration } from "@/context/AiGenerationContext";
 import { cn } from "@/lib/utils";
 import HugeiconsIcon from "@/components/ui/HugeiconsIcon";
+import { useTranslation } from "react-i18next";
 
 export default function FloatingAiDock() {
+  const { t } = useTranslation("controls");
   const { tasks, completedTasksList, activeRouteState, dismissTask, cancelTask, jumpToTask } = useAiGeneration();
   const location = useLocation();
 
@@ -33,9 +35,33 @@ export default function FloatingAiDock() {
   const allTasks = Object.values(tasks);
   if (allTasks.length === 0) return null;
 
+  const getTaskTitle = (task: (typeof allTasks)[number]) => {
+    if (task.scope === "system" && task.id.startsWith("system:concurrency-limit-")) {
+      return t("aiDock.concurrentTitle");
+    }
+    return task.title || t("aiDock.defaultTitle");
+  };
+  const getTaskMessage = (task: (typeof allTasks)[number], isCompleted: boolean, isError: boolean) => {
+    if (task.scope === "system" && task.id.startsWith("system:concurrency-limit-")) {
+      const limit = task.subTitle?.match(/up to (\d+) sections in parallel/)?.[1]
+        || task.error?.match(/Limit reached: (\d+) tasks running/)?.[1]
+        || "2";
+      return t("aiDock.concurrentDescription", { count: Number(limit) });
+    }
+    if (isCompleted) return t("aiDock.readyToView");
+    if (task.subTitle === "Ready") return t("aiDock.ready");
+    if (task.subTitle === "Failed") return t("aiDock.failed");
+    if (task.subTitle === "Generating content with AI...") return t("aiDock.generatingInBackground");
+    if (task.subTitle) return task.subTitle;
+    if (isError) {
+      return task.error === "Generation failed" ? t("aiDock.generationFailed") : task.error || t("aiDock.generationFailed");
+    }
+    return t("aiDock.generatingInBackground");
+  };
+
   return (
     <div
-      aria-label="Active Generations"
+      aria-label={t("aiDock.activeGenerations")}
       className="fixed bottom-6 right-6 z-[9999] flex flex-col gap-3 w-84 max-w-[calc(100vw-32px)] pointer-events-auto"
     >
       <style>{`
@@ -86,16 +112,14 @@ export default function FloatingAiDock() {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
                     <h4 className="text-xs font-bold text-on-surface truncate">
-                      {task.title || "AI Generation"}
+                      {getTaskTitle(task)}
                     </h4>
                     {isRunning && (
                       <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse shrink-0" />
                     )}
                   </div>
                   <p className="text-[11px] text-on-surface-variant line-clamp-2 mt-0.5 font-medium leading-tight">
-                    {isCompleted
-                      ? "Ready to view"
-                      : task.subTitle || (isError ? task.error || "Generation failed" : "Generating in background...")}
+                    {getTaskMessage(task, isCompleted, isError)}
                   </p>
                 </div>
               </div>
@@ -107,9 +131,9 @@ export default function FloatingAiDock() {
                     type="button"
                     onClick={() => jumpToTask(task)}
                     className="h-7 px-2.5 rounded-lg bg-primary text-on-primary text-xs font-semibold hover:bg-primary/90 transition-all flex items-center gap-1 cursor-pointer shrink-0 shadow-xs"
-                    title="Jump to this section"
+                    title={t("aiDock.jumpToSection")}
                   >
-                    <span>View</span>
+                    <span>{t("aiDock.view")}</span>
                     <HugeiconsIcon icon="arrow-right-01" size={14} strokeWidth={2} />
                   </button>
                 )}
@@ -119,17 +143,17 @@ export default function FloatingAiDock() {
                     type="button"
                     onClick={() => cancelTask(task.id)}
                     className="h-7 px-2.5 rounded-lg text-on-surface-variant hover:text-error hover:bg-error-container/30 transition-colors flex items-center gap-1 text-[11px] font-semibold cursor-pointer shrink-0 border border-outline-variant/60"
-                    title="Stop and cancel this generation"
+                    title={t("aiDock.stopTooltip")}
                   >
                     <HugeiconsIcon icon="cancel-circle" size={14} strokeWidth={1.75} />
-                    <span>Stop</span>
+                    <span>{t("aiDock.stop")}</span>
                   </button>
                 ) : (
                   <button
                     type="button"
                     onClick={() => dismissTask(task.id)}
                     className="w-7 h-7 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container flex items-center justify-center transition-colors cursor-pointer shrink-0"
-                    title="Close notification"
+                    title={t("aiDock.close")}
                   >
                     <HugeiconsIcon icon="close" size={16} strokeWidth={1.75} />
                   </button>

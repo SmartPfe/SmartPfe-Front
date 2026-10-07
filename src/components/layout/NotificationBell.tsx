@@ -3,21 +3,26 @@ import { useNavigate } from "react-router-dom";
 import { NotificationItem, useNotifications } from "@/context/NotificationContext";
 import HugeiconsIcon from "@/components/ui/HugeiconsIcon";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
+import { formatInterfaceDate, formatInterfaceNumber } from "@/lib/localeFormat";
 
-function formatNotificationTime(createdAt: string) {
+function formatNotificationTime(createdAt: string, language: "en" | "fr", t: (key: string, options?: Record<string, unknown>) => string) {
   const diff = Date.now() - new Date(createdAt).getTime();
   const minutes = Math.max(0, Math.floor(diff / 60000));
 
-  if (minutes < 1) return "Just now";
-  if (minutes < 60) return `${minutes} min ago`;
+  if (minutes < 1) return t("notifications.justNow");
+  if (minutes < 60) return t("notifications.minutesAgo", { count: minutes, countDisplay: formatInterfaceNumber(minutes, language) });
 
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
+  if (hours < 24) return t("notifications.hoursAgo", { count: hours, countDisplay: formatInterfaceNumber(hours, language) });
 
-  return new Date(createdAt).toLocaleDateString();
+  return formatInterfaceDate(new Date(createdAt), language, { dateStyle: "medium" });
 }
 
-export default function NotificationBell({ label = "Live updates" }: { label?: string }) {
+export default function NotificationBell({ label }: { label?: string }) {
+  const { t, i18n } = useTranslation("controls");
+  const language = i18n.resolvedLanguage === "fr" ? "fr" : "en";
+  const labelText = label ?? t("notifications.liveUpdates");
   const navigate = useNavigate();
   const bellRef = useRef<HTMLDivElement>(null);
   const {
@@ -99,9 +104,9 @@ export default function NotificationBell({ label = "Live updates" }: { label?: s
       <button
         onClick={() => setIsOpen((value) => !value)}
         className="relative w-8 h-8 flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high/80 active:scale-95 rounded-md transition-all cursor-pointer"
-        title="Notifications"
+        title={t("notifications.title")}
         type="button"
-        aria-label="Notifications"
+        aria-label={t("notifications.title")}
       >
         <HugeiconsIcon icon="notification-02" size={17} strokeWidth={1.75} />
         {unreadCount > 0 && (
@@ -116,8 +121,8 @@ export default function NotificationBell({ label = "Live updates" }: { label?: s
           {/* Popover Header */}
           <div className="px-3.5 py-2.5 border-b border-outline-variant/60 flex items-center justify-between bg-surface-container-lowest">
             <div>
-              <p className="text-xs font-semibold text-on-surface">Notifications</p>
-              <p className="text-[11px] text-on-surface-variant">{label}</p>
+              <p className="text-xs font-semibold text-on-surface">{t("notifications.title")}</p>
+              <p className="text-[11px] text-on-surface-variant">{labelText}</p>
             </div>
             <div className="flex items-center gap-2">
               {unreadCount > 0 && (
@@ -126,7 +131,7 @@ export default function NotificationBell({ label = "Live updates" }: { label?: s
                   onClick={handleMarkAllAsRead}
                   className="rounded px-1.5 py-0.5 text-[11px] font-medium text-primary hover:bg-primary/10 transition-colors cursor-pointer"
                 >
-                  Mark all as read
+                  {t("notifications.markAllAsRead")}
                 </button>
               )}
               <span
@@ -134,7 +139,7 @@ export default function NotificationBell({ label = "Live updates" }: { label?: s
                   "w-2 h-2 rounded-full",
                   isConnected ? "bg-secondary" : "bg-outline-variant"
                 )}
-                title={isConnected ? "Live sync active" : "Connecting..."}
+                title={isConnected ? t("notifications.liveSyncActive") : t("notifications.connecting")}
               />
             </div>
           </div>
@@ -144,7 +149,7 @@ export default function NotificationBell({ label = "Live updates" }: { label?: s
             {notifications.length === 0 ? (
               <div className="py-8 px-4 text-center text-on-surface-variant text-xs flex flex-col items-center justify-center">
                 <HugeiconsIcon icon="notification-02" size={24} className="text-outline-variant mb-2" strokeWidth={1.5} />
-                <span>No new notifications</span>
+                <span>{t("notifications.empty")}</span>
               </div>
             ) : (
               notifications.map((notification) => (
@@ -170,7 +175,7 @@ export default function NotificationBell({ label = "Live updates" }: { label?: s
                     </div>
                     <p className="text-xs text-on-surface-variant line-clamp-2 mt-0.5">{notification.message}</p>
                     <p className="text-[10px] text-outline-variant mt-1 font-mono">
-                      {formatNotificationTime(notification.createdAt)}
+                      {formatNotificationTime(notification.createdAt, language, t)}
                     </p>
                   </div>
                 </button>

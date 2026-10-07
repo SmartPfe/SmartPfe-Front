@@ -8,6 +8,7 @@ import { WorkflowProvider, useWorkflow } from "@/context/WorkflowContext";
 import { AiGenerationProvider } from "@/context/AiGenerationContext";
 import { NotificationProvider } from "@/context/NotificationContext";
 import FloatingAiDock from "@/components/ai/FloatingAiDock";
+import { useTranslation } from "react-i18next";
 
 const WORKFLOW_METHODOLOGY_PATHS = [
   "/workspace/problem-statement",
@@ -25,6 +26,7 @@ const WORKFLOW_METHODOLOGY_PATHS = [
 ];
 
 function WorkspaceRouteGuard({ isFullWidthPage }: { isFullWidthPage: boolean }) {
+  const { t } = useTranslation("shell");
   const { steps, loading } = useWorkflow();
   const location = useLocation();
 
@@ -37,7 +39,7 @@ function WorkspaceRouteGuard({ isFullWidthPage }: { isFullWidthPage: boolean }) 
     return (
       <div className="flex flex-col min-h-[55vh] items-center justify-center">
         <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin mb-3" />
-        <p className="text-xs text-on-surface-variant font-medium">Verifying methodology access...</p>
+        <p className="text-xs text-on-surface-variant font-medium">{t("workspace.verifyingMethodologyAccess")}</p>
       </div>
     );
   }

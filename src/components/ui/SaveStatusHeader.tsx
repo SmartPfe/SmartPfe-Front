@@ -1,5 +1,6 @@
 import React from "react";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 export type SaveStatus = "saved" | "saving" | "unsaved";
 
@@ -23,11 +24,16 @@ export default function SaveStatusHeader({
   onSave,
   isBusy = false,
   className,
-  savedLabel = "All changes saved",
-  savingLabel = "Autosaving...",
-  unsavedLabel = "Unsaved changes",
-  saveButtonLabel = "Save now",
+  savedLabel,
+  savingLabel,
+  unsavedLabel,
+  saveButtonLabel,
 }: SaveStatusHeaderProps) {
+  const { t } = useTranslation("controls");
+  const resolvedSavedLabel = savedLabel ?? t("saveStatus.saved");
+  const resolvedSavingLabel = savingLabel ?? t("saveStatus.saving");
+  const resolvedUnsavedLabel = unsavedLabel ?? t("saveStatus.unsaved");
+  const resolvedSaveButtonLabel = saveButtonLabel ?? t("saveStatus.saveNow");
   const isSaving = status === "saving";
   const isSaved = status === "saved";
   const isUnsaved = status === "unsaved";
@@ -42,7 +48,7 @@ export default function SaveStatusHeader({
           isUnsaved && "bg-error/10 text-error border-error/20"
         )}
       >
-        {isSaving ? savingLabel : isSaved ? savedLabel : unsavedLabel}
+        {isSaving ? resolvedSavingLabel : isSaved ? resolvedSavedLabel : resolvedUnsavedLabel}
       </span>
       <button
         type="button"
@@ -50,7 +56,7 @@ export default function SaveStatusHeader({
         disabled={isSaving || isBusy}
         className="h-9 px-4 rounded-lg bg-primary text-on-primary text-[13px] font-semibold tracking-tight hover:bg-primary/90 transition-all duration-150 shadow-2xs active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
       >
-        {saveButtonLabel}
+        {resolvedSaveButtonLabel}
       </button>
     </div>
   );

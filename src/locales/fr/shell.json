@@ -1,0 +1,219 @@
+{
+  "navigation": {
+    "thesisWorkspace": "Espace de mémoire",
+    "hub": "Accueil",
+    "breadcrumb": "Fil d’Ariane",
+    "workspace": "Espace de travail",
+    "groups": {
+      "specification": "Spécification",
+      "engineering": "Ingénierie et backlog",
+      "delivery": "Livrables académiques"
+    },
+    "sidebarLabels": {
+      "projectOverview": "Vue d’ensemble du projet",
+      "problemStatement": "Problématique",
+      "actorsStakeholders": "Acteurs et parties prenantes",
+      "existingSolutions": "Solutions existantes",
+      "functionalRequirementsShort": "Exig. fonct.",
+      "nonFunctionalRequirementsShort": "Exig. non fonct.",
+      "productBacklog": "Backlog produit",
+      "umlArchitecture": "Architecture UML",
+      "reportStructure": "Structure du rapport",
+      "reportBuilder": "Rédaction du rapport",
+      "presentationDeck": "Diaporama de soutenance",
+      "pitchSpeech": "Discours de présentation",
+      "jurySimulation": "Simulation du jury",
+      "settings": "Paramètres"
+    },
+    "topbarLabels": {
+      "overview": "Vue d’ensemble",
+      "problem": "Problème",
+      "actors": "Acteurs",
+      "solutions": "Solutions",
+      "functionalRequirementsShort": "Exig. fonct.",
+      "nonFunctionalRequirementsShort": "Exig. non fonct.",
+      "backlog": "Backlog",
+      "uml": "UML",
+      "structure": "Structure",
+      "report": "Rapport",
+      "presentation": "Présentation",
+      "pitch": "Pitch",
+      "jurySimulationShort": "Simul. jury",
+      "settings": "Paramètres",
+      "account": "Compte",
+      "creditHistory": "Historique des crédits"
+    },
+    "tooltips": {
+      "overview": "Définissez le thème, les objectifs et le domaine de votre projet.",
+      "problemStatement": "Formulez clairement le problème que votre projet cherche à résoudre.",
+      "actors": "Identifiez les utilisateurs et les systèmes qui interagissent avec votre application.",
+      "solutions": "Présentez les solutions techniques et fonctionnelles au problème.",
+      "functionalRequirements": "Précisez les comportements et les fonctionnalités que le système doit prendre en charge.",
+      "nonFunctionalRequirements": "Définissez les qualités du système, comme les performances, la sécurité et l’évolutivité.",
+      "backlog": "Organisez et hiérarchisez les tâches et fonctionnalités à réaliser.",
+      "umlPreparation": "Concevez l’architecture du système à l’aide de diagrammes UML.",
+      "reportStructure": "Définissez les chapitres et les sections de votre rapport de PFE.",
+      "reportBuilder": "Rédigez et assemblez le contenu de votre rapport final.",
+      "presentation": "Préparez les diapositives et le contenu de votre soutenance.",
+      "pitch": "Rédigez un résumé concis et convaincant de votre projet.",
+      "jurySimulation": "Simulez une soutenance orale avec des membres du jury IA."
+    }
+  },
+  "sidebar": {
+    "roadmapProgress": "Progression du parcours",
+    "stepsDone": "Étapes terminées : {{completed}} / {{total}}",
+    "methodologyNavigation": "Méthodologie du projet",
+    "toggleTheme": "Changer de thème",
+    "darkMode": "Mode sombre",
+    "lightMode": "Mode clair"
+  },
+  "topbar": {
+    "defaultProjectTitle": "Projet de PFE",
+    "toggleSidebar": "Afficher ou masquer la barre latérale",
+    "saving": "Enregistrement...",
+    "saved": "Enregistré",
+    "lastSynced": "Dernière synchronisation : {{time}}",
+    "justNow": "à l’instant",
+    "oneMinuteAgo": "il y a 1 min",
+    "searchWorkspace": "Rechercher dans l’espace de travail (Ctrl+K)",
+    "search": "Rechercher...",
+    "revisionHistoryTitle": "Historique et versions",
+    "revisionHistory": "Historique des versions",
+    "liveWorkspaceEvents": "Événements de l’espace de travail en direct",
+    "userAccount": "Compte utilisateur",
+    "userAvatar": "Avatar de {{name}}",
+    "userAvatarFallback": "Avatar utilisateur",
+    "studentAccount": "Compte étudiant",
+    "defaultEmail": "student@university.edu",
+    "pfeCandidate": "Candidat au PFE",
+    "accountProfile": "Profil du compte",
+    "workspaceSettings": "Paramètres de l’espace",
+    "commandPalette": "Palette de commandes",
+    "logOut": "Se déconnecter"
+  },
+  "search": {
+    "tabs": {
+      "all": "Tout",
+      "phases": "Étapes",
+      "architecture": "Architecture",
+      "deliverables": "Livrables",
+      "actions": "Actions rapides"
+    },
+    "categories": {
+      "phases": "Étape de la méthodologie",
+      "architecture": "Architecture et modélisation",
+      "reportsStudio": "Rapports et rédaction",
+      "defensePreparation": "Préparation à la soutenance",
+      "preferences": "Préférences",
+      "userAccount": "Compte utilisateur"
+    },
+    "items": {
+      "overview": {
+        "label": "Vue d’ensemble du projet",
+        "description": "Définissez le thème, le domaine académique, les objectifs et l’équipe du projet."
+      },
+      "problemStatement": {
+        "label": "Problématique",
+        "description": "Formulez le problème, les difficultés existantes et les objectifs."
+      },
+      "actors": {
+        "label": "Acteurs et personas",
+        "description": "Cartographiez les utilisateurs principaux, secondaires et les systèmes externes."
+      },
+      "solutions": {
+        "label": "Solutions existantes (état de l’art)",
+        "description": "Comparez les solutions existantes sur le marché."
+      },
+      "functionalRequirements": {
+        "label": "Exigences fonctionnelles",
+        "description": "Précisez les comportements du système (RF-01, RF-02...) et ses fonctionnalités."
+      },
+      "nonFunctionalRequirements": {
+        "label": "Exigences non fonctionnelles",
+        "description": "Définissez les performances, la sécurité, la disponibilité et les critères qualité ISO."
+      },
+      "backlog": {
+        "label": "Backlog produit",
+        "description": "Préparez les récits utilisateurs, les points d’effort et les priorités du backlog."
+      },
+      "uml": {
+        "label": "Architecture et diagrammes UML",
+        "description": "Générez et modifiez des diagrammes de classes, de séquence et de cas d’utilisation PlantUML."
+      },
+      "reportStructure": {
+        "label": "Structure du rapport (plan du mémoire)",
+        "description": "Créez le sommaire académique du mémoire selon les normes universitaires."
+      },
+      "reportBuilder": {
+        "label": "Studio de rédaction du rapport",
+        "description": "Rédigez votre mémoire avec un éditeur académique et la génération de sections par RAG correctif."
+      },
+      "presentation": {
+        "label": "Diapositives et présentation de soutenance",
+        "description": "Générez des diapositives structurées et des points clés pour votre présentation."
+      },
+      "pitch": {
+        "label": "Pitch et discours chronométré",
+        "description": "Préparez un discours de soutenance percutant de trois minutes."
+      },
+      "jurySimulation": {
+        "label": "Simulation de questions-réponses du jury",
+        "description": "Entraînez-vous à une soutenance orale avec un jury académique IA exigeant."
+      },
+      "settings": {
+        "label": "Paramètres de l’espace de travail",
+        "description": "Configurez les clés API du projet, la langue et les préférences de l’espace."
+      },
+      "account": {
+        "label": "Profil du compte",
+        "description": "Gérez votre profil, votre avatar et vos identifiants."
+      }
+    },
+    "dialogLabel": "Recherche dans l’espace de travail",
+    "inputLabel": "Rechercher des pages et des documents de l’espace de travail",
+    "placeholder": "Rechercher des pages, documents et étapes...",
+    "clearQuery": "Effacer la recherche",
+    "locked": "Verrouillé",
+    "jump": "Ouvrir",
+    "noMatchingItems": "Aucun élément de l’espace ne correspond",
+    "trySuggestions": "Aucun résultat pour « {{query}} ». Essayez <uml>UML</uml>, <report>Rapport</report> ou <requirements>Exigences</requirements>.",
+    "suggestions": {
+      "uml": "UML",
+      "report": "Rapport",
+      "requirements": "Exigences"
+    },
+    "navigate": "naviguer",
+    "open": "ouvrir",
+    "dismiss": "fermer",
+    "quickSwitcher": "Recherche rapide SmartPFE"
+  },
+  "workspace": {
+    "verifyingMethodologyAccess": "Vérification de l’accès à la méthodologie..."
+  },
+  "admin": {
+    "navigation": {
+      "overview": "Vue d’ensemble",
+      "overviewHelper": "Activité de la plateforme",
+      "users": "Utilisateurs",
+      "usersHelper": "Comptes et portefeuilles",
+      "projects": "Projets",
+      "projectsHelper": "Espaces étudiants",
+      "creditEconomy": "Économie des crédits",
+      "creditEconomyHelper": "Tarifs et allocations",
+      "creditRequests": "Demandes de crédits",
+      "creditRequestsHelper": "Recharges manuelles",
+      "adminAccount": "Compte administrateur",
+      "adminAccountHelper": "Profil et sécurité"
+    },
+    "closeMenu": "Fermer le menu administrateur",
+    "openMenu": "Ouvrir le menu administrateur",
+    "management": "Gestion",
+    "title": "Administration",
+    "administrator": "Administrateur",
+    "logOut": "Se déconnecter",
+    "admin": "Administration",
+    "liveSystemUpdates": "Mises à jour du système en direct",
+    "adminAccountTitle": "Compte administrateur",
+    "adminAvatar": "Avatar de l’administrateur"
+  }
+}

@@ -1,0 +1,193 @@
+{
+  "notifications": {
+    "title": "Notifications",
+    "liveUpdates": "Mises à jour en direct",
+    "markAllAsRead": "Tout marquer comme lu",
+    "liveSyncActive": "Synchronisation en direct active",
+    "connecting": "Connexion...",
+    "empty": "Aucune nouvelle notification",
+    "justNow": "À l’instant",
+    "minutesAgo_one": "Il y a {{countDisplay}} min",
+    "minutesAgo_other": "Il y a {{countDisplay}} min",
+    "hoursAgo_one": "Il y a {{countDisplay}} h",
+    "hoursAgo_other": "Il y a {{countDisplay}} h"
+  },
+  "revisionHistory": {
+    "title": "Historique des versions",
+    "description": "Suivez les modifications de toutes les phases du PFE",
+    "close": "Fermer l’historique des versions",
+    "latestEdit": "Dernière modification",
+    "restore": "Restaurer",
+    "entries": {
+      "1": {
+        "time": "À l’instant",
+        "date": "Aujourd’hui, 10:50",
+        "action": "Diagrammes UML mis à jour",
+        "details": "Ajout de la classe 'AnalyticsEngine' et définition de sa relation avec le composant Dashboard dans le diagramme de classes.",
+        "phase": "Préparation UML"
+      },
+      "2": {
+        "time": "Il y a 2 heures",
+        "date": "Aujourd’hui, 8:30",
+        "action": "Phase validée : backlog produit",
+        "details": "12 éléments du backlog approuvés et indicateur de vélocité du sprint porté à 42 points.",
+        "phase": "Backlog produit"
+      },
+      "3": {
+        "time": "Hier",
+        "date": "16 juin, 16:15",
+        "action": "Commentaire de révision ajouté",
+        "details": "\"Veuillez tenir compte des enjeux de mise à l’échelle. Ajoutez une exigence non fonctionnelle pour au moins 10 000 utilisateurs simultanés.\"",
+        "phase": "Exigences non fonctionnelles"
+      },
+      "4": {
+        "time": "Hier",
+        "date": "16 juin, 13:20",
+        "action": "Sections du rapport réorganisées",
+        "details": "La section 'Pile technologique' a été déplacée avant 'Détails de l’implémentation'. Le chapitre 4 a été ajouté.",
+        "phase": "Structure du rapport"
+      },
+      "5": {
+        "time": "Il y a 2 jours",
+        "date": "15 juin, 11:00",
+        "action": "Initialisation du projet",
+        "details": "Création de l’espace de projet 'Plateforme d’analyse intelligente pour le commerce de détail' et définition du domaine principal.",
+        "phase": "Vue d’ensemble"
+      }
+    }
+  },
+  "saveStatus": {
+    "saved": "Toutes les modifications sont enregistrées",
+    "saving": "Enregistrement automatique...",
+    "unsaved": "Modifications non enregistrées",
+    "saveNow": "Enregistrer maintenant"
+  },
+  "creditBadge": {
+    "paused": "EN PAUSE",
+    "free": "GRATUIT",
+    "freeUsesRemaining_one": "{{countDisplay}} utilisation gratuite restante aujourd’hui, puis {{credits}} crédits",
+    "freeUsesRemaining_other": "{{countDisplay}} utilisations gratuites restantes aujourd’hui, puis {{credits}} crédits",
+    "freeUsesPerDay_one": "{{countDisplay}} utilisation gratuite par jour, puis {{credits}} crédits",
+    "freeUsesPerDay_other": "{{countDisplay}} utilisations gratuites par jour, puis {{credits}} crédits",
+    "creditsAmount_one": "{{credits}} crédit",
+    "creditsAmount_other": "{{credits}} crédits"
+  },
+  "creditWallet": {
+    "title": "Portefeuille de crédits",
+    "creditsAlt": "Crédits",
+    "availableCredits": "Crédits disponibles",
+    "closeWallet": "Fermer le portefeuille",
+    "dailyWelcome": "Crédits quotidiens et de bienvenue",
+    "purchased": "Achetés",
+    "addMoreCredits": "Ajouter des crédits",
+    "latestRequests": "Demandes récentes",
+    "creditsUnit": "crédits",
+    "noRequests": "Aucune demande de crédit pour le moment.",
+    "status": {
+      "pending": "En attente",
+      "confirmed": "Confirmée",
+      "completed": "Terminée",
+      "cancelled": "Annulée"
+    },
+    "recentActivity": "Activité récente",
+    "noActivity": "Aucune activité de crédit pour le moment.",
+    "viewFullHistory": "Voir tout l’historique des crédits",
+    "refillNote": "Les crédits promotionnels sont rechargés jusqu’à {{amount}} par jour et utilisés en priorité.",
+    "requestReceived": "Demande reçue",
+    "allSet": "Tout est prêt !",
+    "requestSubmitted": "Votre demande de crédit a bien été envoyée. Un membre de notre équipe vous contactera dès que possible pour vous expliquer les étapes de paiement.",
+    "paymentVerified": "Vos crédits seront ajoutés à votre portefeuille après vérification du paiement.",
+    "receiptSent": "Un reçu contenant les détails de votre demande a été envoyé par e-mail. Vous pouvez également suivre votre demande dans l’historique des crédits.",
+    "receiptNotSent": "Votre demande est enregistrée, mais l’envoi du reçu par e-mail a échoué. Tous les détails sont disponibles dans l’historique des crédits.",
+    "gotIt": "Compris",
+    "trackRequest": "Suivre ma demande",
+    "requestInstructions": "Notre équipe vous contactera avec les instructions de paiement. Les crédits seront ajoutés après vérification du paiement.",
+    "closeRequest": "Fermer la demande de crédit",
+    "studentEmail": "E-mail étudiant",
+    "phoneNumber": "Numéro de téléphone",
+    "purchaseMode": "Mode d’achat des crédits",
+    "customAmount": "Montant personnalisé",
+    "creditUnit": "crédit",
+    "desiredCredits": "Crédits souhaités",
+    "creditsRequested": "Crédits demandés",
+    "estimatedPrice": "Prix estimé",
+    "cancel": "Annuler",
+    "submitting": "Envoi...",
+    "submitRequest": "Envoyer la demande",
+    "errors": {
+      "validPhone": "Saisissez un numéro de téléphone valide afin que l’administration puisse vous contacter.",
+      "optionsLoading": "Les options d’achat sont encore en cours de chargement. Réessayez dans un instant.",
+      "creditRange": "Choisissez entre 1 et 100 000 crédits.",
+      "submitFailed": "Impossible d’envoyer votre demande de crédit."
+    },
+    "activity": {
+      "creditPurchase": "Achat de crédits",
+      "welcomeCredits": "Crédits de bienvenue",
+      "dailyRefill": "Recharge quotidienne",
+      "walletAdjustment": "Ajustement du portefeuille",
+      "creditRefund": "Remboursement de crédits",
+      "aiActivity": "Activité de l’IA"
+    },
+    "actions": {
+      "problemStatement": "Problématique",
+      "actors": "Acteurs et parties prenantes",
+      "existingSolutions": "Solutions existantes",
+      "functionalRequirements": "Exigences fonctionnelles",
+      "nonFunctionalRequirements": "Exigences non fonctionnelles",
+      "productBacklog": "Backlog produit",
+      "umlPreparation": "Architecture UML",
+      "reportStructure": "Structure du rapport",
+      "reportSection": "Section du rapport",
+      "quickPolish": "Amélioration rapide",
+      "contextualReportPolish": "Amélioration contextuelle du rapport",
+      "completeReportCompilation": "Compilation complète du rapport",
+      "presentationDeck": "Diaporama",
+      "presentationSlide": "Diapositive",
+      "pitchSpeech": "Discours de soutenance",
+      "pitchSlide": "Diapositive de soutenance",
+      "jurySimulation": "Simulation de jury",
+      "juryQaSession": "Session de questions-réponses du jury",
+      "includedJuryQaSteps": "Étapes de questions-réponses incluses",
+      "translation": "Traduction"
+    }
+  },
+  "aiToolbar": {
+    "generateWithAi": "Générer avec l’IA",
+    "refineWithAi": "Améliorer avec l’IA",
+    "refinePlaceholder": "Indiquez à l’IA ce que vous souhaitez améliorer (facultatif)...",
+    "translate": "Traduire",
+    "generating": "Génération...",
+    "refining": "Amélioration...",
+    "translating": "Traduction...",
+    "refineInstructions": "Instructions d’amélioration",
+    "cancel": "Annuler",
+    "refine": "Améliorer"
+  },
+  "aiBanner": {
+    "generating": "Génération de {{moduleName}}",
+    "refining": "Amélioration de {{moduleName}}",
+    "translating": "Traduction de {{moduleName}}",
+    "processing": "Traitement de {{moduleName}}",
+    "backgroundTask": "Tâche en arrière-plan",
+    "explorePages": "Vous pouvez consulter d’autres pages ; votre progression sera conservée.",
+    "stopTooltip": "Arrêter et annuler cette génération",
+    "stop": "Arrêter"
+  },
+  "aiDock": {
+    "activeGenerations": "Générations en cours",
+    "defaultTitle": "Génération par IA",
+    "readyToView": "Prêt à consulter",
+    "ready": "Prêt",
+    "failed": "Échec",
+    "generatingInBackground": "Génération en arrière-plan...",
+    "generationFailed": "La génération a échoué",
+    "concurrentTitle": "Nombre maximal de générations simultanées",
+    "concurrentDescription_one": "Vous pouvez générer jusqu’à {{count}} section en parallèle. Attendez qu’une génération se termine.",
+    "concurrentDescription_other": "Vous pouvez générer jusqu’à {{count}} sections en parallèle. Attendez qu’une génération se termine.",
+    "jumpToSection": "Accéder à cette section",
+    "view": "Voir",
+    "stopTooltip": "Arrêter et annuler cette génération",
+    "stop": "Arrêter",
+    "close": "Fermer la notification"
+  }
+}

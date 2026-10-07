@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import HugeiconsIcon from "@/components/ui/HugeiconsIcon";
 import CreditBadge from "@/components/credits/CreditBadge";
 import { useLocation } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 export interface AiActionToolbarProps {
   onGenerate: () => void | Promise<void>;
@@ -66,17 +67,22 @@ export default function AiActionToolbar({
   canRefine = true,
   generateDisabledTitle,
   refineDisabledTitle,
-  generateLabel = "Generate with AI",
-  refineLabel = "Refine with AI",
-  refinePlaceholder = "Tell AI what you'd like to improve (optional)...",
+  generateLabel,
+  refineLabel,
+  refinePlaceholder,
   showTranslate = false,
-  translateLabel = "Translate",
+  translateLabel,
   primaryAction,
   className,
   generateCreditActionKey,
   refineCreditActionKey,
 }: AiActionToolbarProps) {
+  const { t } = useTranslation("controls");
   const location = useLocation();
+  const resolvedGenerateLabel = generateLabel ?? t("aiToolbar.generateWithAi");
+  const resolvedRefineLabel = refineLabel ?? t("aiToolbar.refineWithAi");
+  const resolvedRefinePlaceholder = refinePlaceholder ?? t("aiToolbar.refinePlaceholder");
+  const resolvedTranslateLabel = translateLabel ?? t("aiToolbar.translate");
   const [refineOpen, setRefineOpen] = useState(false);
   const [refineInstructions, setRefineInstructions] = useState("");
   const refinePopoverRef = useRef<HTMLDivElement>(null);
@@ -144,12 +150,12 @@ export default function AiActionToolbar({
           {isGenerating ? (
             <>
               <span className="w-3.5 h-3.5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-              <span>Generating...</span>
+              <span>{t("aiToolbar.generating")}</span>
             </>
           ) : (
             <>
               <HugeiconsIcon icon="ai-beautify" size={17} strokeWidth={1.65} />
-              <span>{generateLabel}</span>
+              <span>{resolvedGenerateLabel}</span>
               <CreditBadge actionKey={generateAction} />
             </>
           )}
@@ -167,12 +173,12 @@ export default function AiActionToolbar({
             {isRefining ? (
               <>
                 <span className="w-3.5 h-3.5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                <span>Refining...</span>
+                <span>{t("aiToolbar.refining")}</span>
               </>
             ) : (
               <>
                 <HugeiconsIcon icon="ai-refine" size={17} strokeWidth={1.65} />
-                <span>{refineLabel}</span>
+                <span>{resolvedRefineLabel}</span>
                 <CreditBadge actionKey={refineAction} />
               </>
             )}
@@ -185,12 +191,13 @@ export default function AiActionToolbar({
             >
               <div className="flex items-center gap-1.5 mb-2 text-xs font-semibold text-on-surface">
                 <HugeiconsIcon icon="edit" size={14} strokeWidth={1.8} className="text-primary" />
-                <span>Refine Instructions</span>
+                <span>{t("aiToolbar.refineInstructions")}</span>
               </div>
               <textarea
                 value={refineInstructions}
                 onChange={(event) => setRefineInstructions(event.target.value)}
-                placeholder={refinePlaceholder}
+                placeholder={resolvedRefinePlaceholder}
+                aria-label={t("aiToolbar.refineInstructions")}
                 rows={4}
                 className="w-full resize-none rounded-lg border border-outline-variant/80 bg-surface px-3 py-2 text-sm text-on-surface outline-none transition-colors placeholder:text-on-surface-variant/60 focus:border-primary focus:ring-2 focus:ring-primary/15"
                 autoFocus
@@ -204,7 +211,7 @@ export default function AiActionToolbar({
                   }}
                   className="h-8 px-3 rounded-lg border border-outline-variant bg-surface text-xs font-semibold text-on-surface hover:bg-surface-container transition-colors cursor-pointer"
                 >
-                  Cancel
+                  {t("aiToolbar.cancel")}
                 </button>
                 <button
                   type="button"
@@ -212,7 +219,7 @@ export default function AiActionToolbar({
                   disabled={isRefining}
                   className="h-8 px-3.5 rounded-lg bg-primary text-xs font-semibold text-on-primary hover:bg-primary/90 transition-all disabled:opacity-50 cursor-pointer"
                 >
-                  {isRefining ? "Refining..." : "Refine"}
+                  {isRefining ? t("aiToolbar.refining") : t("aiToolbar.refine")}
                 </button>
               </div>
             </div>
@@ -230,12 +237,12 @@ export default function AiActionToolbar({
             {isTranslating ? (
               <>
                 <span className="w-3.5 h-3.5 border-2 border-secondary border-t-transparent rounded-full animate-spin" />
-                <span>Translating...</span>
+                <span>{t("aiToolbar.translating")}</span>
               </>
             ) : (
               <>
                 <HugeiconsIcon icon="ai-translate" size={17} strokeWidth={1.65} />
-                <span>{translateLabel}</span>
+                <span>{resolvedTranslateLabel}</span>
               </>
             )}
           </button>
