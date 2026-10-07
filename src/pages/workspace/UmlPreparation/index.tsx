@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import InfoTooltip from "@/components/ui/InfoTooltip";
 import {
@@ -20,10 +21,10 @@ import SaveStatusHeader from "@/components/ui/SaveStatusHeader";
 import AiActionToolbar from "@/components/ai/AiActionToolbar";
 
 const diagrams = [
-  { id: "usecase", name: "Use Case Diagram", icon: "person-play" },
-  { id: "class", name: "Class Diagram", icon: "schema" },
-  { id: "sequence", name: "Sequence Diagram", icon: "sync-alt" },
-  { id: "activity", name: "Activity Diagram", icon: "workflow" },
+  { id: "usecase", icon: "person-play" },
+  { id: "class", icon: "schema" },
+  { id: "sequence", icon: "sync-alt" },
+  { id: "activity", icon: "workflow" },
 ];
 
 const createEmptyClass = (): UmlClass => ({
@@ -36,6 +37,7 @@ const createEmptyClass = (): UmlClass => ({
 });
 
 export default function UmlPreparation() {
+  const { t } = useTranslation("design");
   const {
     umlPreparation,
     setUmlPreparation,
@@ -45,6 +47,7 @@ export default function UmlPreparation() {
     isAiBusy,
     suggestion,
     error,
+    errorKey,
     markUnsaved,
     saveUmlPreparation,
     generateWithAi,
@@ -79,14 +82,15 @@ export default function UmlPreparation() {
     setEditingClassId(getClassKey(umlClass));
   };
 
-  const currentInfo = getDiagramInfo(activeDiagram, umlPreparation);
+  const currentInfo = getDiagramInfo(activeDiagram, umlPreparation, t);
   const activeDiagramObj = diagrams.find((d) => d.id === activeDiagram);
+  const activeDiagramName = t(`uml.diagrams.${activeDiagram}`);
 
   if (loading) {
     return (
       <div className="flex flex-col min-h-[50vh] items-center justify-center">
         <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4" />
-        <p className="text-on-surface-variant font-medium text-sm">Loading UML preparation...</p>
+        <p className="text-on-surface-variant font-medium text-sm">{t("uml.loading")}</p>
       </div>
     );
   }
@@ -97,17 +101,17 @@ export default function UmlPreparation() {
       <div className="mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <div className="flex items-center gap-1.5 mb-1.5">
-            <span className="text-xs font-bold uppercase tracking-wider text-primary">Architecture Modeling</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-primary">{t("uml.eyebrow")}</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-on-surface flex items-center">
-            UML Preparation
+            {t("uml.title")}
             <InfoTooltip
-              label="UML Architecture"
-              tooltip="Generate, refine, and edit Use Case, Class, Sequence, and Activity diagrams rendered directly with PlantUML."
+              label={t("uml.tooltipLabel")}
+              tooltip={t("uml.tooltip")}
             />
           </h1>
           <p className="text-sm text-on-surface-variant max-w-[42rem] mt-1.5 leading-relaxed">
-            Design and generate system architecture models with interactive PlantUML rendering and entity editing.
+            {t("uml.description")}
           </p>
         </div>
 
@@ -122,7 +126,7 @@ export default function UmlPreparation() {
       {/* Background AI Progress Banner */}
       <AiBackgroundBanner
         isVisible={isAiBusy}
-        moduleName="UML Preparation"
+        moduleName={t("uml.title")}
         action={aiState}
         onCancel={cancelAi}
       />
@@ -137,9 +141,9 @@ export default function UmlPreparation() {
         isTranslating={aiState === "translating"}
         isBusy={isAiBusy || aiState === "suggestion_ready"}
         canRefine={true}
-        refinePlaceholder={`Tell AI what you'd like to refine in the ${activeDiagramObj?.name || "diagram"} (e.g. 'Add JWT Auth middleware and RefreshToken entity')...`}
+        refinePlaceholder={t("uml.ai.refinePlaceholder", { diagram: activeDiagramName })}
         showTranslate={shouldShowTranslate}
-        translateLabel={`Translate to ${getLanguageLabel(projectLanguage)}`}
+        translateLabel={t("uml.ai.translate", { language: getLanguageLabel(projectLanguage) })}
         primaryAction={
           activeDiagram === "class" && activeView === "elements" ? (
             <button
@@ -149,17 +153,17 @@ export default function UmlPreparation() {
               className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 h-9 px-4 bg-primary text-on-primary rounded-lg text-[13px] font-semibold tracking-tight hover:bg-primary/90 transition-all duration-150 shadow-2xs active:scale-[0.98] disabled:opacity-50 select-none cursor-pointer"
             >
               <HugeiconsIcon icon="add" size={16} strokeWidth={2} />
-              <span>Add Class</span>
+              <span>{t("uml.addClass")}</span>
             </button>
           ) : undefined
         }
       />
 
-      {error && (
+      {(error || errorKey) && (
         <div className="mb-6 p-3.5 rounded-xl bg-error-container text-on-error-container border border-error/20 flex items-center justify-between gap-3 shadow-2xs">
-          <p className="text-sm font-medium">{error}</p>
+          <p className="text-sm font-medium">{errorKey ? t(errorKey) : error}</p>
           <button onClick={dismissError} className="shrink-0 text-xs font-semibold underline hover:no-underline">
-            Dismiss
+            {t("uml.dismiss")}
           </button>
         </div>
       )}
@@ -171,22 +175,22 @@ export default function UmlPreparation() {
             <div>
               <div className="flex items-center gap-2">
                 <HugeiconsIcon icon="ai-spark" size={18} strokeWidth={1.8} className="text-primary" />
-                <h3 className="text-sm font-bold text-on-surface">AI suggestion ready for {activeDiagramObj?.name}</h3>
+                <h3 className="text-sm font-bold text-on-surface">{t("uml.suggestionTitle", { diagram: activeDiagramName })}</h3>
               </div>
-              <p className="text-xs text-on-surface-variant mt-0.5">Review and accept the generated diagram model.</p>
+              <p className="text-xs text-on-surface-variant mt-0.5">{t("uml.suggestionDescription")}</p>
             </div>
             <div className="flex items-center gap-2">
               <button
                 onClick={discardSuggestion}
                 className="h-8 px-3.5 rounded-lg border border-outline-variant bg-surface text-on-surface text-xs font-semibold hover:bg-surface-container-low transition-colors cursor-pointer"
               >
-                Discard
+                {t("uml.discard")}
               </button>
               <button
                 onClick={acceptSuggestion}
                 className="h-8 px-4 rounded-lg bg-primary text-on-primary text-xs font-semibold hover:bg-primary/90 transition-all shadow-2xs cursor-pointer"
               >
-                Accept suggestion
+                {t("uml.acceptSuggestion")}
               </button>
             </div>
           </div>
@@ -197,7 +201,7 @@ export default function UmlPreparation() {
       <div className="flex flex-col lg:flex-row gap-5 flex-1 min-h-0">
         {/* Fixed Diagram Navigation Sidebar */}
         <div className="w-full lg:w-60 flex flex-col gap-2 shrink-0">
-          <h3 className="text-xs font-bold text-outline-variant uppercase tracking-wider mb-1 px-1.5">Diagrams</h3>
+          <h3 className="text-xs font-bold text-outline-variant uppercase tracking-wider mb-1 px-1.5">{t("uml.diagramsHeading")}</h3>
           {diagrams.map((diag) => {
             const isActive = activeDiagram === diag.id;
             return (
@@ -213,7 +217,7 @@ export default function UmlPreparation() {
                 )}
               >
                 <HugeiconsIcon icon={diag.icon} size={18} strokeWidth={1.8} />
-                <span>{diag.name}</span>
+                <span>{t(`uml.diagrams.${diag.id}`)}</span>
               </button>
             );
           })}
@@ -222,9 +226,9 @@ export default function UmlPreparation() {
             <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-2.5">
               <HugeiconsIcon icon="ai-spark" size={16} strokeWidth={1.8} />
             </div>
-            <p className="text-xs font-bold text-on-surface mb-1">Architectural Precision</p>
+            <p className="text-xs font-bold text-on-surface mb-1">{t("uml.architecturalPrecision")}</p>
             <p className="text-[11px] text-on-surface-variant leading-relaxed">
-              Each diagram is generated and refined independently with synced PlantUML rendering.
+              {t("uml.diagramSyncDescription")}
             </p>
           </div>
         </div>
@@ -237,10 +241,10 @@ export default function UmlPreparation() {
                 <HugeiconsIcon icon={activeDiagramObj?.icon || "schema"} size={18} strokeWidth={1.8} />
               </div>
               <div className="min-w-0">
-                <h2 className="font-bold text-sm text-on-surface truncate tracking-tight">{activeDiagramObj?.name}</h2>
+                <h2 className="font-bold text-sm text-on-surface truncate tracking-tight">{activeDiagramName}</h2>
                 <span className="inline-flex items-center gap-1.5 text-xs text-secondary font-semibold">
                   <HugeiconsIcon icon="check-circle" size={13} strokeWidth={1.8} />
-                  Synced with Requirements
+                  {t("uml.syncedWithRequirements")}
                 </span>
               </div>
             </div>
@@ -258,7 +262,7 @@ export default function UmlPreparation() {
                 )}
               >
                 <HugeiconsIcon icon="visibility" size={14} strokeWidth={1.8} />
-                Diagram
+                {t("uml.views.diagram")}
               </button>
               <button
                 type="button"
@@ -271,7 +275,7 @@ export default function UmlPreparation() {
                 )}
               >
                 <HugeiconsIcon icon="edit" size={14} strokeWidth={1.8} />
-                Entities
+                {t("uml.views.elements")}
               </button>
               <button
                 type="button"
@@ -284,7 +288,7 @@ export default function UmlPreparation() {
                 )}
               >
                 <HugeiconsIcon icon="code" size={14} strokeWidth={1.8} />
-                Markup
+                {t("uml.views.code")}
               </button>
             </div>
           </div>
@@ -324,6 +328,7 @@ export default function UmlPreparation() {
 }
 
 function ClassElements({ umlPreparation, editingClassId, setEditingClassId, updatePreparation, addClass }: { umlPreparation: UmlPreparationType; editingClassId: string | null; setEditingClassId: (id: string | null) => void; updatePreparation: (updater: (current: UmlPreparationType) => UmlPreparationType) => void; addClass: () => void; }) {
+  const { t } = useTranslation("design");
   const updateClass = (id: string, updates: Partial<UmlClass>) => updatePreparation((current) => ({ ...current, classes: current.classes.map((umlClass) => getClassKey(umlClass) === id ? { ...umlClass, ...updates } : umlClass) }));
   const deleteClass = (id: string) => updatePreparation((current) => {
     const deleted = current.classes.find((umlClass) => getClassKey(umlClass) === id)?.name;
@@ -340,20 +345,20 @@ function ClassElements({ umlPreparation, editingClassId, setEditingClassId, upda
             <div className="px-4 py-3 border-b border-outline-variant bg-surface-container-lowest flex items-center justify-between gap-3">
               <div className="flex items-center gap-2 min-w-0">
                 <span className="material-symbols-outlined text-primary text-[18px]">data_object</span>
-                {isEditing ? <input value={umlClass.name} onChange={(event) => updateClass(id, { name: event.target.value })} className="bg-surface border border-outline-variant rounded-md px-2 py-1 outline-none focus:border-primary font-bold min-w-0" /> : <span className="font-bold text-on-surface">{umlClass.name}</span>}
+                {isEditing ? <input aria-label={t("uml.class.name")} value={umlClass.name} onChange={(event) => updateClass(id, { name: event.target.value })} className="bg-surface border border-outline-variant rounded-md px-2 py-1 outline-none focus:border-primary font-bold min-w-0" /> : <span className="font-bold text-on-surface">{umlClass.name}</span>}
               </div>
               <div className="flex items-center gap-2">
-                {isEditing ? <input value={umlClass.type} onChange={(event) => updateClass(id, { type: event.target.value })} className="w-32 bg-surface border border-outline-variant rounded-md px-2 py-1 text-xs outline-none focus:border-primary" /> : <span className="text-[10px] uppercase font-bold text-outline-variant tracking-wider bg-surface-container px-2 py-0.5 rounded">{umlClass.type}</span>}
-                <button onClick={() => setEditingClassId(isEditing ? null : id)} className="text-outline-variant hover:text-primary"><span className="material-symbols-outlined text-[18px]">{isEditing ? "check" : "edit"}</span></button>
-                <button onClick={() => deleteClass(id)} className="text-outline-variant hover:text-error"><span className="material-symbols-outlined text-[18px]">delete</span></button>
+                {isEditing ? <input aria-label={t("uml.class.type")} value={umlClass.type} onChange={(event) => updateClass(id, { type: event.target.value })} className="w-32 bg-surface border border-outline-variant rounded-md px-2 py-1 text-xs outline-none focus:border-primary" /> : <span className="text-[10px] uppercase font-bold text-outline-variant tracking-wider bg-surface-container px-2 py-0.5 rounded">{umlClass.type}</span>}
+                <button aria-label={t(isEditing ? "uml.class.finishEditing" : "uml.class.edit")} onClick={() => setEditingClassId(isEditing ? null : id)} className="text-outline-variant hover:text-primary"><span className="material-symbols-outlined text-[18px]">{isEditing ? "check" : "edit"}</span></button>
+                <button aria-label={t("uml.class.delete")} onClick={() => deleteClass(id)} className="text-outline-variant hover:text-error"><span className="material-symbols-outlined text-[18px]">delete</span></button>
               </div>
             </div>
             <div className="p-4 flex flex-col gap-4">
-              {isEditing && <textarea value={umlClass.description} onChange={(event) => updateClass(id, { description: event.target.value })} className="w-full min-h-[70px] bg-surface border border-outline-variant rounded-md px-3 py-2 outline-none focus:border-primary resize-y text-sm" placeholder="Class responsibility" />}
-              <EditableList title="Attributes" icon="remove" items={umlClass.attributes} isEditing={isEditing} onChange={(attributes) => updateClass(id, { attributes })} />
-              <EditableList title="Methods" icon="function" items={umlClass.methods} isEditing={isEditing} onChange={(methods) => updateClass(id, { methods })} />
+              {isEditing && <textarea aria-label={t("uml.class.responsibility")} value={umlClass.description} onChange={(event) => updateClass(id, { description: event.target.value })} className="w-full min-h-[70px] bg-surface border border-outline-variant rounded-md px-3 py-2 outline-none focus:border-primary resize-y text-sm" placeholder={t("uml.class.responsibility")} />}
+              <EditableList title={t("uml.class.attributes")} icon="remove" items={umlClass.attributes} isEditing={isEditing} onChange={(attributes) => updateClass(id, { attributes })} />
+              <EditableList title={t("uml.class.methods")} icon="function" items={umlClass.methods} isEditing={isEditing} onChange={(methods) => updateClass(id, { methods })} />
               <details className="border-t border-outline-variant/50 pt-3">
-                <summary className="text-xs font-bold text-primary cursor-pointer">PlantUML for this class</summary>
+                <summary className="text-xs font-bold text-primary cursor-pointer">{t("uml.class.plantUml")}</summary>
                 <pre className="mt-2 bg-[#1e1e1e] text-[#d4d4d4] rounded-lg p-3 overflow-x-auto text-xs">{buildClassPlantUml(umlClass, umlPreparation.relationships)}</pre>
               </details>
             </div>
@@ -362,7 +367,7 @@ function ClassElements({ umlPreparation, editingClassId, setEditingClassId, upda
       })}
       <button onClick={addClass} className="min-h-[200px] border-2 border-dashed border-outline-variant rounded-xl flex flex-col items-center justify-center gap-3 text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors bg-surface/50">
         <div className="w-10 h-10 rounded-full border border-outline-variant flex items-center justify-center bg-surface-container-lowest"><span className="material-symbols-outlined">add</span></div>
-        <span className="text-sm font-medium">Add New Class</span>
+        <span className="text-sm font-medium">{t("uml.class.addNew")}</span>
       </button>
       <RelationshipEditor umlPreparation={umlPreparation} updatePreparation={updatePreparation} />
     </div>
@@ -370,17 +375,19 @@ function ClassElements({ umlPreparation, editingClassId, setEditingClassId, upda
 }
 
 function EditableList({ title, icon, items, isEditing, onChange }: { title: string; icon: string; items: string[]; isEditing: boolean; onChange: (items: string[]) => void }) {
+  const { t } = useTranslation("design");
   return (
     <div className="border-t border-outline-variant/50 pt-4 first:border-t-0 first:pt-0">
       <h4 className="text-[11px] uppercase font-bold text-on-surface-variant tracking-wider mb-2 flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">{icon}</span>{title}</h4>
-      {isEditing ? <textarea value={items.join("\n")} onChange={(event) => onChange(event.target.value.split("\n").map((item) => item.trim()).filter(Boolean))} className="w-full min-h-[90px] bg-surface border border-outline-variant rounded-md px-3 py-2 outline-none focus:border-primary resize-y text-sm font-mono" placeholder="One item per line" /> : (
-        <ul className="flex flex-col gap-1 text-sm font-mono text-on-surface">{(items.length ? items : ["No items yet."]).map((item, index) => <li key={`${item}-${index}`} className="flex items-center gap-2"><span className="w-1 h-1 rounded-full bg-outline"></span>{item}</li>)}</ul>
+      {isEditing ? <textarea value={items.join("\n")} onChange={(event) => onChange(event.target.value.split("\n").map((item) => item.trim()).filter(Boolean))} className="w-full min-h-[90px] bg-surface border border-outline-variant rounded-md px-3 py-2 outline-none focus:border-primary resize-y text-sm font-mono" placeholder={t("uml.class.onePerLine")} /> : (
+        <ul className="flex flex-col gap-1 text-sm font-mono text-on-surface">{(items.length ? items : [t("uml.class.noItems")]).map((item, index) => <li key={`${item}-${index}`} className="flex items-center gap-2"><span className="w-1 h-1 rounded-full bg-outline"></span>{item}</li>)}</ul>
       )}
     </div>
   );
 }
 
 function RelationshipEditor({ umlPreparation, updatePreparation }: { umlPreparation: UmlPreparationType; updatePreparation: (updater: (current: UmlPreparationType) => UmlPreparationType) => void }) {
+  const { t } = useTranslation("design");
   const addRelationship = () => {
     const first = umlPreparation.classes[0]?.name || "";
     const second = umlPreparation.classes[1]?.name || first;
@@ -390,16 +397,16 @@ function RelationshipEditor({ umlPreparation, updatePreparation }: { umlPreparat
 
   return (
     <div className="bg-surface border border-outline-variant rounded-xl overflow-hidden shadow-sm flex flex-col lg:col-span-2">
-      <div className="px-4 py-3 border-b border-outline-variant bg-surface-container-lowest flex items-center justify-between"><span className="font-bold text-on-surface">Relationships</span><button onClick={addRelationship} className="text-primary text-sm font-bold">Add</button></div>
+      <div className="px-4 py-3 border-b border-outline-variant bg-surface-container-lowest flex items-center justify-between"><span className="font-bold text-on-surface">{t("uml.class.relationships")}</span><button onClick={addRelationship} className="text-primary text-sm font-bold">{t("uml.class.add")}</button></div>
       <div className="p-4 flex flex-col gap-2">
         {umlPreparation.relationships.map((relationship) => {
           const id = getRelKey(relationship);
           return <div key={id} className="grid grid-cols-1 md:grid-cols-[1fr_140px_1fr_1fr_auto] gap-2 p-3 bg-surface-container-lowest rounded-lg border border-outline-variant/50">
-            <select value={relationship.source} onChange={(event) => updateRelationship(id, { source: event.target.value })} className="bg-surface border border-outline-variant rounded-md px-2 py-1 text-sm">{umlPreparation.classes.map((c) => <option key={c.name} value={c.name}>{c.name}</option>)}</select>
-            <select value={relationship.type} onChange={(event) => updateRelationship(id, { type: event.target.value as UmlRelationship["type"] })} className="bg-surface border border-outline-variant rounded-md px-2 py-1 text-sm"><option value="association">association</option><option value="inheritance">inheritance</option><option value="composition">composition</option><option value="aggregation">aggregation</option><option value="dependency">dependency</option></select>
-            <select value={relationship.target} onChange={(event) => updateRelationship(id, { target: event.target.value })} className="bg-surface border border-outline-variant rounded-md px-2 py-1 text-sm">{umlPreparation.classes.map((c) => <option key={c.name} value={c.name}>{c.name}</option>)}</select>
-            <input value={relationship.label} onChange={(event) => updateRelationship(id, { label: event.target.value })} className="bg-surface border border-outline-variant rounded-md px-2 py-1 text-sm" placeholder="label" />
-            <button onClick={() => updatePreparation((current) => ({ ...current, relationships: current.relationships.filter((rel) => getRelKey(rel) !== id) }))} className="text-outline-variant hover:text-error"><span className="material-symbols-outlined text-[18px]">delete</span></button>
+            <select aria-label={t("uml.class.source")} value={relationship.source} onChange={(event) => updateRelationship(id, { source: event.target.value })} className="bg-surface border border-outline-variant rounded-md px-2 py-1 text-sm">{umlPreparation.classes.map((c) => <option key={c.name} value={c.name}>{c.name}</option>)}</select>
+            <select aria-label={t("uml.class.relationshipType")} value={relationship.type} onChange={(event) => updateRelationship(id, { type: event.target.value as UmlRelationship["type"] })} className="bg-surface border border-outline-variant rounded-md px-2 py-1 text-sm">{(["association", "inheritance", "composition", "aggregation", "dependency"] as const).map((type) => <option key={type} value={type}>{t(`uml.class.types.${type}`)}</option>)}</select>
+            <select aria-label={t("uml.class.target")} value={relationship.target} onChange={(event) => updateRelationship(id, { target: event.target.value })} className="bg-surface border border-outline-variant rounded-md px-2 py-1 text-sm">{umlPreparation.classes.map((c) => <option key={c.name} value={c.name}>{c.name}</option>)}</select>
+            <input aria-label={t("uml.class.relationshipLabel")} value={relationship.label} onChange={(event) => updateRelationship(id, { label: event.target.value })} className="bg-surface border border-outline-variant rounded-md px-2 py-1 text-sm" placeholder={t("uml.class.relationshipLabel")} />
+            <button aria-label={t("uml.class.deleteRelationship")} onClick={() => updatePreparation((current) => ({ ...current, relationships: current.relationships.filter((rel) => getRelKey(rel) !== id) }))} className="text-outline-variant hover:text-error"><span className="material-symbols-outlined text-[18px]">delete</span></button>
           </div>;
         })}
       </div>
@@ -408,6 +415,7 @@ function RelationshipEditor({ umlPreparation, updatePreparation }: { umlPreparat
 }
 
 function UseCaseElements({ umlPreparation, updatePreparation }: SimpleElementsProps) {
+  const { t } = useTranslation("design");
   const useCase = umlPreparation.useCase;
 
   const updateUseCase = (updates: Partial<typeof useCase>) => {
@@ -445,38 +453,38 @@ function UseCaseElements({ umlPreparation, updatePreparation }: SimpleElementsPr
       {/* System Boundary Configuration */}
       <div className="bg-surface border border-outline-variant rounded-xl p-4 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <label className="text-xs font-bold uppercase tracking-wider text-outline-variant block mb-1">System Boundary Name</label>
+          <label className="text-xs font-bold uppercase tracking-wider text-outline-variant block mb-1">{t("uml.useCase.systemBoundary")}</label>
           <input
             value={useCase.systemName || ""}
             onChange={(e) => updateUseCase({ systemName: e.target.value })}
-            placeholder="e.g. Smart PFE Platform"
+            placeholder={t("uml.useCase.systemPlaceholder")}
             className="bg-surface-container-lowest border border-outline-variant rounded-lg px-3 py-1.5 text-sm font-semibold text-on-surface outline-none focus:border-primary w-full sm:w-80"
           />
         </div>
         <p className="text-xs text-on-surface-variant max-w-sm">
-          Use cases are enclosed inside this boundary box. Primary actors appear on the left, secondary external services on the right.
+          {t("uml.useCase.systemHelp")}
         </p>
       </div>
 
       {/* Actors & Use Cases Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <SimpleList
-          title="Primary Actors (Left)"
+          title={t("uml.useCase.primaryActors")}
           items={useCase.primaryActors || []}
           onChange={(primaryActors) => updateUseCase({ primaryActors, actors: Array.from(new Set([...primaryActors, ...(useCase.secondaryActors || [])])) })}
-          placeholder="e.g. Student&#10;Mentor&#10;Admin"
+          placeholder={t("uml.useCase.primaryActorsPlaceholder")}
         />
         <SimpleList
-          title="Secondary Actors (Right)"
+          title={t("uml.useCase.secondaryActors")}
           items={useCase.secondaryActors || []}
           onChange={(secondaryActors) => updateUseCase({ secondaryActors, actors: Array.from(new Set([...(useCase.primaryActors || []), ...secondaryActors])) })}
-          placeholder="e.g. PaymentGateway&#10;NotificationService&#10;AIService"
+          placeholder={t("uml.useCase.secondaryActorsPlaceholder")}
         />
         <SimpleList
-          title="Use Cases (Inside Box)"
+          title={t("uml.useCase.useCases")}
           items={useCase.useCases || []}
           onChange={(useCases) => updateUseCase({ useCases })}
-          placeholder="e.g. Sign In&#10;Submit PFE Topic&#10;Review Proposal&#10;Process Payment"
+          placeholder={t("uml.useCase.useCasesPlaceholder")}
         />
       </div>
 
@@ -485,15 +493,15 @@ function UseCaseElements({ umlPreparation, updatePreparation }: SimpleElementsPr
         <div className="px-4 py-3 border-b border-outline-variant bg-surface-container-lowest flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-primary text-[18px]">account_tree</span>
-            <span className="font-bold text-on-surface text-sm">Use Case Relationships (&lt;&lt;include&gt;&gt; &amp; &lt;&lt;extend&gt;&gt;)</span>
+            <span className="font-bold text-on-surface text-sm">{t("uml.useCase.relationships")}</span>
           </div>
           <button onClick={addRelation} className="text-primary text-xs font-bold hover:underline flex items-center gap-1">
-            <span className="material-symbols-outlined text-[16px]">add</span> Add Relation
+            <span className="material-symbols-outlined text-[16px]">add</span> {t("uml.useCase.addRelation")}
           </button>
         </div>
         <div className="p-4 flex flex-col gap-2">
           {(useCase.useCaseRelations || []).length === 0 ? (
-            <p className="text-xs text-on-surface-variant italic py-2">No include/extend relations defined. Click "Add Relation" to connect use cases.</p>
+            <p className="text-xs text-on-surface-variant italic py-2">{t("uml.useCase.noRelations")}</p>
           ) : (
             (useCase.useCaseRelations || []).map((rel, i) => (
               <div key={i} className="grid grid-cols-1 md:grid-cols-[1fr_130px_1fr_auto] gap-2 p-2.5 bg-surface-container-lowest rounded-lg border border-outline-variant/50 items-center">
@@ -523,7 +531,7 @@ function UseCaseElements({ umlPreparation, updatePreparation }: SimpleElementsPr
                     <option key={uc} value={uc}>{uc}</option>
                   ))}
                 </select>
-                <button onClick={() => removeRelation(i)} className="text-outline-variant hover:text-error p-1">
+                <button aria-label={t("uml.useCase.deleteRelation")} onClick={() => removeRelation(i)} className="text-outline-variant hover:text-error p-1">
                   <span className="material-symbols-outlined text-[16px]">delete</span>
                 </button>
               </div>
@@ -536,6 +544,7 @@ function UseCaseElements({ umlPreparation, updatePreparation }: SimpleElementsPr
 }
 
 function SequenceElements({ umlPreparation, updatePreparation }: SimpleElementsProps) {
+  const { t } = useTranslation("design");
   const seq = umlPreparation.sequence;
 
   const updateSeq = (updates: Partial<typeof seq>) => {
@@ -569,11 +578,11 @@ function SequenceElements({ umlPreparation, updatePreparation }: SimpleElementsP
     <div className="flex flex-col gap-5">
       {/* Scenario Title */}
       <div className="bg-surface border border-outline-variant rounded-xl p-4 shadow-sm">
-        <label className="text-xs font-bold uppercase tracking-wider text-outline-variant block mb-1">Scenario Title</label>
+        <label className="text-xs font-bold uppercase tracking-wider text-outline-variant block mb-1">{t("uml.sequence.scenarioTitle")}</label>
         <input
           value={seq.scenario || ""}
           onChange={(e) => updateSeq({ scenario: e.target.value })}
-          placeholder="e.g. Core Authentication & Project Submission Flow"
+          placeholder={t("uml.sequence.scenarioPlaceholder")}
           className="bg-surface-container-lowest border border-outline-variant rounded-lg px-3 py-1.5 text-sm font-semibold text-on-surface outline-none focus:border-primary w-full"
         />
       </div>
@@ -583,7 +592,7 @@ function SequenceElements({ umlPreparation, updatePreparation }: SimpleElementsP
         {/* Participants */}
         <div className="bg-surface border border-outline-variant rounded-xl overflow-hidden shadow-sm flex flex-col">
           <div className="px-4 py-3 border-b border-outline-variant bg-surface-container-lowest font-bold text-on-surface text-sm">
-            Architectural Participants
+            {t("uml.sequence.participants")}
           </div>
           <div className="p-4">
             <textarea
@@ -597,10 +606,10 @@ function SequenceElements({ umlPreparation, updatePreparation }: SimpleElementsP
                 updateSeq({ participants: list });
               }}
               className="w-full min-h-[260px] bg-surface border border-outline-variant rounded-md px-3 py-2 outline-none focus:border-primary resize-y text-xs font-mono"
-              placeholder={"User (actor)\nFrontend (boundary)\nAuthController (control)\nDatabase (database)"}
+              placeholder={t("uml.sequence.participantsPlaceholder")}
             />
             <p className="text-[11px] text-on-surface-variant mt-2">
-              Tip: Format as <code>Name (type)</code> where type can be: actor, boundary, control, entity, database.
+              {t("uml.sequence.participantsTip")} <code>Name (type)</code> {t("uml.sequence.participantsTipSuffix")}
             </p>
           </div>
         </div>
@@ -608,9 +617,9 @@ function SequenceElements({ umlPreparation, updatePreparation }: SimpleElementsP
         {/* Message Sequence */}
         <div className="bg-surface border border-outline-variant rounded-xl overflow-hidden shadow-sm flex flex-col">
           <div className="px-4 py-3 border-b border-outline-variant bg-surface-container-lowest flex items-center justify-between">
-            <span className="font-bold text-on-surface text-sm">Sequential Message Flow</span>
+            <span className="font-bold text-on-surface text-sm">{t("uml.sequence.messageFlow")}</span>
             <button onClick={addMessage} className="text-primary text-xs font-bold hover:underline flex items-center gap-1">
-              <span className="material-symbols-outlined text-[16px]">add</span> Add Message
+              <span className="material-symbols-outlined text-[16px]">add</span> {t("uml.sequence.addMessage")}
             </button>
           </div>
           <div className="p-4 flex flex-col gap-2 max-h-[350px] overflow-y-auto">
@@ -621,20 +630,20 @@ function SequenceElements({ umlPreparation, updatePreparation }: SimpleElementsP
                   value={msg.source}
                   onChange={(e) => updateMessage(i, { source: e.target.value })}
                   className="w-24 bg-surface border border-outline-variant rounded px-1.5 py-1 font-semibold"
-                  placeholder="Source"
+                  placeholder={t("uml.sequence.source")}
                 />
                 <span className="material-symbols-outlined text-[14px] text-outline-variant">arrow_forward</span>
                 <input
                   value={msg.target}
                   onChange={(e) => updateMessage(i, { target: e.target.value })}
                   className="w-24 bg-surface border border-outline-variant rounded px-1.5 py-1 font-semibold"
-                  placeholder="Target"
+                  placeholder={t("uml.sequence.target")}
                 />
                 <input
                   value={msg.message}
                   onChange={(e) => updateMessage(i, { message: e.target.value })}
                   className="flex-1 bg-surface border border-outline-variant rounded px-2 py-1 font-mono"
-                  placeholder="Message / Method Call"
+                  placeholder={t("uml.sequence.messageMethod")}
                 />
                 <label className="flex items-center gap-1 text-[11px] text-on-surface-variant cursor-pointer">
                   <input
@@ -643,9 +652,9 @@ function SequenceElements({ umlPreparation, updatePreparation }: SimpleElementsP
                     onChange={(e) => updateMessage(i, { response: e.target.checked })}
                     className="rounded"
                   />
-                  Return
+                  {t("uml.sequence.return")}
                 </label>
-                <button onClick={() => removeMessage(i)} className="text-outline-variant hover:text-error p-1">
+                <button aria-label={t("uml.sequence.deleteMessage")} onClick={() => removeMessage(i)} className="text-outline-variant hover:text-error p-1">
                   <span className="material-symbols-outlined text-[15px]">close</span>
                 </button>
               </div>
@@ -659,12 +668,12 @@ function SequenceElements({ umlPreparation, updatePreparation }: SimpleElementsP
         <div className="bg-surface border border-outline-variant rounded-xl p-4 shadow-sm">
           <h4 className="text-xs font-bold uppercase tracking-wider text-outline-variant mb-2 flex items-center gap-1">
             <span className="material-symbols-outlined text-[16px]">alt_route</span>
-            Alternative &amp; Error Handling Branch (alt / else)
+            {t("uml.sequence.altFlow")}
           </h4>
           <input
             value={seq.altFlow.condition || ""}
             onChange={(e) => updateSeq({ altFlow: { ...seq.altFlow!, condition: e.target.value } })}
-            placeholder="e.g. Invalid credentials or validation failure"
+            placeholder={t("uml.sequence.altFlowPlaceholder")}
             className="w-full bg-surface-container-lowest border border-outline-variant rounded-md px-3 py-1.5 text-xs outline-none focus:border-primary mb-2 font-medium"
           />
         </div>
@@ -674,6 +683,7 @@ function SequenceElements({ umlPreparation, updatePreparation }: SimpleElementsP
 }
 
 function ActivityElements({ umlPreparation, updatePreparation }: SimpleElementsProps) {
+  const { t } = useTranslation("design");
   const activity = umlPreparation.activity;
 
   const updateActivity = (updates: Partial<typeof activity>) => {
@@ -717,11 +727,11 @@ function ActivityElements({ umlPreparation, updatePreparation }: SimpleElementsP
     <div className="flex flex-col gap-5">
       {/* Workflow Title */}
       <div className="bg-surface border border-outline-variant rounded-xl p-4 shadow-sm">
-        <label className="text-xs font-bold uppercase tracking-wider text-outline-variant block mb-1">Workflow Title</label>
+        <label className="text-xs font-bold uppercase tracking-wider text-outline-variant block mb-1">{t("uml.activity.workflowTitle")}</label>
         <input
           value={activity.workflowTitle || ""}
           onChange={(e) => updateActivity({ workflowTitle: e.target.value })}
-          placeholder="e.g. Proposal Validation & Milestone Review Process"
+          placeholder={t("uml.activity.workflowPlaceholder")}
           className="bg-surface-container-lowest border border-outline-variant rounded-lg px-3 py-1.5 text-sm font-semibold text-on-surface outline-none focus:border-primary w-full"
         />
       </div>
@@ -731,21 +741,21 @@ function ActivityElements({ umlPreparation, updatePreparation }: SimpleElementsP
         <div className="px-4 py-3 border-b border-outline-variant bg-surface-container-lowest flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-primary text-[18px]">schema</span>
-            <span className="font-bold text-on-surface text-sm">Workflow Steps &amp; Decision Points</span>
+            <span className="font-bold text-on-surface text-sm">{t("uml.activity.steps")}</span>
           </div>
           <div className="flex items-center gap-2">
             <button onClick={addActionStep} className="px-3 py-1 bg-surface border border-outline-variant rounded text-xs font-bold hover:bg-surface-container flex items-center gap-1">
-              <span className="material-symbols-outlined text-[14px]">add</span> Add Action
+              <span className="material-symbols-outlined text-[14px]">add</span> {t("uml.activity.addAction")}
             </button>
             <button onClick={addDecisionStep} className="px-3 py-1 bg-primary/10 text-primary border border-primary/20 rounded text-xs font-bold hover:bg-primary/20 flex items-center gap-1">
-              <span className="material-symbols-outlined text-[14px]">alt_route</span> Add Decision (if/else)
+              <span className="material-symbols-outlined text-[14px]">alt_route</span> {t("uml.activity.addDecision")}
             </button>
           </div>
         </div>
 
         <div className="p-4 flex flex-col gap-3">
           {(activity.steps || []).length === 0 ? (
-            <p className="text-xs text-on-surface-variant italic py-2">No structured steps defined yet. Click "Add Action" or "Add Decision".</p>
+            <p className="text-xs text-on-surface-variant italic py-2">{t("uml.activity.noSteps")}</p>
           ) : (
             (activity.steps || []).map((step, i) => (
               <div key={i} className="p-3 bg-surface-container-lowest rounded-xl border border-outline-variant/60 flex flex-col gap-2">
@@ -753,10 +763,10 @@ function ActivityElements({ umlPreparation, updatePreparation }: SimpleElementsP
                   <div className="flex items-center gap-2">
                     <span className="w-5 h-5 rounded-full bg-surface-container flex items-center justify-center text-[10px] font-bold text-outline-variant">{i + 1}</span>
                     <span className={`text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded ${step.type === "decision" ? "bg-amber-500/10 text-amber-600 border border-amber-500/20" : "bg-surface-container text-on-surface-variant"}`}>
-                      {step.type === "decision" ? "Decision Point" : "Action Step"}
+                      {step.type === "decision" ? t("uml.activity.decisionPoint") : t("uml.activity.actionStep")}
                     </span>
                   </div>
-                  <button onClick={() => removeStep(i)} className="text-outline-variant hover:text-error p-1">
+                  <button aria-label={t("uml.activity.deleteStep")} onClick={() => removeStep(i)} className="text-outline-variant hover:text-error p-1">
                     <span className="material-symbols-outlined text-[16px]">delete</span>
                   </button>
                 </div>
@@ -766,35 +776,35 @@ function ActivityElements({ umlPreparation, updatePreparation }: SimpleElementsP
                     value={step.label || ""}
                     onChange={(e) => updateStep(i, { label: e.target.value })}
                     className="w-full bg-surface border border-outline-variant rounded-md px-3 py-1.5 text-xs text-on-surface outline-none focus:border-primary"
-                    placeholder="Describe action..."
+                    placeholder={t("uml.activity.actionPlaceholder")}
                   />
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-2 pt-1">
                     <div>
-                      <span className="text-[10px] font-bold text-outline-variant uppercase tracking-wider block mb-1">Condition</span>
+                      <span className="text-[10px] font-bold text-outline-variant uppercase tracking-wider block mb-1">{t("uml.activity.condition")}</span>
                       <input
                         value={step.condition || ""}
                         onChange={(e) => updateStep(i, { condition: e.target.value })}
                         className="w-full bg-surface border border-outline-variant rounded-md px-2.5 py-1 text-xs text-on-surface outline-none focus:border-primary font-medium"
-                        placeholder="e.g. Validation successful?"
+                        placeholder={t("uml.activity.conditionPlaceholder")}
                       />
                     </div>
                     <div>
-                      <span className="text-[10px] font-bold text-secondary uppercase tracking-wider block mb-1">Yes / Then Branch</span>
+                      <span className="text-[10px] font-bold text-secondary uppercase tracking-wider block mb-1">{t("uml.activity.yesBranch")}</span>
                       <input
                         value={step.thenBranch || ""}
                         onChange={(e) => updateStep(i, { thenBranch: e.target.value })}
                         className="w-full bg-surface border border-outline-variant rounded-md px-2.5 py-1 text-xs text-on-surface outline-none focus:border-primary"
-                        placeholder="e.g. Proceed to generation"
+                        placeholder={t("uml.activity.yesPlaceholder")}
                       />
                     </div>
                     <div>
-                      <span className="text-[10px] font-bold text-error uppercase tracking-wider block mb-1">No / Else Branch</span>
+                      <span className="text-[10px] font-bold text-error uppercase tracking-wider block mb-1">{t("uml.activity.noBranch")}</span>
                       <input
                         value={step.elseBranch || ""}
                         onChange={(e) => updateStep(i, { elseBranch: e.target.value })}
                         className="w-full bg-surface border border-outline-variant rounded-md px-2.5 py-1 text-xs text-on-surface outline-none focus:border-primary"
-                        placeholder="e.g. Return error message"
+                        placeholder={t("uml.activity.noPlaceholder")}
                       />
                     </div>
                   </div>
@@ -811,6 +821,7 @@ function ActivityElements({ umlPreparation, updatePreparation }: SimpleElementsP
 type SimpleElementsProps = { umlPreparation: UmlPreparationType; updatePreparation: (updater: (current: UmlPreparationType) => UmlPreparationType) => void };
 
 function SimpleList({ title, items, onChange, placeholder }: { title: string; items: string[]; onChange: (items: string[]) => void; placeholder?: string }) {
+  const { t } = useTranslation("design");
   return (
     <div className="bg-surface border border-outline-variant rounded-xl overflow-hidden shadow-sm flex flex-col">
       <div className="px-4 py-3 border-b border-outline-variant bg-surface-container-lowest font-bold text-on-surface text-sm">{title}</div>
@@ -819,7 +830,7 @@ function SimpleList({ title, items, onChange, placeholder }: { title: string; it
           value={items.join("\n")}
           onChange={(event) => onChange(event.target.value.split("\n").map((item) => item.trim()).filter(Boolean))}
           className="w-full min-h-[160px] bg-surface border border-outline-variant rounded-md px-3 py-2 outline-none focus:border-primary resize-y text-xs font-mono"
-          placeholder={placeholder || "One item per line"}
+          placeholder={placeholder || t("uml.class.onePerLine")}
         />
       </div>
     </div>
@@ -827,6 +838,7 @@ function SimpleList({ title, items, onChange, placeholder }: { title: string; it
 }
 
 function MarkupPanel({ title, markup }: { title: string; markup: string }) {
+  const { t } = useTranslation("design");
   const [copied, setCopied] = useState(false);
   const copy = () => {
     navigator.clipboard?.writeText(markup);
@@ -837,12 +849,13 @@ function MarkupPanel({ title, markup }: { title: string; markup: string }) {
     <div className="h-full flex flex-col gap-4">
       <div className="flex items-center gap-2 text-sm">
         <span className="font-bold text-on-surface">{title}</span>
-        <span className="text-on-surface-variant">Generated from your entities</span>
+        <span className="text-on-surface-variant">{t("uml.markup.generatedFromEntities")}</span>
       </div>
       <div className="flex-1 bg-[#1e1e1e] rounded-xl border border-outline-variant p-4 overflow-hidden relative group font-mono text-sm">
         <pre className="text-[#d4d4d4] h-full overflow-y-auto">{markup}</pre>
         <button
           onClick={copy}
+          aria-label={t(copied ? "uml.markup.copied" : "uml.markup.copy")}
           className={cn(
             "absolute top-3 right-3 px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all duration-200",
             copied
@@ -853,18 +866,18 @@ function MarkupPanel({ title, markup }: { title: string; markup: string }) {
           <span className="material-symbols-outlined text-[16px]">
             {copied ? 'check' : 'content_copy'}
           </span>
-          {copied ? 'Copied!' : 'Copy'}
+          {copied ? t("uml.markup.copied") : t("uml.markup.copy")}
         </button>
       </div>
     </div>
   );
 }
 
-function getDiagramInfo(activeDiagram: string, umlPreparation: UmlPreparationType) {
-  if (activeDiagram === "usecase") return { description: "Define the system boundary, primary/secondary actors, and actions with <<include>> and <<extend>> relations.", markupTitle: "PlantUML Markup", markup: buildUseCaseMarkup(umlPreparation) };
-  if (activeDiagram === "sequence") return { description: "Define multi-tier architectural participants, message flows, activations, and alternative paths.", markupTitle: "PlantUML Markup", markup: buildSequenceMarkup(umlPreparation) };
-  if (activeDiagram === "activity") return { description: "Map core business workflows with decision diamonds (if/else), actions, and terminal endpoints.", markupTitle: "PlantUML Markup", markup: buildActivityMarkup(umlPreparation) };
-  return { description: "Define domain entities with attributes, typed methods, and standard UML relationships.", markupTitle: "PlantUML Markup", markup: buildClassDiagramPlantUml(umlPreparation) };
+function getDiagramInfo(activeDiagram: string, umlPreparation: UmlPreparationType, t: (key: string) => string) {
+  if (activeDiagram === "usecase") return { description: t("uml.descriptions.usecase"), markupTitle: t("uml.markup.title"), markup: buildUseCaseMarkup(umlPreparation) };
+  if (activeDiagram === "sequence") return { description: t("uml.descriptions.sequence"), markupTitle: t("uml.markup.title"), markup: buildSequenceMarkup(umlPreparation) };
+  if (activeDiagram === "activity") return { description: t("uml.descriptions.activity"), markupTitle: t("uml.markup.title"), markup: buildActivityMarkup(umlPreparation) };
+  return { description: t("uml.descriptions.class"), markupTitle: t("uml.markup.title"), markup: buildClassDiagramPlantUml(umlPreparation) };
 }
 
 function getClassKey(umlClass: UmlClass) {

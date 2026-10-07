@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { fetchApi } from "@/lib/api";
+import i18n from "@/lib/i18n";
 import { useAiGeneration } from "@/context/AiGenerationContext";
 
 export type AiState = "idle" | "generating" | "refining" | "translating" | "suggestion_ready";
@@ -14,12 +15,6 @@ const LANGUAGE_CODES: Record<string, string> = {
   ar: "ar",
 };
 
-const LANGUAGE_LABELS: Record<string, string> = {
-  en: "English",
-  fr: "French",
-  ar: "Arabic",
-};
-
 export function normalizeLanguage(language?: string | null) {
   const value = String(language || "").trim();
   if (!value) return "";
@@ -28,7 +23,7 @@ export function normalizeLanguage(language?: string | null) {
 
 export function getLanguageLabel(language?: string | null) {
   const normalized = normalizeLanguage(language);
-  return LANGUAGE_LABELS[normalized] || language || "current language";
+  return normalized ? i18n.t(`problem.languages.${normalized}`, { ns: "design", defaultValue: language || "current language" }) : i18n.t("problem.languages.current", { ns: "design" });
 }
 
 const TASK_ID = "problem-statement:main";
@@ -45,6 +40,7 @@ export function useProblemStatement() {
   const [suggestion, setSuggestion] = useState<string | null>(null);
   const [snapshotHtml, setSnapshotHtml] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
+  const [errorKey, setErrorKey] = useState<string | null>(null);
   const handledTaskIdRef = useRef<string | null>(null);
 
   // Load project on mount
@@ -54,7 +50,8 @@ export function useProblemStatement() {
       setProject(data);
       return data;
     } catch (err: any) {
-      setError("Failed to load your project. Please refresh the page.");
+      setError(null);
+      setErrorKey("problem.errors.load");
       return null;
     } finally {
       setLoading(false);
@@ -96,6 +93,7 @@ export function useProblemStatement() {
       setLocalAiState("idle");
       if (task.error && !task.error.includes("Limit reached")) {
         setError(task.error);
+        setErrorKey(null);
       }
     }
   }, [fetchProject, localAiState, tasks]);
@@ -104,6 +102,7 @@ export function useProblemStatement() {
   const saveContent = useCallback(async (content: string, language?: string) => {
     setSaveStatus("saving");
     setError(null);
+    setErrorKey(null);
     try {
       const payload = language
         ? { problemStatement: content, language }
@@ -127,7 +126,8 @@ export function useProblemStatement() {
       setSaveStatus("saved");
       return res;
     } catch (err: any) {
-      setError(err.message || "Failed to save. Please try again.");
+      setError(err.message || null);
+      setErrorKey(err.message ? null : "problem.errors.save");
       setSaveStatus("unsaved");
       throw err;
     }
@@ -154,13 +154,16 @@ export function useProblemStatement() {
   const generateWithAi = async () => {
     setLocalAiState("generating");
     setError(null);
+    setErrorKey(null);
 
     try {
       const result = await startTask<{ type: string; text: string }>({
         id: TASK_ID,
         scope: SCOPE,
-        title: "Problem Statement",
-        subTitle: "Generating problem statement with AI...",
+        title: i18n.t("problem.title", { ns: "design" }),
+        subTitle: i18n.t("problem.progress.generate", { ns: "design" }),
+        uiTitleKey: "design:problem.title",
+        uiSubTitleKey: "design:problem.progress.generate",
         pageRoute: PAGE_ROUTE,
         status: "generating",
         runner: async (signal) => {
@@ -205,7 +208,8 @@ export function useProblemStatement() {
       return null;
     } catch (err: any) {
       if (err?.name !== "AbortError") {
-        setError(err.message || "AI generation failed. Please try again.");
+        setError(err.message || null);
+        setErrorKey(err.message ? null : "problem.errors.generate");
       }
       setLocalAiState("idle");
       return null;
@@ -214,11 +218,13 @@ export function useProblemStatement() {
 
   const refineWithAi = async (plainText: string, instructions = "") => {
     if (!plainText.trim()) {
-      setError("The editor is empty. Write something before asking AI to refine it.");
+      setError(null);
+      setErrorKey("problem.errors.emptyRefine");
       return;
     }
     setLocalAiState("refining");
     setError(null);
+    setErrorKey(null);
     setSnapshotHtml(plainText);
 
     try {
@@ -230,8 +236,10 @@ export function useProblemStatement() {
       const result = await startTask<{ type: string; suggestion: string; snapshotHtml: string }>({
         id: TASK_ID,
         scope: SCOPE,
-        title: "Problem Statement",
-        subTitle: "Refining problem statement with AI...",
+        title: i18n.t("problem.title", { ns: "design" }),
+        subTitle: i18n.t("problem.progress.refine", { ns: "design" }),
+        uiTitleKey: "design:problem.title",
+        uiSubTitleKey: "design:problem.progress.refine",
         pageRoute: PAGE_ROUTE,
         status: "refining",
         runner: async (signal) => {
@@ -253,7 +261,8 @@ export function useProblemStatement() {
       }
     } catch (err: any) {
       if (err?.name !== "AbortError") {
-        setError(err.message || "AI refinement failed. Please try again.");
+        setError(err.message || null);
+        setErrorKey(err.message ? null : "problem.errors.refine");
       }
       setLocalAiState("idle");
     }
@@ -261,18 +270,26 @@ export function useProblemStatement() {
 
   const translateWithAi = async (currentContent: string) => {
     if (!currentContent.trim()) {
-      setError("The editor is empty. Write something before asking AI to translate it.");
+      setError(null);
+      setErrorKey("problem.errors.emptyTranslate");
       return null;
     }
     setLocalAiState("translating");
     setError(null);
+    setErrorKey(null);
 
     try {
       const result = await startTask<{ type: string; text: string }>({
         id: TASK_ID,
         scope: SCOPE,
-        title: "Problem Statement",
-        subTitle: `Translating problem statement to ${getLanguageLabel(projectLanguage)}...`,
+        title: i18n.t("problem.title", { ns: "design" }),
+        subTitle: i18n.t("problem.progress.translate", { ns: "design", language: getLanguageLabel(projectLanguage) }),
+        uiTitleKey: "design:problem.title",
+        uiSubTitleKey: "design:problem.progress.translate",
+        uiSubTitleValues: { language: getLanguageLabel(projectLanguage) },
+        uiSubTitleValueKeys: ["en", "fr", "ar"].includes(normalizeLanguage(projectLanguage))
+          ? { language: `design:problem.languages.${normalizeLanguage(projectLanguage)}` }
+          : {},
         pageRoute: PAGE_ROUTE,
         status: "translating",
         runner: async (signal) => {
@@ -318,7 +335,8 @@ export function useProblemStatement() {
       return null;
     } catch (err: any) {
       if (err?.name !== "AbortError") {
-        setError(err.message || "AI translation failed. Please try again.");
+        setError(err.message || null);
+        setErrorKey(err.message ? null : "problem.errors.translate");
       }
       setLocalAiState("idle");
       return null;
@@ -342,7 +360,7 @@ export function useProblemStatement() {
     dismissTask(TASK_ID);
   }, [dismissTask]);
 
-  const dismissError = useCallback(() => setError(null), []);
+  const dismissError = useCallback(() => { setError(null); setErrorKey(null); }, []);
 
   return {
     project,
@@ -353,6 +371,7 @@ export function useProblemStatement() {
     suggestion,
     snapshotHtml,
     error,
+    errorKey,
     saveContent,
     markUnsaved,
     generateWithAi,

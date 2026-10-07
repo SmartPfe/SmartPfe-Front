@@ -1,0 +1,198 @@
+{
+  "problem": {
+    "loading": "Chargement de l’éditeur…",
+    "eyebrow": "Définition du problème",
+    "title": "Problématique",
+    "tooltip": "Présentez clairement le problème que votre projet cherche à résoudre.",
+    "description": "Définissez clairement le problème réel ou le défi de recherche auquel votre projet répond.",
+    "dismiss": "Fermer",
+    "generateDisabled": "L’éditeur contient déjà du texte — utilisez plutôt Améliorer",
+    "refineDisabled": "Écrivez d’abord un texte, puis demandez à l’IA de l’améliorer",
+    "refinePlaceholder": "Indiquez à l’IA ce que vous souhaitez améliorer (ex. : « Rendez le texte plus académique et concis »)…",
+    "translateLabel": "Traduire en {{language}}",
+    "languages": { "en": "anglais", "fr": "français", "ar": "arabe", "current": "la langue actuelle" },
+    "progress": {
+      "generate": "Génération de la problématique par l’IA…",
+      "refine": "Amélioration de la problématique par l’IA…",
+      "translate": "Traduction de la problématique en {{language}}…"
+    },
+    "editorPlaceholder": "Commencez à rédiger votre problématique…\n\nDécrivez le problème que vous résolvez, son importance et la proposition de votre projet.",
+    "errors": {
+      "load": "Impossible de charger votre projet. Veuillez actualiser la page.",
+      "save": "Impossible d’enregistrer. Veuillez réessayer.",
+      "generate": "Échec de la génération par l’IA. Veuillez réessayer.",
+      "emptyRefine": "L’éditeur est vide. Écrivez quelque chose avant de demander une amélioration à l’IA.",
+      "refine": "Échec de l’amélioration par l’IA. Veuillez réessayer.",
+      "emptyTranslate": "L’éditeur est vide. Écrivez quelque chose avant de demander une traduction à l’IA.",
+      "translate": "Échec de la traduction par l’IA. Veuillez réessayer."
+    },
+    "suggestion": {
+      "title": "Révision proposée",
+      "discard": "Ignorer",
+      "accept": "Accepter",
+      "current": "Actuel",
+      "empty": "Vide",
+      "suggested": "Suggestion"
+    },
+    "toolbar": {
+      "bold": "Gras",
+      "italic": "Italique",
+      "heading1": "Titre 1",
+      "heading2": "Titre 2",
+      "bulletList": "Liste à puces",
+      "numberedList": "Liste numérotée",
+      "word": "mot",
+      "words": "mots"
+    },
+    "aiAction": {
+      "translate": "Traduire",
+      "generateDisabled": "L’éditeur contient déjà du texte — utilisez plutôt Améliorer",
+      "generateTitle": "Générer un premier brouillon complet avec l’IA",
+      "refineDisabled": "Écrivez d’abord un texte, puis demandez à l’IA de l’améliorer",
+      "refineTitle": "Améliorer et développer votre texte avec l’IA",
+      "refinePlaceholder": "Indiquez à l’IA ce que vous souhaitez améliorer (facultatif)…",
+      "cancel": "Annuler",
+      "refine": "Améliorer",
+      "generating": "Génération en cours…",
+      "generate": "Générer avec l’IA",
+      "refining": "Amélioration en cours…",
+      "refineAction": "Améliorer avec l’IA",
+      "translating": "Traduction en cours…"
+    }
+  },
+  "uml": {
+    "loading": "Chargement de la préparation UML…",
+    "eyebrow": "Modélisation de l’architecture",
+    "title": "Préparation UML",
+    "tooltipLabel": "Architecture UML",
+    "tooltip": "Générez, améliorez et modifiez des diagrammes de cas d’utilisation, de classes, de séquence et d’activité rendus directement avec PlantUML.",
+    "description": "Concevez et générez des modèles d’architecture système avec un rendu PlantUML interactif et la modification des entités.",
+    "dismiss": "Fermer",
+    "addClass": "Ajouter une classe",
+    "suggestionTitle": "Suggestion IA prête pour {{diagram}}",
+    "suggestionDescription": "Vérifiez et acceptez le modèle de diagramme généré.",
+    "discard": "Ignorer",
+    "acceptSuggestion": "Accepter la suggestion",
+    "diagramsHeading": "Diagrammes",
+    "diagrams": {
+      "usecase": "Diagramme de cas d’utilisation",
+      "class": "Diagramme de classes",
+      "sequence": "Diagramme de séquence",
+      "activity": "Diagramme d’activité"
+    },
+    "descriptions": {
+      "usecase": "Définissez le périmètre du système, les acteurs principaux et secondaires, ainsi que les actions avec les relations <<include>> et <<extend>>.",
+      "sequence": "Définissez les participants de l’architecture à plusieurs niveaux, les flux de messages, les activations et les chemins alternatifs.",
+      "activity": "Représentez les processus métier avec des décisions (if/else), des actions et des points de terminaison.",
+      "class": "Définissez les entités métier avec leurs attributs, leurs méthodes typées et les relations UML standard."
+    },
+    "architecturalPrecision": "Précision architecturale",
+    "diagramSyncDescription": "Chaque diagramme est généré et amélioré séparément avec un rendu PlantUML synchronisé.",
+    "syncedWithRequirements": "Synchronisé avec les exigences",
+    "views": { "diagram": "Diagramme", "elements": "Entités", "code": "Code" },
+    "class": {
+      "responsibility": "Responsabilité de la classe",
+      "name": "Nom de la classe",
+      "type": "Type de classe",
+      "edit": "Modifier la classe",
+      "finishEditing": "Terminer la modification de la classe",
+      "delete": "Supprimer la classe",
+      "attributes": "Attributs",
+      "methods": "Méthodes",
+      "plantUml": "Code PlantUML de cette classe",
+      "addNew": "Ajouter une classe",
+      "onePerLine": "Un élément par ligne",
+      "noItems": "Aucun élément pour le moment.",
+      "relationships": "Relations",
+      "add": "Ajouter",
+      "relationshipLabel": "libellé",
+      "relationshipType": "Type de relation",
+      "source": "Classe source",
+      "target": "Classe cible",
+      "deleteRelationship": "Supprimer la relation",
+      "types": {
+        "association": "Association",
+        "inheritance": "Héritage",
+        "composition": "Composition",
+        "aggregation": "Agrégation",
+        "dependency": "Dépendance"
+      }
+    },
+    "useCase": {
+      "systemBoundary": "Nom du système",
+      "systemPlaceholder": "ex. : Plateforme Smart PFE",
+      "systemHelp": "Les cas d’utilisation sont placés dans ce cadre. Les acteurs principaux figurent à gauche et les services externes secondaires à droite.",
+      "primaryActors": "Acteurs principaux (à gauche)",
+      "primaryActorsPlaceholder": "ex. : Étudiant\nEncadrant\nAdministrateur",
+      "secondaryActors": "Acteurs secondaires (à droite)",
+      "secondaryActorsPlaceholder": "ex. : Passerelle de paiement\nService de notification\nService IA",
+      "useCases": "Cas d’utilisation (dans le cadre)",
+      "useCasesPlaceholder": "ex. : Se connecter\nSoumettre un sujet de PFE\nExaminer une proposition\nTraiter un paiement",
+      "relationships": "Relations entre cas d’utilisation (<<include>> et <<extend>>)",
+      "addRelation": "Ajouter une relation",
+      "deleteRelation": "Supprimer la relation de cas d’utilisation",
+      "noRelations": "Aucune relation include/extend définie. Cliquez sur « Ajouter une relation » pour relier les cas d’utilisation."
+    },
+    "sequence": {
+      "scenarioTitle": "Titre du scénario",
+      "scenarioPlaceholder": "ex. : Authentification et soumission d’un projet",
+      "participants": "Participants de l’architecture",
+      "participantsPlaceholder": "Utilisateur (actor)\nFrontend (boundary)\nAuthController (control)\nDatabase (database)",
+      "participantsTip": "Conseil : utilisez le format",
+      "participantsTipSuffix": "où le type peut être : actor, boundary, control, entity, database.",
+      "messageFlow": "Flux séquentiel des messages",
+      "addMessage": "Ajouter un message",
+      "deleteMessage": "Supprimer le message",
+      "source": "Source",
+      "target": "Cible",
+      "messageMethod": "Message / appel de méthode",
+      "return": "Retour",
+      "altFlow": "Branche alternative et gestion des erreurs (alt / else)",
+      "altFlowPlaceholder": "ex. : Identifiants invalides ou échec de validation"
+    },
+    "activity": {
+      "workflowTitle": "Titre du processus",
+      "workflowPlaceholder": "ex. : Validation d’une proposition et examen des jalons",
+      "steps": "Étapes du processus et décisions",
+      "addAction": "Ajouter une action",
+      "addDecision": "Ajouter une décision (if/else)",
+      "noSteps": "Aucune étape structurée pour le moment. Cliquez sur « Ajouter une action » ou « Ajouter une décision ». ",
+      "deleteStep": "Supprimer l’étape",
+      "decisionPoint": "Point de décision",
+      "actionStep": "Étape d’action",
+      "actionPlaceholder": "Décrivez l’action…",
+      "condition": "Condition",
+      "yesBranch": "Oui / branche Then",
+      "noBranch": "Non / branche Else",
+      "conditionPlaceholder": "ex. : La validation a-t-elle réussi ?",
+      "yesPlaceholder": "ex. : Passer à la génération",
+      "noPlaceholder": "ex. : Renvoyer un message d’erreur"
+    },
+    "markup": {
+      "title": "Code PlantUML",
+      "generatedFromEntities": "Généré à partir de vos entités",
+      "copy": "Copier",
+      "copied": "Copié !"
+    },
+    "ai": {
+      "refinePlaceholder": "Indiquez à l’IA ce qu’elle doit améliorer dans le diagramme {{diagram}} (ex. : « Ajouter un middleware JWT et une entité RefreshToken »)…",
+      "translate": "Traduire en {{language}}"
+    },
+    "languages": { "en": "anglais", "fr": "français", "ar": "arabe", "current": "la langue actuelle" },
+    "progress": {
+      "generateAll": "Génération du modèle UML complet par l’IA…",
+      "generateDiagram": "Génération du diagramme {{diagram}} par l’IA…",
+      "refine": "Amélioration du modèle UML par l’IA…",
+      "translate": "Traduction de la préparation UML en {{language}}…"
+    },
+    "errors": {
+      "load": "Impossible de charger la préparation UML. Veuillez actualiser la page.",
+      "projectNotReady": "Le projet n’est pas encore prêt. Veuillez actualiser la page.",
+      "save": "Impossible d’enregistrer la préparation UML. Veuillez réessayer.",
+      "generate": "Échec de la génération par l’IA. Veuillez réessayer.",
+      "refine": "Échec de l’amélioration par l’IA. Veuillez réessayer.",
+      "emptyTranslate": "Ajoutez ou générez des classes UML avant de demander leur traduction à l’IA.",
+      "translate": "Échec de la traduction de la préparation UML par l’IA. Veuillez réessayer."
+    }
+  }
+}

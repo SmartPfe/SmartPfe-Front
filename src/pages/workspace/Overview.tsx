@@ -3,20 +3,22 @@ import { Link } from "react-router-dom";
 import { useWorkflow, type StepStatus } from "@/context/WorkflowContext";
 import HugeiconsIcon from "@/components/ui/HugeiconsIcon";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
+import { displayOptionLabel, type OnboardingOptionGroup } from "@/lib/onboardingOptions";
 
 const methodologySteps = [
-  { stepNumber: 1, path: "/workspace/problem-statement", label: "Problem Statement", category: "Specification", icon: "document" },
-  { stepNumber: 2, path: "/workspace/actors", label: "Actors & Stakeholders", category: "Specification", icon: "group" },
-  { stepNumber: 3, path: "/workspace/solutions", label: "Existing Solutions", category: "Specification", icon: "search" },
-  { stepNumber: 4, path: "/workspace/functional-requirements", label: "Functional Requirements", category: "Engineering", icon: "tune" },
-  { stepNumber: 5, path: "/workspace/non-functional-requirements", label: "Non-Functional Requirements", category: "Engineering", icon: "shield" },
-  { stepNumber: 6, path: "/workspace/backlog", label: "Product Backlog", category: "Engineering", icon: "list-ordered" },
-  { stepNumber: 7, path: "/workspace/uml-preparation", label: "UML Preparation", category: "Engineering", icon: "account-tree" },
-  { stepNumber: 8, path: "/workspace/report-structure", label: "Report Structure", category: "Academic Delivery", icon: "schema" },
-  { stepNumber: 9, path: "/workspace/report-builder", label: "Report Builder", category: "Academic Delivery", icon: "book-open" },
-  { stepNumber: 10, path: "/workspace/presentation", label: "Presentation Deck", category: "Defense Preparation", icon: "presentation" },
-  { stepNumber: 11, path: "/workspace/pitch", label: "Pitch Speech", category: "Defense Preparation", icon: "mic" },
-  { stepNumber: 12, path: "/workspace/jury-simulation", label: "Jury Simulation", category: "Defense Preparation", icon: "groups" },
+  { stepNumber: 1, path: "/workspace/problem-statement", labelKey: "workflow.problemStatement", categoryKey: "workflow.specification", icon: "document" },
+  { stepNumber: 2, path: "/workspace/actors", labelKey: "workflow.actors", categoryKey: "workflow.specification", icon: "group" },
+  { stepNumber: 3, path: "/workspace/solutions", labelKey: "workflow.existingSolutions", categoryKey: "workflow.specification", icon: "search" },
+  { stepNumber: 4, path: "/workspace/functional-requirements", labelKey: "workflow.functionalRequirements", categoryKey: "workflow.engineering", icon: "tune" },
+  { stepNumber: 5, path: "/workspace/non-functional-requirements", labelKey: "workflow.nonFunctionalRequirements", categoryKey: "workflow.engineering", icon: "shield" },
+  { stepNumber: 6, path: "/workspace/backlog", labelKey: "workflow.productBacklog", categoryKey: "workflow.engineering", icon: "list-ordered" },
+  { stepNumber: 7, path: "/workspace/uml-preparation", labelKey: "workflow.umlPreparation", categoryKey: "workflow.engineering", icon: "account-tree" },
+  { stepNumber: 8, path: "/workspace/report-structure", labelKey: "workflow.reportStructure", categoryKey: "workflow.academicDelivery", icon: "schema" },
+  { stepNumber: 9, path: "/workspace/report-builder", labelKey: "workflow.reportBuilder", categoryKey: "workflow.academicDelivery", icon: "book-open" },
+  { stepNumber: 10, path: "/workspace/presentation", labelKey: "workflow.presentationDeck", categoryKey: "workflow.defensePreparation", icon: "presentation" },
+  { stepNumber: 11, path: "/workspace/pitch", labelKey: "workflow.pitchSpeech", categoryKey: "workflow.defensePreparation", icon: "mic" },
+  { stepNumber: 12, path: "/workspace/jury-simulation", labelKey: "workflow.jurySimulation", categoryKey: "workflow.defensePreparation", icon: "groups" },
 ];
 
 function cleanText(value: unknown) {
@@ -25,7 +27,7 @@ function cleanText(value: unknown) {
   return String(value || "").trim();
 }
 
-function displayValue(value: unknown, fallback = "Not provided") {
+function displayValue(value: unknown, fallback: string) {
   return cleanText(value) || fallback;
 }
 
@@ -55,6 +57,8 @@ function projectList(values: unknown, customValues?: unknown) {
 }
 
 export default function Overview() {
+  const { t, i18n } = useTranslation("analysis");
+  const tOnboarding = i18n.getFixedT(i18n.resolvedLanguage || i18n.language, "onboarding");
   const { project, loading, steps } = useWorkflow();
   const technologies = projectList(project?.technicalContext?.technologies, project?.technicalContext?.otherTechnologies);
   const developmentTypes = projectList(
@@ -65,6 +69,10 @@ export default function Overview() {
   const completedCount = methodologySteps.filter((item) => steps[item.path]?.status === "Completed").length;
   const totalTracked = methodologySteps.length;
   const progressPercent = Math.round((completedCount / totalTracked) * 100);
+  const displayProjectEnum = (value: unknown, group: OnboardingOptionGroup) =>
+    typeof value === "string" && value.trim()
+      ? displayOptionLabel(value, group, tOnboarding)
+      : displayValue(value, t("overview.notProvided"));
 
   const nextStep = methodologySteps.find((item) => steps[item.path]?.status === "Available")
     || methodologySteps.find((item) => steps[item.path]?.status !== "Completed");
@@ -73,7 +81,7 @@ export default function Overview() {
     return (
       <div className="flex flex-col min-h-[50vh] items-center justify-center">
         <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4" />
-        <p className="text-on-surface-variant font-medium text-sm">Loading project overview...</p>
+        <p className="text-on-surface-variant font-medium text-sm">{t("overview.loading")}</p>
       </div>
     );
   }
@@ -84,8 +92,8 @@ export default function Overview() {
         <div className="w-16 h-16 rounded-2xl bg-surface-container flex items-center justify-center mb-4 text-on-surface-variant">
           <HugeiconsIcon icon="document-validation" size={32} strokeWidth={1.8} />
         </div>
-        <h2 className="text-lg font-bold text-on-surface mb-1">No Active Project Found</h2>
-        <p className="text-xs text-on-surface-variant max-w-sm">Complete onboarding or select a project to view your workspace overview.</p>
+        <h2 className="text-lg font-bold text-on-surface mb-1">{t("overview.noProjectTitle")}</h2>
+        <p className="text-xs text-on-surface-variant max-w-sm">{t("overview.noProjectDescription")}</p>
       </div>
     );
   }
@@ -96,13 +104,13 @@ export default function Overview() {
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-1.5 mb-1">
-            <span className="text-xs font-bold uppercase tracking-wider text-primary">Executive Dashboard</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-primary">{t("overview.eyebrow")}</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-on-surface flex items-center">
-            Project Overview
+            {t("overview.title")}
             <InfoTooltip 
-              label="Overview" 
-              tooltip="Live summary of your project parameters, academic context, and real-time methodology roadmap progression." 
+              label={t("overview.tooltipLabel")}
+              tooltip={t("overview.tooltip")}
             />
           </h1>
         </div>
@@ -115,7 +123,7 @@ export default function Overview() {
             <div className="flex flex-wrap items-center gap-2 mb-2.5">
               <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-secondary/10 text-secondary border border-secondary/20 text-[11px] font-bold uppercase tracking-wider">
                 <span className="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse" />
-                Active Graduation Thesis
+                {t("overview.activeThesis")}
               </span>
               {project.basics?.academicYear && (
                 <span className="text-[11px] font-mono font-semibold text-on-surface px-2 py-0.5 rounded-md bg-surface border border-outline-variant/70">
@@ -128,14 +136,14 @@ export default function Overview() {
                 className="inline-flex items-center gap-1.5 h-6 px-2.5 rounded-md border border-outline-variant bg-surface text-[11px] font-bold text-on-surface hover:bg-surface-container transition-all shadow-2xs cursor-pointer ml-auto sm:ml-0"
               >
                 <HugeiconsIcon icon="edit" size={13} strokeWidth={1.8} className="text-primary" />
-                <span>Edit Specs</span>
+                <span>{t("overview.editSpecs")}</span>
               </Link>
             </div>
             <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-on-surface leading-tight">
-              {project.basics?.title || "Untitled Project"}
+              {project.basics?.title || t("overview.untitledProject")}
             </h2>
             <p className="text-xs text-on-surface-variant/90 mt-1.5 line-clamp-2 max-w-3xl leading-relaxed">
-              {project.description?.summary || "No project description summary provided yet."}
+              {project.description?.summary || t("overview.noProjectSummary")}
             </p>
           </div>
 
@@ -165,8 +173,8 @@ export default function Overview() {
               </span>
             </div>
             <div>
-              <span className="text-[11px] font-bold uppercase tracking-wider text-on-surface/70 block">Thesis Completion</span>
-              <span className="text-sm font-bold font-mono text-on-surface">{completedCount} of {totalTracked} Steps Ready</span>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-on-surface/70 block">{t("overview.thesisCompletion")}</span>
+              <span className="text-sm font-bold font-mono text-on-surface">{t("overview.stepsReady", { completed: completedCount, total: totalTracked })}</span>
             </div>
           </div>
         </div>
@@ -180,31 +188,31 @@ export default function Overview() {
           
           {/* Key Project Parameters Card */}
           <section className="bg-surface-container-lowest border border-outline-variant/80 rounded-2xl p-6 shadow-2xs">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-on-surface/80 mb-4">Core Specifications</h3>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-on-surface/80 mb-4">{t("overview.coreSpecifications")}</h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
               <div className="rounded-xl border border-outline-variant/60 bg-surface p-3.5 shadow-2xs">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-on-surface/70 block mb-1">Domain</span>
-                <span className="text-xs font-bold text-on-surface truncate block">{displayValue(project.basics?.domain)}</span>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-on-surface/70 block mb-1">{t("overview.domain")}</span>
+                <span className="text-xs font-bold text-on-surface truncate block">{displayProjectEnum(project.basics?.domain, "domain")}</span>
               </div>
               <div className="rounded-xl border border-outline-variant/60 bg-surface p-3.5 shadow-2xs">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-on-surface/70 block mb-1">Company Partner</span>
-                <span className="text-xs font-bold text-on-surface truncate block">{displayValue(project.description?.company)}</span>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-on-surface/70 block mb-1">{t("overview.companyPartner")}</span>
+                <span className="text-xs font-bold text-on-surface truncate block">{displayValue(project.description?.company, t("overview.notProvided"))}</span>
               </div>
               <div className="rounded-xl border border-outline-variant/60 bg-surface p-3.5 shadow-2xs">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-on-surface/70 block mb-1">Methodology</span>
-                <span className="text-xs font-bold text-on-surface truncate block">{displayValue(project.technicalContext?.methodology)}</span>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-on-surface/70 block mb-1">{t("overview.methodology")}</span>
+                <span className="text-xs font-bold text-on-surface truncate block">{displayProjectEnum(project.technicalContext?.methodology, "methodology")}</span>
               </div>
               <div className="rounded-xl border border-outline-variant/60 bg-surface p-3.5 shadow-2xs">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-on-surface/70 block mb-1">University</span>
-                <span className="text-xs font-bold text-on-surface truncate block">{displayValue(project.basics?.university)}</span>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-on-surface/70 block mb-1">{t("overview.university")}</span>
+                <span className="text-xs font-bold text-on-surface truncate block">{displayValue(project.basics?.university, t("overview.notProvided"))}</span>
               </div>
               <div className="rounded-xl border border-outline-variant/60 bg-surface p-3.5 shadow-2xs">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-on-surface/70 block mb-1">Project Type</span>
-                <span className="text-xs font-bold text-on-surface truncate block">{displayValue(project.basics?.type)}</span>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-on-surface/70 block mb-1">{t("overview.projectType")}</span>
+                <span className="text-xs font-bold text-on-surface truncate block">{displayProjectEnum(project.basics?.type, "projectType")}</span>
               </div>
               <div className="rounded-xl border border-outline-variant/60 bg-surface p-3.5 shadow-2xs">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-on-surface/70 block mb-1">Language</span>
-                <span className="text-xs font-bold text-on-surface truncate block">{displayValue(project.basics?.language)}</span>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-on-surface/70 block mb-1">{t("overview.language")}</span>
+                <span className="text-xs font-bold text-on-surface truncate block">{displayProjectEnum(project.basics?.language, "generationLanguage")}</span>
               </div>
             </div>
           </section>
@@ -212,8 +220,8 @@ export default function Overview() {
           {/* Interactive Methodology Roadmap */}
           <section className="bg-surface-container-lowest border border-outline-variant/80 rounded-2xl p-6 shadow-2xs">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-on-surface/80">Methodology Workflow Pipeline</h3>
-              <span className="text-xs font-mono font-semibold text-primary">{completedCount}/{totalTracked} Completed</span>
+              <h3 className="text-xs font-bold uppercase tracking-wider text-on-surface/80">{t("overview.workflowPipeline")}</h3>
+              <span className="text-xs font-mono font-semibold text-primary">{t("overview.completedCount", { completed: completedCount, total: totalTracked })}</span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -256,19 +264,19 @@ export default function Overview() {
 
                     <div className="min-w-0 flex-1">
                       <span className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/70 block leading-tight font-mono">
-                        {item.category}
+                        {t(item.categoryKey)}
                       </span>
                       <p className={cn(
                         "text-xs font-bold truncate mt-0.5",
                         isAvailable ? "text-primary" : isLocked ? "text-on-surface-variant/80" : "text-on-surface"
                       )}>
-                        {item.label}
+                        {t(item.labelKey)}
                       </p>
                     </div>
 
                     {isAvailable && (
                       <span className="px-2 py-0.5 rounded-md bg-primary text-on-primary text-[10px] font-bold uppercase tracking-wider shrink-0 shadow-2xs font-mono">
-                        Active
+                        {t("overview.active")}
                       </span>
                     )}
                     {isCompleted && (
@@ -294,15 +302,15 @@ export default function Overview() {
                 <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center border border-primary/20">
                   <HugeiconsIcon icon="lightbulb" size={16} strokeWidth={1.8} />
                 </div>
-                <span className="text-xs font-bold uppercase tracking-wider text-primary">Recommended Action</span>
+                <span className="text-xs font-bold uppercase tracking-wider text-primary">{t("overview.recommendedAction")}</span>
               </div>
               <h3 className="text-base font-bold text-on-surface mb-1">
-                {nextStep ? nextStep.label : "Pipeline Fully Complete"}
+                {nextStep ? t(nextStep.labelKey) : t("overview.pipelineComplete")}
               </h3>
               <p className="text-xs text-on-surface-variant leading-relaxed mb-5">
                 {nextStep
-                  ? `Jump directly into ${nextStep.label} to generate and refine your project content.`
-                  : "All chapters, backlog stories, and defense materials have been completed."}
+                  ? t("overview.nextStepDescription", { step: t(nextStep.labelKey) })
+                  : t("overview.pipelineCompleteDescription")}
               </p>
             </div>
 
@@ -310,7 +318,7 @@ export default function Overview() {
               to={nextStep?.path || "/workspace/presentation"}
               className="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-lg bg-primary text-on-primary text-xs font-bold shadow-2xs hover:bg-primary/90 transition-all cursor-pointer"
             >
-              <span>{nextStep ? `Go to ${nextStep.label}` : "Review Presentation"}</span>
+              <span>{nextStep ? t("overview.goToStep", { step: t(nextStep.labelKey) }) : t("overview.reviewPresentation")}</span>
               <HugeiconsIcon icon="arrow-right" size={15} strokeWidth={2} />
             </Link>
           </section>
@@ -319,17 +327,17 @@ export default function Overview() {
           <section className="bg-surface-container-lowest border border-outline-variant/80 rounded-2xl p-6 shadow-2xs">
             <h3 className="text-xs font-bold uppercase tracking-wider text-on-surface/80 mb-3 flex items-center gap-2">
               <HugeiconsIcon icon="devices" size={16} strokeWidth={1.8} className="text-primary" />
-              <span>Development Scope</span>
+              <span>{t("overview.developmentScope")}</span>
             </h3>
             <div className="flex flex-wrap gap-1.5">
               {developmentTypes.length > 0 ? (
                 developmentTypes.map((type) => (
                   <span key={type} className="px-2.5 py-1 bg-surface border border-outline-variant/80 rounded-lg text-xs font-semibold text-on-surface shadow-2xs">
-                    {type}
+                    {displayOptionLabel(type, "developmentType", tOnboarding)}
                   </span>
                 ))
               ) : (
-                <span className="text-xs text-on-surface-variant">No development scope specified.</span>
+                <span className="text-xs text-on-surface-variant">{t("overview.noDevelopmentScope")}</span>
               )}
             </div>
           </section>
@@ -338,7 +346,7 @@ export default function Overview() {
           <section className="bg-surface-container-lowest border border-outline-variant/80 rounded-2xl p-6 shadow-2xs">
             <h3 className="text-xs font-bold uppercase tracking-wider text-on-surface/80 mb-3 flex items-center gap-2">
               <HugeiconsIcon icon="code" size={16} strokeWidth={1.8} className="text-primary" />
-              <span>Technology Stack</span>
+              <span>{t("overview.technologyStack")}</span>
             </h3>
             <div className="flex flex-wrap gap-1.5">
               {technologies.length > 0 ? (
@@ -348,7 +356,7 @@ export default function Overview() {
                   </span>
                 ))
               ) : (
-                <span className="text-xs text-on-surface-variant">No technologies selected.</span>
+                <span className="text-xs text-on-surface-variant">{t("overview.noTechnologies")}</span>
               )}
             </div>
           </section>

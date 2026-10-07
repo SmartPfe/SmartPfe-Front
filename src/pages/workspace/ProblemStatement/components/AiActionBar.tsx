@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import HugeiconsIcon from "@/components/ui/HugeiconsIcon";
 
 interface AiActionBarProps {
@@ -20,8 +21,9 @@ export default function AiActionBar({
   editorIsEmpty,
   disabled = false,
   showTranslate = false,
-  translateLabel = "Translate",
+  translateLabel,
 }: AiActionBarProps) {
+  const { t } = useTranslation("design");
   const [refineOpen, setRefineOpen] = useState(false);
   const [instructions, setInstructions] = useState("");
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -67,7 +69,7 @@ export default function AiActionBar({
       <button
         onClick={onGenerate}
         disabled={loading || disabled || !editorIsEmpty}
-        title={!editorIsEmpty ? "Editor already has content — use Refine instead" : "Generate a full first draft with AI"}
+        title={!editorIsEmpty ? t("problem.aiAction.generateDisabled") : t("problem.aiAction.generateTitle")}
         className="px-5 py-2 rounded-md border border-primary/20 bg-gradient-to-r from-primary/5 to-secondary/5 text-primary text-label-md font-semibold
                    hover:from-primary/10 hover:to-secondary/10 transition-all shadow-sm
                    disabled:opacity-40 disabled:cursor-not-allowed disabled:grayscale"
@@ -75,10 +77,10 @@ export default function AiActionBar({
         {isGenerating ? (
           <span className="inline-flex items-center gap-2">
             <span className="w-3.5 h-3.5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-            Generating...
+            {t("problem.aiAction.generating")}
           </span>
         ) : (
-          "Generate with AI"
+          t("problem.aiAction.generate")
         )}
       </button>
 
@@ -86,7 +88,7 @@ export default function AiActionBar({
         <button
           onClick={() => setRefineOpen(true)}
           disabled={loading || disabled || editorIsEmpty}
-          title={editorIsEmpty ? "Write something first, then ask AI to refine it" : "Improve and expand your current text with AI"}
+          title={editorIsEmpty ? t("problem.aiAction.refineDisabled") : t("problem.aiAction.refineTitle")}
           className="px-5 py-2 rounded-md border border-primary/20 bg-gradient-to-r from-primary/5 to-secondary/5 text-primary text-label-md font-semibold
                      hover:from-primary/10 hover:to-secondary/10 transition-all shadow-sm
                      disabled:opacity-40 disabled:cursor-not-allowed disabled:grayscale"
@@ -94,10 +96,10 @@ export default function AiActionBar({
           {isRefining ? (
             <span className="inline-flex items-center gap-2">
               <span className="w-3.5 h-3.5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-              Refining...
+            {t("problem.aiAction.refining")}
             </span>
-          ) : (
-            "Refine with AI"
+        ) : (
+          t("problem.aiAction.refineAction")
           )}
         </button>
 
@@ -109,7 +111,7 @@ export default function AiActionBar({
             <textarea
               value={instructions}
               onChange={(event) => setInstructions(event.target.value)}
-              placeholder="Tell AI what you'd like to improve (optional)..."
+              placeholder={t("problem.aiAction.refinePlaceholder")}
               rows={4}
               className="w-full resize-none rounded-md border border-outline-variant bg-surface px-3 py-2 text-body-md text-on-surface outline-none transition-colors placeholder:text-on-surface-variant focus:border-primary focus:ring-1 focus:ring-primary"
               autoFocus
@@ -123,7 +125,7 @@ export default function AiActionBar({
                 }}
                 className="px-3 py-1.5 rounded-md border border-outline-variant bg-surface text-label-sm font-medium text-on-surface hover:bg-surface-container transition-colors"
               >
-                Cancel
+                {t("problem.aiAction.cancel")}
               </button>
               <button
                 type="button"
@@ -131,7 +133,7 @@ export default function AiActionBar({
                 disabled={isRefining}
                 className="px-3 py-1.5 rounded-md bg-primary text-label-sm font-semibold text-on-primary hover:opacity-90 transition-opacity disabled:opacity-50"
               >
-                {isRefining ? "Refining..." : "Refine"}
+                {isRefining ? t("problem.aiAction.refining") : t("problem.aiAction.refine")}
               </button>
             </div>
           </div>
@@ -149,12 +151,12 @@ export default function AiActionBar({
           {isTranslating ? (
             <span className="inline-flex items-center gap-2">
               <span className="w-3.5 h-3.5 border-2 border-secondary border-t-transparent rounded-full animate-spin" />
-              Translating...
+              {t("problem.aiAction.translating")}
             </span>
           ) : (
             <span className="inline-flex items-center gap-2">
               <HugeiconsIcon icon="globe-02" size={16} strokeWidth={1.75} />
-              {translateLabel}
+              {translateLabel || t("problem.aiAction.translate")}
             </span>
           )}
         </button>

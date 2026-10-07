@@ -19,6 +19,7 @@ export type ProductBacklogItem = {
 
 export type AiState = "idle" | "generating" | "refining" | "translating" | "suggestion_ready";
 export type SaveStatus = "unsaved" | "saving" | "saved";
+export type ProductBacklogError = { translationKey: string } | { message: string };
 
 const LANGUAGE_CODES: Record<string, string> = {
   english: "en",
@@ -124,6 +125,12 @@ const TASK_ID = "product-backlog:main";
 const SCOPE = "product-backlog";
 const PAGE_ROUTE = "/workspace/backlog";
 
+function getTaskLanguageTranslationKey(language: string) {
+  const normalized = normalizeLanguage(language);
+  const languageNames: Record<string, string> = { en: "english", fr: "french", ar: "arabic" };
+  return languageNames[normalized] ? `planning:common.languageNames.${languageNames[normalized]}` : undefined;
+}
+
 export function useProductBacklog() {
   const { startTask, isTaskActive, getTask, tasks, dismissTask, cancelTask } = useAiGeneration();
   const [project, setProject] = useState<any>(null);
@@ -132,7 +139,7 @@ export function useProductBacklog() {
   const [loading, setLoading] = useState(true);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
   const [localAiState, setLocalAiState] = useState<AiState>("idle");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ProductBacklogError | null>(null);
   const autosaveTimerRef = useRef<number | null>(null);
   const backlogRef = useRef<ProductBacklogItem[]>([]);
   const handledTaskIdRef = useRef<string | null>(null);
@@ -156,7 +163,7 @@ export function useProductBacklog() {
       backlogRef.current = normalized;
       return { projectData, backlog: normalized };
     } catch (err: any) {
-      setError(err.message || "Failed to load product backlog. Please refresh the page.");
+      setError(err.message ? { message: err.message } : { translationKey: "errors.loadBacklog" });
       return null;
     } finally {
       setLoading(false);
@@ -194,7 +201,7 @@ export function useProductBacklog() {
     } else if (task.status === "error") {
       setLocalAiState("idle");
       if (task.error && !task.error.includes("Limit reached")) {
-        setError(task.error);
+        setError({ message: task.error });
       }
     }
   }, [fetchBacklogData, localAiState, tasks]);
@@ -206,7 +213,7 @@ export function useProductBacklog() {
   const saveProductBacklog = useCallback(
     async (nextBacklog = productBacklog, showValidation = false, language?: string) => {
       if (!project?._id) {
-        setError("Project is not ready yet. Please refresh the page.");
+        setError({ translationKey: "errors.projectNotReady" });
         return;
       }
 
@@ -215,7 +222,7 @@ export function useProductBacklog() {
       );
       if (hasIncompleteItem) {
         if (showValidation) {
-          setError("Please fill each task epic, actors, description, duration (>=1), and sprint before saving.");
+          setError({ translationKey: "errors.saveBacklogValidation" });
         }
         setSaveStatus("unsaved");
         return;
@@ -250,7 +257,7 @@ export function useProductBacklog() {
           setSaveStatus("unsaved");
         }
       } catch (err: any) {
-        setError(err.message || "Failed to save product backlog. Please try again.");
+        setError(err.message ? { message: err.message } : { translationKey: "errors.saveBacklog" });
         setSaveStatus("unsaved");
       }
     },
@@ -294,7 +301,9 @@ export function useProductBacklog() {
         id: TASK_ID,
         scope: SCOPE,
         title: "Product Backlog",
+        uiTitleKey: "planning:backlog.title",
         subTitle: "Generating product backlog tasks with AI...",
+        uiSubTitleKey: "planning:backlog.tasks.generating",
         pageRoute: PAGE_ROUTE,
         status: "generating",
         runner: async (signal) => {
@@ -315,7 +324,7 @@ export function useProductBacklog() {
       }
     } catch (err: any) {
       if (err?.name !== "AbortError") {
-        setError(err.message || "AI generation failed. Please try again.");
+        setError(err.message ? { message: err.message } : { translationKey: "errors.aiGeneration" });
       }
       setLocalAiState("idle");
     }
@@ -323,7 +332,7 @@ export function useProductBacklog() {
 
   const refineWithAi = async (instructions = "") => {
     if (productBacklog.length === 0) {
-      setError("Add or generate product backlog tasks before asking AI to refine them.");
+      setError({ translationKey: "errors.refineBacklogEmpty" });
       return;
     }
 
@@ -340,7 +349,9 @@ export function useProductBacklog() {
         id: TASK_ID,
         scope: SCOPE,
         title: "Product Backlog",
+        uiTitleKey: "planning:backlog.title",
         subTitle: "Refining product backlog with AI...",
+        uiSubTitleKey: "planning:backlog.tasks.refining",
         pageRoute: PAGE_ROUTE,
         status: "refining",
         runner: async (signal) => {
@@ -362,7 +373,7 @@ export function useProductBacklog() {
       }
     } catch (err: any) {
       if (err?.name !== "AbortError") {
-        setError(err.message || "AI refinement failed. Please try again.");
+        setError(err.message ? { message: err.message } : { translationKey: "errors.aiRefinement" });
       }
       setLocalAiState("idle");
     }
@@ -370,7 +381,7 @@ export function useProductBacklog() {
 
   const translateWithAi = async () => {
     if (productBacklog.length === 0) {
-      setError("Add or generate product backlog tasks before asking AI to translate them.");
+      setError({ translationKey: "errors.translateBacklogEmpty" });
       return;
     }
 
@@ -382,7 +393,13 @@ export function useProductBacklog() {
         id: TASK_ID,
         scope: SCOPE,
         title: "Product Backlog",
+        uiTitleKey: "planning:backlog.title",
         subTitle: `Translating product backlog to ${getLanguageLabel(projectLanguage)}...`,
+        uiSubTitleKey: "planning:backlog.tasks.translating",
+        uiSubTitleValues: { language: getLanguageLabel(projectLanguage) },
+        ...(getTaskLanguageTranslationKey(projectLanguage)
+          ? { uiSubTitleValueKeys: { language: getTaskLanguageTranslationKey(projectLanguage)! } }
+          : {}),
         pageRoute: PAGE_ROUTE,
         status: "translating",
         runner: async (signal) => {
@@ -420,7 +437,7 @@ export function useProductBacklog() {
       }
     } catch (err: any) {
       if (err?.name !== "AbortError") {
-        setError(err.message || "AI product backlog translation failed. Please try again.");
+        setError(err.message ? { message: err.message } : { translationKey: "errors.translateBacklog" });
       }
       setLocalAiState("idle");
     }

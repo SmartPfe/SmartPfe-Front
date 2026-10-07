@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import InfoTooltip from "@/components/ui/InfoTooltip";
 import {
@@ -41,6 +42,7 @@ const createEmptyRequirement = (index: number): FunctionalRequirement => ({
 });
 
 export default function FunctionalRequirements() {
+  const { t } = useTranslation("planning");
   const {
     requirements,
     setRequirements,
@@ -62,6 +64,8 @@ export default function FunctionalRequirements() {
     discardSuggestion,
     dismissError,
   } = useFunctionalRequirements();
+  const localizedProjectLanguage = getPlanningLanguageLabel(projectLanguage, t);
+  const displayError = resolveFunctionalError(error, t);
 
   const [activeTab, setActiveTab] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
@@ -75,8 +79,8 @@ export default function FunctionalRequirements() {
 
   const modules = useMemo(() => {
     const uniqueModules = Array.from(new Set(requirements.map((requirement) => requirement.module).filter(Boolean)));
-    return ["All", ...uniqueModules];
-  }, [requirements]);
+    return [{ value: "all", label: t("common.all") }, ...uniqueModules.map((module) => ({ value: module.toLowerCase(), label: module }))];
+  }, [requirements, t]);
 
   const filteredRequirements = requirements.filter((requirement) => {
     const matchesTab = activeTab === "all" || requirement.module.toLowerCase() === activeTab;
@@ -129,7 +133,7 @@ export default function FunctionalRequirements() {
     return (
       <div className="flex flex-col min-h-[50vh] items-center justify-center">
         <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4" />
-        <p className="text-on-surface-variant font-medium text-sm">Loading functional requirements...</p>
+        <p className="text-on-surface-variant font-medium text-sm">{t("functional.loading")}</p>
       </div>
     );
   }
@@ -140,17 +144,17 @@ export default function FunctionalRequirements() {
       <div className="mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <div className="flex items-center gap-1.5 mb-1.5">
-            <span className="text-xs font-bold uppercase tracking-wider text-primary">System Specification</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-primary">{t("functional.eyebrow")}</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-on-surface flex items-center">
-            Functional Requirements
+            {t("functional.title")}
             <InfoTooltip
-              label="Functional Specs"
-              tooltip="Detail the precise functional behaviors, user workflows, and feature rules your system must implement."
+              label={t("functional.tooltipLabel")}
+              tooltip={t("functional.tooltip")}
             />
           </h1>
           <p className="text-sm text-on-surface-variant max-w-[42rem] mt-1.5 leading-relaxed">
-            Define and organize the functional behaviors and features your system must execute.
+            {t("functional.description")}
           </p>
         </div>
 
@@ -165,7 +169,7 @@ export default function FunctionalRequirements() {
       {/* Background AI Progress Banner */}
       <AiBackgroundBanner
         isVisible={isAiBusy}
-        moduleName="Functional Requirements"
+        moduleName={t("functional.title")}
         action={aiState}
         onCancel={cancelAi}
       />
@@ -180,10 +184,10 @@ export default function FunctionalRequirements() {
         isTranslating={aiState === "translating"}
         isBusy={isAiBusy || aiState === "suggestion_ready"}
         canRefine={requirements.length > 0}
-        refineDisabledTitle="Add or generate requirements before refining"
-        refinePlaceholder="Tell AI what you'd like to improve (e.g., 'Group into Auth, Dashboard, and Export modules with MoSCoW priorities')..."
+        refineDisabledTitle={t("functional.refineDisabled")}
+        refinePlaceholder={t("functional.refinePlaceholder")}
         showTranslate={shouldShowTranslate}
-        translateLabel={`Translate to ${getLanguageLabel(projectLanguage)}`}
+        translateLabel={t("common.translateTo", { language: localizedProjectLanguage })}
         primaryAction={
           <button
             type="button"
@@ -192,16 +196,16 @@ export default function FunctionalRequirements() {
             className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 h-9 px-4 bg-primary text-on-primary rounded-lg text-[13px] font-semibold tracking-tight hover:bg-primary/90 transition-all duration-150 shadow-2xs active:scale-[0.98] disabled:opacity-50 select-none cursor-pointer"
           >
             <HugeiconsIcon icon="add" size={16} strokeWidth={2} />
-            <span>Add Requirement</span>
+            <span>{t("functional.addRequirement")}</span>
           </button>
         }
       />
 
-      {error && (
+      {displayError && (
         <div className="mb-6 p-3.5 rounded-xl bg-error-container text-on-error-container border border-error/20 flex items-center justify-between gap-3 shadow-2xs">
-          <p className="text-sm font-medium">{error}</p>
+          <p className="text-sm font-medium">{displayError}</p>
           <button onClick={dismissError} className="shrink-0 text-xs font-semibold underline hover:no-underline">
-            Dismiss
+            {t("common.dismiss")}
           </button>
         </div>
       )}
@@ -213,10 +217,10 @@ export default function FunctionalRequirements() {
             <div>
               <div className="flex items-center gap-2">
                 <HugeiconsIcon icon="ai-spark" size={18} strokeWidth={1.8} className="text-primary" />
-                <h3 className="text-sm font-bold text-on-surface">AI suggestion ready</h3>
+                <h3 className="text-sm font-bold text-on-surface">{t("functional.suggestionTitle")}</h3>
               </div>
               <p className="text-xs text-on-surface-variant mt-0.5">
-                Review the generated functional requirements before applying them.
+                {t("functional.suggestionDescription")}
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -224,13 +228,13 @@ export default function FunctionalRequirements() {
                 onClick={discardSuggestion}
                 className="h-8 px-3.5 rounded-lg border border-outline-variant bg-surface text-on-surface text-xs font-semibold hover:bg-surface-container-low transition-colors cursor-pointer"
               >
-                Discard
+                {t("functional.discard")}
               </button>
               <button
                 onClick={acceptSuggestion}
                 className="h-8 px-4 rounded-lg bg-primary text-on-primary text-xs font-semibold hover:bg-primary/90 transition-all shadow-2xs cursor-pointer"
               >
-                Accept requirements
+                {t("functional.accept")}
               </button>
             </div>
           </div>
@@ -253,12 +257,12 @@ export default function FunctionalRequirements() {
           <div className="min-w-0 flex-1 overflow-x-auto no-scrollbar">
             <div className="flex min-w-max items-center gap-1.5 pr-2">
               {modules.map((tab) => {
-                const isActive = activeTab === tab.toLowerCase();
+                const isActive = activeTab === tab.value;
                 return (
                   <button
-                    key={tab}
+                    key={tab.value}
                     type="button"
-                    onClick={() => setActiveTab(tab.toLowerCase())}
+                    onClick={() => setActiveTab(tab.value)}
                     className={cn(
                       "inline-flex items-center justify-center px-3 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 whitespace-nowrap border cursor-pointer",
                       isActive
@@ -266,7 +270,7 @@ export default function FunctionalRequirements() {
                         : "bg-surface text-on-surface-variant hover:text-on-surface hover:bg-surface-container border-outline-variant/70"
                     )}
                   >
-                    {tab}
+                    {tab.label}
                   </button>
                 );
               })}
@@ -284,7 +288,7 @@ export default function FunctionalRequirements() {
               type="text"
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
-              placeholder="Search requirements..."
+              placeholder={t("functional.searchPlaceholder")}
               className="pl-8.5 pr-3 py-1.5 bg-surface border border-outline-variant/80 rounded-lg text-xs text-on-surface outline-none focus:border-primary focus:ring-1 focus:ring-primary w-full"
             />
           </div>
@@ -299,8 +303,8 @@ export default function FunctionalRequirements() {
             <div className="w-12 h-12 rounded-full bg-surface-container border border-outline-variant/80 flex items-center justify-center group-hover:scale-110 group-hover:text-primary transition-all duration-200">
               <HugeiconsIcon icon="add" size={22} strokeWidth={2} />
             </div>
-            <span className="font-semibold text-sm text-on-surface">Add First Functional Requirement</span>
-            <span className="text-xs text-on-surface-variant/70">Or click "Generate with AI" to generate specs based on your project description</span>
+            <span className="font-semibold text-sm text-on-surface">{t("functional.emptyTitle")}</span>
+            <span className="text-xs text-on-surface-variant/70">{t("functional.emptyDescription")}</span>
           </button>
         ) : (
           <RequirementsTable
@@ -317,7 +321,7 @@ export default function FunctionalRequirements() {
   );
 }
 
-function RequirementsTable({
+export function RequirementsTable({
   requirements,
   editingId,
   readOnly = false,
@@ -334,24 +338,25 @@ function RequirementsTable({
   onMove: (id: string, direction: -1 | 1) => void;
   onUpdate: (id: string, updates: Partial<FunctionalRequirement>) => void;
 }) {
+  const { t } = useTranslation("planning");
   return (
     <div className="overflow-x-auto flex-1">
       <table className="w-full text-left border-collapse">
         <thead className="bg-surface-container-low/60 sticky top-0 z-10">
           <tr>
-            <th className="px-5 py-2.5 border-b border-outline-variant/60 text-[11px] font-bold text-on-surface-variant uppercase tracking-wider w-24">ID</th>
-            <th className="px-5 py-2.5 border-b border-outline-variant/60 text-[11px] font-bold text-on-surface-variant uppercase tracking-wider w-36">Module</th>
-            <th className="px-5 py-2.5 border-b border-outline-variant/60 text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">Requirement</th>
-            <th className="px-5 py-2.5 border-b border-outline-variant/60 text-[11px] font-bold text-on-surface-variant uppercase tracking-wider w-36">Priority</th>
-            <th className="px-5 py-2.5 border-b border-outline-variant/60 text-[11px] font-bold text-on-surface-variant uppercase tracking-wider w-32">Status</th>
-            <th className="px-5 py-2.5 border-b border-outline-variant/60 w-32 text-right">Actions</th>
+            <th className="px-5 py-2.5 border-b border-outline-variant/60 text-[11px] font-bold text-on-surface-variant uppercase tracking-wider w-24">{t("common.id")}</th>
+            <th className="px-5 py-2.5 border-b border-outline-variant/60 text-[11px] font-bold text-on-surface-variant uppercase tracking-wider w-36">{t("common.module")}</th>
+            <th className="px-5 py-2.5 border-b border-outline-variant/60 text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">{t("common.requirement")}</th>
+            <th className="px-5 py-2.5 border-b border-outline-variant/60 text-[11px] font-bold text-on-surface-variant uppercase tracking-wider w-36">{t("common.priority")}</th>
+            <th className="px-5 py-2.5 border-b border-outline-variant/60 text-[11px] font-bold text-on-surface-variant uppercase tracking-wider w-32">{t("common.status")}</th>
+            <th className="px-5 py-2.5 border-b border-outline-variant/60 w-32 text-right">{t("common.actions")}</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-outline-variant/60">
           {requirements.length === 0 ? (
             <tr>
               <td colSpan={6} className="px-6 py-12 text-center text-xs text-on-surface-variant/70">
-                No matching requirements found.
+                {t("functional.noMatching")}
               </td>
             </tr>
           ) : (
@@ -382,7 +387,7 @@ function RequirementsTable({
                         value={requirement.module}
                         onChange={(event) => onUpdate(id, { module: event.target.value })}
                         className="w-32 bg-surface border border-outline-variant/80 rounded-lg px-2.5 py-1 text-xs text-on-surface outline-none focus:border-primary"
-                        placeholder="Module"
+                        placeholder={t("functional.modulePlaceholder")}
                       />
                     ) : (
                       <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-surface-container border border-outline-variant/60 text-on-surface-variant inline-flex items-center">
@@ -399,23 +404,23 @@ function RequirementsTable({
                           value={requirement.title}
                           onChange={(event) => onUpdate(id, { title: event.target.value })}
                           className="w-full bg-surface border border-outline-variant/80 rounded-lg px-3 py-1.5 text-xs font-bold text-on-surface outline-none focus:border-primary"
-                          placeholder="Requirement title"
+                          placeholder={t("functional.titlePlaceholder")}
                           autoFocus
                         />
                         <textarea
                           value={requirement.description}
                           onChange={(event) => onUpdate(id, { description: event.target.value })}
                           className="w-full min-h-[72px] bg-surface border border-outline-variant/80 rounded-lg px-3 py-1.5 text-xs text-on-surface outline-none focus:border-primary resize-y"
-                          placeholder="The system shall..."
+                          placeholder={t("functional.descriptionPlaceholder")}
                         />
                       </div>
                     ) : (
                       <div className="flex flex-col gap-1">
                         <span className="font-bold text-sm text-on-surface tracking-tight">
-                          {requirement.title || "Untitled requirement"}
+                          {requirement.title || t("common.untitledRequirement")}
                         </span>
                         <span className="text-xs text-on-surface-variant leading-relaxed line-clamp-2 pr-6">
-                          {requirement.description || "No description provided."}
+                          {requirement.description || t("common.noDescription")}
                         </span>
                       </div>
                     )}
@@ -431,13 +436,13 @@ function RequirementsTable({
                       >
                         {priorityOptions.map((priority) => (
                           <option key={priority} value={priority}>
-                            {priority}
+                            {t(priorityLabelKey(priority))}
                           </option>
                         ))}
                       </select>
                     ) : (
                       <span className={cn("text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border inline-flex", priorities[requirement.priority])}>
-                        {requirement.priority}
+                        {t(priorityLabelKey(requirement.priority))}
                       </span>
                     )}
                   </td>
@@ -452,14 +457,14 @@ function RequirementsTable({
                       >
                         {statusOptions.map((status) => (
                           <option key={status} value={status}>
-                            {status}
+                            {t(statusLabelKey(status))}
                           </option>
                         ))}
                       </select>
                     ) : (
                       <span className={cn("inline-flex items-center gap-1.5 text-xs font-semibold", statusCfg.color)}>
                         <HugeiconsIcon icon={statusCfg.icon} size={14} strokeWidth={1.8} />
-                        {requirement.status}
+                        {t(statusLabelKey(requirement.status))}
                       </span>
                     )}
                   </td>
@@ -473,7 +478,8 @@ function RequirementsTable({
                           onClick={() => onMove(id, -1)}
                           disabled={index === 0}
                           className="w-7 h-7 rounded-lg flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
-                          title="Move up"
+                          title={t("common.moveUp")}
+                          aria-label={t("common.moveUp")}
                         >
                           <HugeiconsIcon icon="arrow-right" size={14} strokeWidth={1.8} className="-rotate-90" />
                         </button>
@@ -482,7 +488,8 @@ function RequirementsTable({
                           onClick={() => onMove(id, 1)}
                           disabled={index === requirements.length - 1}
                           className="w-7 h-7 rounded-lg flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
-                          title="Move down"
+                          title={t("common.moveDown")}
+                          aria-label={t("common.moveDown")}
                         >
                           <HugeiconsIcon icon="arrow-right" size={14} strokeWidth={1.8} className="rotate-90" />
                         </button>
@@ -495,7 +502,8 @@ function RequirementsTable({
                               ? "bg-primary text-on-primary hover:bg-primary/90 shadow-2xs"
                               : "text-on-surface-variant hover:text-primary hover:bg-surface-container"
                           )}
-                          title={isEditing ? "Save edit" : "Edit requirement"}
+                          title={t(isEditing ? "common.saveEdit" : "common.edit")}
+                          aria-label={t(isEditing ? "common.saveEdit" : "common.edit")}
                         >
                           <HugeiconsIcon icon={isEditing ? "check" : "edit"} size={16} strokeWidth={1.8} />
                         </button>
@@ -503,7 +511,8 @@ function RequirementsTable({
                           type="button"
                           onClick={() => onDelete(id)}
                           className="w-8 h-8 rounded-lg flex items-center justify-center text-on-surface-variant hover:text-error hover:bg-error/10 transition-all cursor-pointer"
-                          title="Delete requirement"
+                          title={t("common.delete")}
+                          aria-label={t("common.delete")}
                         >
                           <HugeiconsIcon icon="delete" size={16} strokeWidth={1.8} />
                         </button>
@@ -524,3 +533,28 @@ function getRequirementKey(requirement: FunctionalRequirement) {
   return requirement._id || requirement.localId || requirement.code;
 }
 
+function priorityLabelKey(priority: RequirementPriority) {
+  return ({
+    "Must Have": "common.priorityLabels.mustHave",
+    "Should Have": "common.priorityLabels.shouldHave",
+    "Could Have": "common.priorityLabels.couldHave",
+    "Won't Have": "common.priorityLabels.wontHave",
+  } as const)[priority];
+}
+
+function statusLabelKey(status: RequirementStatus) {
+  return ({ Draft: "common.statusLabels.draft", "In Review": "common.statusLabels.inReview", Approved: "common.statusLabels.approved" } as const)[status];
+}
+
+function getPlanningLanguageLabel(language: string, t: (key: string) => string) {
+  const label = getLanguageLabel(language).toLowerCase();
+  if (label === "english") return t("common.languageNames.english");
+  if (label === "french") return t("common.languageNames.french");
+  if (label === "arabic") return t("common.languageNames.arabic");
+  return getLanguageLabel(language);
+}
+
+function resolveFunctionalError(error: { translationKey: string } | { message: string } | null, t: (key: string) => string) {
+  if (!error) return "";
+  return "translationKey" in error ? t(error.translationKey) : error.message;
+}

@@ -18,6 +18,7 @@ export type NonFunctionalRequirement = {
 
 export type AiState = "idle" | "generating" | "refining" | "translating" | "suggestion_ready";
 export type SaveStatus = "unsaved" | "saving" | "saved";
+export type NonFunctionalRequirementError = { translationKey: string } | { message: string };
 
 const LANGUAGE_CODES: Record<string, string> = {
   english: "en",
@@ -76,6 +77,12 @@ const TASK_ID = "non-functional-requirements:main";
 const SCOPE = "non-functional-requirements";
 const PAGE_ROUTE = "/workspace/non-functional-requirements";
 
+function getTaskLanguageTranslationKey(language: string) {
+  const normalized = normalizeLanguage(language);
+  const languageNames: Record<string, string> = { en: "english", fr: "french", ar: "arabic" };
+  return languageNames[normalized] ? `planning:common.languageNames.${languageNames[normalized]}` : undefined;
+}
+
 export function useNonFunctionalRequirements() {
   const { startTask, isTaskActive, getTask, tasks, dismissTask, cancelTask } = useAiGeneration();
   const [project, setProject] = useState<any>(null);
@@ -84,7 +91,7 @@ export function useNonFunctionalRequirements() {
   const [loading, setLoading] = useState(true);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
   const [localAiState, setLocalAiState] = useState<AiState>("idle");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<NonFunctionalRequirementError | null>(null);
   const autosaveTimerRef = useRef<number | null>(null);
   const requirementsRef = useRef<NonFunctionalRequirement[]>([]);
   const handledTaskIdRef = useRef<string | null>(null);
@@ -104,7 +111,7 @@ export function useNonFunctionalRequirements() {
       requirementsRef.current = normalized;
       return { projectData, requirements: normalized };
     } catch (err: any) {
-      setError(err.message || "Failed to load non-functional requirements. Please refresh the page.");
+      setError(err.message ? { message: err.message } : { translationKey: "errors.loadNonFunctional" });
       return null;
     } finally {
       setLoading(false);
@@ -142,7 +149,7 @@ export function useNonFunctionalRequirements() {
     } else if (task.status === "error") {
       setLocalAiState("idle");
       if (task.error && !task.error.includes("Limit reached")) {
-        setError(task.error);
+        setError({ message: task.error });
       }
     }
   }, [fetchRequirementsData, localAiState, tasks]);
@@ -152,7 +159,7 @@ export function useNonFunctionalRequirements() {
   const saveRequirements = useCallback(
     async (nextRequirements = requirements, showValidation = false, language?: string) => {
       if (!project?._id) {
-        setError("Project is not ready yet. Please refresh the page.");
+        setError({ translationKey: "errors.projectNotReady" });
         return;
       }
 
@@ -164,7 +171,7 @@ export function useNonFunctionalRequirements() {
       );
       if (hasIncompleteRequirement) {
         if (showValidation) {
-          setError("Please fill each requirement category, title, and description before saving.");
+          setError({ translationKey: "errors.saveNonFunctionalValidation" });
         }
         setSaveStatus("unsaved");
         return;
@@ -199,7 +206,7 @@ export function useNonFunctionalRequirements() {
           setSaveStatus("unsaved");
         }
       } catch (err: any) {
-        setError(err.message || "Failed to save non-functional requirements. Please try again.");
+        setError(err.message ? { message: err.message } : { translationKey: "errors.saveNonFunctional" });
         setSaveStatus("unsaved");
       }
     },
@@ -249,7 +256,9 @@ export function useNonFunctionalRequirements() {
         id: TASK_ID,
         scope: SCOPE,
         title: "Non-Functional Requirements",
+        uiTitleKey: "planning:nonFunctional.title",
         subTitle: "Generating non-functional requirements with AI...",
+        uiSubTitleKey: "planning:nonFunctional.tasks.generating",
         pageRoute: PAGE_ROUTE,
         status: "generating",
         runner: async (signal) => {
@@ -270,7 +279,7 @@ export function useNonFunctionalRequirements() {
       }
     } catch (err: any) {
       if (err?.name !== "AbortError") {
-        setError(err.message || "AI generation failed. Please try again.");
+        setError(err.message ? { message: err.message } : { translationKey: "errors.aiGeneration" });
       }
       setLocalAiState("idle");
     }
@@ -278,7 +287,7 @@ export function useNonFunctionalRequirements() {
 
   const refineWithAi = async (instructions = "") => {
     if (requirements.length === 0) {
-      setError("Add or generate non-functional requirements before asking AI to refine them.");
+      setError({ translationKey: "errors.refineNonFunctionalEmpty" });
       return;
     }
 
@@ -295,7 +304,9 @@ export function useNonFunctionalRequirements() {
         id: TASK_ID,
         scope: SCOPE,
         title: "Non-Functional Requirements",
+        uiTitleKey: "planning:nonFunctional.title",
         subTitle: "Refining non-functional requirements with AI...",
+        uiSubTitleKey: "planning:nonFunctional.tasks.refining",
         pageRoute: PAGE_ROUTE,
         status: "refining",
         runner: async (signal) => {
@@ -317,7 +328,7 @@ export function useNonFunctionalRequirements() {
       }
     } catch (err: any) {
       if (err?.name !== "AbortError") {
-        setError(err.message || "AI refinement failed. Please try again.");
+        setError(err.message ? { message: err.message } : { translationKey: "errors.aiRefinement" });
       }
       setLocalAiState("idle");
     }
@@ -325,7 +336,7 @@ export function useNonFunctionalRequirements() {
 
   const translateWithAi = async () => {
     if (requirements.length === 0) {
-      setError("Add or generate non-functional requirements before asking AI to translate them.");
+      setError({ translationKey: "errors.translateNonFunctionalEmpty" });
       return;
     }
 
@@ -337,7 +348,13 @@ export function useNonFunctionalRequirements() {
         id: TASK_ID,
         scope: SCOPE,
         title: "Non-Functional Requirements",
+        uiTitleKey: "planning:nonFunctional.title",
         subTitle: `Translating non-functional requirements to ${getLanguageLabel(projectLanguage)}...`,
+        uiSubTitleKey: "planning:nonFunctional.tasks.translating",
+        uiSubTitleValues: { language: getLanguageLabel(projectLanguage) },
+        ...(getTaskLanguageTranslationKey(projectLanguage)
+          ? { uiSubTitleValueKeys: { language: getTaskLanguageTranslationKey(projectLanguage)! } }
+          : {}),
         pageRoute: PAGE_ROUTE,
         status: "translating",
         runner: async (signal) => {
@@ -375,7 +392,7 @@ export function useNonFunctionalRequirements() {
       }
     } catch (err: any) {
       if (err?.name !== "AbortError") {
-        setError(err.message || "AI non-functional requirement translation failed. Please try again.");
+        setError(err.message ? { message: err.message } : { translationKey: "errors.translateNonFunctional" });
       }
       setLocalAiState("idle");
     }

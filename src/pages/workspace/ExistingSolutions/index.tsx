@@ -10,6 +10,7 @@ import AiBackgroundBanner from "@/components/ai/AiBackgroundBanner";
 import HugeiconsIcon from "@/components/ui/HugeiconsIcon";
 import SaveStatusHeader from "@/components/ui/SaveStatusHeader";
 import AiActionToolbar from "@/components/ai/AiActionToolbar";
+import { useTranslation } from "react-i18next";
 
 const iconOptions = [
   "search",
@@ -38,6 +39,7 @@ const createEmptySolution = (): ExistingSolution => ({
 });
 
 export default function ExistingSolutions() {
+  const { t } = useTranslation("analysis");
   const {
     solutions,
     setSolutions,
@@ -47,6 +49,7 @@ export default function ExistingSolutions() {
     isAiBusy,
     suggestion,
     error,
+    errorKey,
     markUnsaved,
     saveSolutions,
     generateWithAi,
@@ -95,7 +98,7 @@ export default function ExistingSolutions() {
     return (
       <div className="flex flex-col min-h-[50vh] items-center justify-center">
         <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4" />
-        <p className="text-on-surface-variant font-medium text-sm">Loading existing solutions...</p>
+        <p className="text-on-surface-variant font-medium text-sm">{t("solutions.loading")}</p>
       </div>
     );
   }
@@ -106,17 +109,17 @@ export default function ExistingSolutions() {
       <div className="mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <div className="flex items-center gap-1.5 mb-1.5">
-            <span className="text-xs font-bold uppercase tracking-wider text-primary">Market Research & SOTA</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-primary">{t("solutions.eyebrow")}</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-on-surface flex items-center">
-            Existing Solutions
+            {t("solutions.title")}
             <InfoTooltip
-              label="State of the Art"
-              tooltip="Analyze existing market tools, frameworks, and academic alternatives to benchmark weaknesses and define your project's unique value proposition."
+              label={t("solutions.tooltipLabel")}
+              tooltip={t("solutions.tooltip")}
             />
           </h1>
           <p className="text-sm text-on-surface-variant max-w-[42rem] mt-1.5 leading-relaxed">
-            Position your project against the state of the art by highlighting strengths, limitations, and key differentiators.
+            {t("solutions.description")}
           </p>
         </div>
 
@@ -131,7 +134,7 @@ export default function ExistingSolutions() {
       {/* Background AI Progress Banner */}
       <AiBackgroundBanner
         isVisible={isAiBusy}
-        moduleName="Existing Solutions"
+        moduleName={t("solutions.title")}
         action={aiState}
         onCancel={cancelAi}
       />
@@ -146,10 +149,10 @@ export default function ExistingSolutions() {
         isTranslating={aiState === "translating"}
         isBusy={isAiBusy || aiState === "suggestion_ready"}
         canRefine={solutions.length > 0}
-        refineDisabledTitle="Add or generate solutions before refining"
-        refinePlaceholder="Tell AI what you'd like to improve (e.g., 'Compare against Jira and Trello with specific technical weaknesses')..."
+        refineDisabledTitle={t("solutions.refineDisabled")}
+        refinePlaceholder={t("solutions.refinePlaceholder")}
         showTranslate={shouldShowTranslate}
-        translateLabel={`Translate to ${getLanguageLabel(projectLanguage)}`}
+        translateLabel={t("toolbar.translateTo", { language: getLanguageLabel(projectLanguage, t) })}
         primaryAction={
           <div className="flex items-center gap-2">
             <button
@@ -161,10 +164,11 @@ export default function ExistingSolutions() {
                   ? "bg-primary/10 border-primary/40 text-primary"
                   : "bg-surface border-outline-variant text-on-surface hover:bg-surface-container-low"
               )}
-              title={matrixView ? "Switch to Card Grid View" : "Switch to Comparison Matrix View"}
+              title={t(matrixView ? "solutions.switchToCardView" : "solutions.switchToMatrixView")}
+              aria-label={t(matrixView ? "solutions.switchToCardView" : "solutions.switchToMatrixView")}
             >
               <HugeiconsIcon icon={matrixView ? "layers" : "presentation"} size={16} strokeWidth={1.75} />
-              <span>{matrixView ? "Card View" : "Matrix View"}</span>
+              <span>{t(matrixView ? "solutions.cardView" : "solutions.matrixView")}</span>
             </button>
             <button
               type="button"
@@ -173,17 +177,17 @@ export default function ExistingSolutions() {
               className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 h-9 px-4 bg-primary text-on-primary rounded-lg text-[13px] font-semibold tracking-tight hover:bg-primary/90 transition-all duration-150 shadow-2xs active:scale-[0.98] disabled:opacity-50 select-none cursor-pointer"
             >
               <HugeiconsIcon icon="add" size={16} strokeWidth={2} />
-              <span>Add Solution</span>
+              <span>{t("solutions.addSolution")}</span>
             </button>
           </div>
         }
       />
 
-      {error && (
+      {(error || errorKey) && (
         <div className="mb-6 p-3.5 rounded-xl bg-error-container text-on-error-container border border-error/20 flex items-center justify-between gap-3 shadow-2xs">
-          <p className="text-sm font-medium">{error}</p>
-          <button onClick={dismissError} className="shrink-0 text-xs font-semibold underline hover:no-underline">
-            Dismiss
+          <p className="text-sm font-medium">{errorKey ? t(errorKey) : error}</p>
+          <button onClick={dismissError} className="shrink-0 text-xs font-semibold underline hover:no-underline" aria-label={t("common.dismiss")}>
+            {t("common.dismiss")}
           </button>
         </div>
       )}
@@ -195,10 +199,10 @@ export default function ExistingSolutions() {
             <div>
               <div className="flex items-center gap-2">
                 <HugeiconsIcon icon="ai-spark" size={18} strokeWidth={1.8} className="text-primary" />
-                <h3 className="text-sm font-bold text-on-surface">AI suggestion ready</h3>
+                <h3 className="text-sm font-bold text-on-surface">{t("solutions.suggestionTitle")}</h3>
               </div>
               <p className="text-xs text-on-surface-variant mt-0.5">
-                Review the benchmarked existing solutions before applying them.
+                {t("solutions.suggestionDescription")}
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -206,13 +210,13 @@ export default function ExistingSolutions() {
                 onClick={discardSuggestion}
                 className="h-8 px-3.5 rounded-lg border border-outline-variant bg-surface text-on-surface text-xs font-semibold hover:bg-surface-container-low transition-colors"
               >
-                Discard
+                {t("common.discard")}
               </button>
               <button
                 onClick={acceptSuggestion}
                 className="h-8 px-4 rounded-lg bg-primary text-on-primary text-xs font-semibold hover:bg-primary/90 transition-all shadow-2xs"
               >
-                Accept solutions
+                {t("solutions.accept")}
               </button>
             </div>
           </div>
@@ -247,8 +251,8 @@ export default function ExistingSolutions() {
           <div className="w-12 h-12 rounded-full bg-surface-container border border-outline-variant/80 flex items-center justify-center group-hover:scale-110 group-hover:text-primary transition-all duration-200">
             <HugeiconsIcon icon="add" size={22} strokeWidth={2} />
           </div>
-          <span className="font-semibold text-sm text-on-surface">Add First Existing Solution</span>
-          <span className="text-xs text-on-surface-variant/70">Or click "Generate with AI" to research existing state of the art tools</span>
+          <span className="font-semibold text-sm text-on-surface">{t("solutions.addFirst")}</span>
+          <span className="text-xs text-on-surface-variant/70">{t("solutions.addFirstDescription")}</span>
         </button>
       )}
     </div>
@@ -272,16 +276,17 @@ function SolutionGrid({
   onDelete: (id: string) => void;
   onUpdate: (id: string, updates: Partial<ExistingSolution>) => void;
 }) {
+  const { t } = useTranslation("analysis");
   if (matrixView) {
     return (
       <div className="overflow-hidden bg-surface-container-lowest border border-outline-variant/80 rounded-2xl shadow-2xs">
         <div className="hidden lg:grid grid-cols-[180px_1.25fr_1fr_1fr_1.1fr_90px] gap-4 px-5 py-2.5 bg-surface-container-low/60 border-b border-outline-variant/60 text-[11px] uppercase font-bold text-on-surface-variant tracking-wider">
-          <div>Solution Name</div>
-          <div>Problem Solved</div>
-          <div>Strengths</div>
-          <div>Weaknesses</div>
-          <div>Our Difference</div>
-          <div className="text-right">Actions</div>
+          <div>{t("solutions.solutionName")}</div>
+          <div>{t("solutions.problemSolved")}</div>
+          <div>{t("solutions.strengths")}</div>
+          <div>{t("solutions.weaknesses")}</div>
+          <div>{t("solutions.ourDifference")}</div>
+          <div className="text-right">{t("solutions.actions")}</div>
         </div>
         <div className="divide-y divide-outline-variant/60">
           {solutions.map((solution) => (
@@ -325,6 +330,7 @@ function SolutionCard(props: {
   onDelete: (id: string) => void;
   onUpdate: (id: string, updates: Partial<ExistingSolution>) => void;
 }) {
+  const { t } = useTranslation("analysis");
   const { solution, editingId, readOnly, onEdit, onDelete, onUpdate } = props;
   const id = getSolutionKey(solution);
   const isEditing = editingId === id;
@@ -346,14 +352,14 @@ function SolutionCard(props: {
               value={solution.name}
               onChange={(event) => onUpdate(id, { name: event.target.value })}
               className="flex-1 bg-surface border border-outline-variant/80 rounded-lg px-3 py-1.5 text-base font-bold text-on-surface outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
-              placeholder="Solution / App name"
+              placeholder={t("solutions.namePlaceholder")}
               autoFocus
             />
           ) : (
             <div className="flex items-center gap-2.5 min-w-0 flex-1">
               <span className="w-1.5 h-4 rounded-full bg-primary shrink-0 opacity-80" />
               <h3 className="font-bold text-[17px] leading-snug text-on-surface tracking-tight truncate">
-                {solution.name || "Untitled solution"}
+                {solution.name || t("solutions.untitled")}
               </h3>
             </div>
           )}
@@ -370,7 +376,8 @@ function SolutionCard(props: {
                     ? "bg-primary text-on-primary hover:bg-primary/90 shadow-2xs"
                     : "text-on-surface-variant hover:text-primary hover:bg-surface-container"
                 )}
-                title={isEditing ? "Save edit" : "Edit solution"}
+                title={t(isEditing ? "solutions.saveEdit" : "solutions.edit")}
+                aria-label={t(isEditing ? "solutions.saveEdit" : "solutions.edit")}
               >
                 <HugeiconsIcon icon={isEditing ? "check" : "edit"} size={16} strokeWidth={1.8} />
               </button>
@@ -378,7 +385,8 @@ function SolutionCard(props: {
                 type="button"
                 onClick={() => onDelete(id)}
                 className="w-8 h-8 rounded-lg flex items-center justify-center text-on-surface-variant hover:text-error hover:bg-error/10 transition-all cursor-pointer"
-                title="Delete solution"
+                title={t("solutions.delete")}
+                aria-label={t("solutions.delete")}
               >
                 <HugeiconsIcon icon="delete" size={16} strokeWidth={1.8} />
               </button>
@@ -390,39 +398,39 @@ function SolutionCard(props: {
       {/* Card Body Information */}
       <div className="p-5 flex-1 flex flex-col gap-4">
         <EditableText
-          label="Description"
+          label={t("solutions.descriptionLabel")}
           value={solution.description}
           isEditing={isEditing}
           onChange={(value) => onUpdate(id, { description: value })}
-          placeholder="Overview of this existing solution..."
+          placeholder={t("solutions.descriptionPlaceholder")}
         />
         <EditableText
-          label="Problem Solved"
+          label={t("solutions.problemSolved")}
           value={solution.solvedProblem}
           isEditing={isEditing}
           onChange={(value) => onUpdate(id, { solvedProblem: value })}
-          placeholder="What specific problem does this solution address?"
+          placeholder={t("solutions.problemSolvedPlaceholder")}
         />
         <EditableList
-          title="Strengths"
+          title={t("solutions.strengths")}
           tone="secondary"
           items={solution.strengths}
           isEditing={isEditing}
           onChange={(strengths) => onUpdate(id, { strengths })}
         />
         <EditableList
-          title="Weaknesses & Gaps"
+          title={t("solutions.weaknessesGaps")}
           tone="error"
           items={solution.weaknesses}
           isEditing={isEditing}
           onChange={(weaknesses) => onUpdate(id, { weaknesses })}
         />
         <EditableText
-          label="Our Project Difference"
+          label={t("solutions.projectDifference")}
           value={solution.differentiation}
           isEditing={isEditing}
           onChange={(value) => onUpdate(id, { differentiation: value })}
-          placeholder="How our project differentiates or improves on this solution..."
+          placeholder={t("solutions.differencePlaceholder")}
         />
       </div>
     </div>
@@ -437,6 +445,7 @@ function SolutionRow(props: {
   onDelete: (id: string) => void;
   onUpdate: (id: string, updates: Partial<ExistingSolution>) => void;
 }) {
+  const { t } = useTranslation("analysis");
   const { solution, editingId, readOnly, onEdit, onDelete, onUpdate } = props;
   const id = getSolutionKey(solution);
   const isEditing = editingId === id;
@@ -455,11 +464,11 @@ function SolutionRow(props: {
             value={solution.name}
             onChange={(event) => onUpdate(id, { name: event.target.value })}
             className="w-full bg-surface border border-outline-variant/80 rounded-lg px-2.5 py-1 text-xs font-semibold text-on-surface outline-none focus:border-primary"
-            placeholder="Solution name"
+            placeholder={t("solutions.solutionNamePlaceholder")}
           />
         ) : (
           <p className="font-semibold text-sm text-on-surface tracking-tight truncate">
-            {solution.name || "Untitled solution"}
+            {solution.name || t("solutions.untitled")}
           </p>
         )}
       </div>
@@ -468,11 +477,11 @@ function SolutionRow(props: {
         value={solution.solvedProblem}
         isEditing={isEditing}
         onChange={(value) => onUpdate(id, { solvedProblem: value })}
-        placeholder="Problem solved"
+        placeholder={t("solutions.problemSolvedShortPlaceholder")}
         compact
       />
       <EditableList
-        title="Strengths"
+        title={t("solutions.strengths")}
         tone="secondary"
         items={solution.strengths}
         isEditing={isEditing}
@@ -480,7 +489,7 @@ function SolutionRow(props: {
         compact
       />
       <EditableList
-        title="Weaknesses"
+        title={t("solutions.weaknesses")}
         tone="error"
         items={solution.weaknesses}
         isEditing={isEditing}
@@ -491,7 +500,7 @@ function SolutionRow(props: {
         value={solution.differentiation}
         isEditing={isEditing}
         onChange={(value) => onUpdate(id, { differentiation: value })}
-        placeholder="Difference"
+        placeholder={t("solutions.differenceShortPlaceholder")}
         compact
       />
 
@@ -507,7 +516,8 @@ function SolutionRow(props: {
                 ? "bg-primary text-on-primary hover:bg-primary/90 shadow-2xs"
                 : "text-on-surface-variant hover:text-primary hover:bg-surface-container"
             )}
-            title={isEditing ? "Save edit" : "Edit solution"}
+            title={t(isEditing ? "solutions.saveEdit" : "solutions.edit")}
+            aria-label={t(isEditing ? "solutions.saveEdit" : "solutions.edit")}
           >
             <HugeiconsIcon icon={isEditing ? "check" : "edit"} size={16} strokeWidth={1.8} />
           </button>
@@ -515,7 +525,8 @@ function SolutionRow(props: {
             type="button"
             onClick={() => onDelete(id)}
             className="w-8 h-8 rounded-lg flex items-center justify-center text-on-surface-variant hover:text-error hover:bg-error/10 transition-all cursor-pointer"
-            title="Delete solution"
+            title={t("solutions.delete")}
+            aria-label={t("solutions.delete")}
           >
             <HugeiconsIcon icon="delete" size={16} strokeWidth={1.8} />
           </button>
@@ -540,6 +551,7 @@ function EditableText({
   placeholder: string;
   compact?: boolean;
 }) {
+  const { t } = useTranslation("analysis");
   if (isEditing) {
     return (
       <div>
@@ -558,7 +570,7 @@ function EditableText({
     <div>
       {label && <p className="text-[11px] font-bold text-on-surface uppercase tracking-wider mb-1">{label}</p>}
       <p className={cn("text-xs text-on-surface-variant leading-relaxed", compact ? "" : "line-clamp-3")}>
-        {value || <span className="text-on-surface-variant/50 italic">No content yet.</span>}
+        {value || <span className="text-on-surface-variant/50 italic">{t("solutions.noContent")}</span>}
       </p>
     </div>
   );
@@ -579,6 +591,7 @@ function EditableList({
   onChange: (items: string[]) => void;
   compact?: boolean;
 }) {
+  const { t } = useTranslation("analysis");
   const dotClass = tone === "secondary" ? "bg-secondary" : "bg-error";
 
   if (isEditing) {
@@ -594,7 +607,7 @@ function EditableList({
             onChange(event.target.value.split("\n").map((item) => item.trim()).filter(Boolean))
           }
           className="w-full min-h-[72px] bg-surface border border-outline-variant/80 rounded-lg px-2.5 py-1.5 text-xs text-on-surface outline-none focus:border-primary focus:ring-1 focus:ring-primary resize-y"
-          placeholder="One item per line"
+          placeholder={t("solutions.oneItemPerLine")}
         />
       </div>
     );
@@ -609,7 +622,7 @@ function EditableList({
         </h4>
       )}
       <ul className="flex flex-col gap-1">
-        {(items.length ? items : ["No items listed."]).map((item, index) => (
+        {(items.length ? items : [t("solutions.noItemsListed")]).map((item, index) => (
           <li key={`${item}-${index}`} className="text-xs text-on-surface-variant flex items-start gap-1.5">
             <span className={cn("w-1.5 h-1.5 rounded-full mt-1.5 shrink-0", dotClass)} />
             <span className="leading-snug">{item}</span>

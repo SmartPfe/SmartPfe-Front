@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchApi } from "@/lib/api";
 import { useAiGeneration } from "@/context/AiGenerationContext";
+import { useTranslation } from "react-i18next";
 
 export type ExistingSolution = {
   _id?: string;
@@ -32,6 +33,11 @@ const LANGUAGE_LABELS: Record<string, string> = {
   fr: "French",
   ar: "Arabic",
 };
+const LANGUAGE_KEYS: Record<string, string> = {
+  en: "common.languages.en",
+  fr: "common.languages.fr",
+  ar: "common.languages.ar",
+};
 
 export function normalizeLanguage(language?: string | null) {
   const value = String(language || "").trim();
@@ -39,9 +45,11 @@ export function normalizeLanguage(language?: string | null) {
   return LANGUAGE_CODES[value.toLowerCase()] || value.toLowerCase();
 }
 
-export function getLanguageLabel(language?: string | null) {
+export function getLanguageLabel(language?: string | null, t?: (key: string) => string) {
   const normalized = normalizeLanguage(language);
-  return LANGUAGE_LABELS[normalized] || language || "current language";
+  if (!normalized) return t ? t("common.currentLanguage") : "current language";
+  const key = LANGUAGE_KEYS[normalized];
+  return key && t ? t(key) : LANGUAGE_LABELS[normalized] || language || "current language";
 }
 
 const normalizeList = (items: string[] = []) =>
@@ -65,6 +73,7 @@ const SCOPE = "existing-solutions";
 const PAGE_ROUTE = "/workspace/solutions";
 
 export function useExistingSolutions() {
+  const { t } = useTranslation("analysis");
   const { startTask, isTaskActive, getTask, tasks, dismissTask, cancelTask } = useAiGeneration();
   const [project, setProject] = useState<any>(null);
   const [solutions, setSolutions] = useState<ExistingSolution[]>([]);
@@ -73,6 +82,7 @@ export function useExistingSolutions() {
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
   const [localAiState, setLocalAiState] = useState<AiState>("idle");
   const [error, setError] = useState<string | null>(null);
+  const [errorKey, setErrorKey] = useState<string | null>(null);
   const autosaveTimerRef = useRef<number | null>(null);
   const solutionsRef = useRef<ExistingSolution[]>([]);
   const handledTaskIdRef = useRef<string | null>(null);
@@ -92,7 +102,13 @@ export function useExistingSolutions() {
       solutionsRef.current = normalized;
       return { projectData, solutions: normalized };
     } catch (err: any) {
-      setError(err.message || "Failed to load existing solutions. Please refresh the page.");
+      if (err.message) {
+        setError(err.message);
+        setErrorKey(null);
+      } else {
+        setError(null);
+        setErrorKey("solutions.errors.loadFailed");
+      }
       return null;
     } finally {
       setLoading(false);
@@ -131,6 +147,7 @@ export function useExistingSolutions() {
       setLocalAiState("idle");
       if (task.error && !task.error.includes("Limit reached")) {
         setError(task.error);
+        setErrorKey(null);
       }
     }
   }, [fetchSolutionsData, localAiState, tasks]);
@@ -142,7 +159,8 @@ export function useExistingSolutions() {
   const saveSolutions = useCallback(
     async (nextSolutions = solutions, showValidation = false, language?: string) => {
       if (!project?._id) {
-        setError("Project is not ready yet. Please refresh the page.");
+        setError(null);
+        setErrorKey("solutions.errors.projectNotReady");
         return;
       }
 
@@ -155,7 +173,8 @@ export function useExistingSolutions() {
       );
       if (hasIncompleteSolution) {
         if (showValidation) {
-          setError("Please fill the name, description, solved problem, and differentiation before saving.");
+          setError(null);
+          setErrorKey("solutions.errors.requiredBeforeSave");
         }
         setSaveStatus("unsaved");
         return;
@@ -163,6 +182,7 @@ export function useExistingSolutions() {
 
       setSaveStatus("saving");
       setError(null);
+      setErrorKey(null);
 
       try {
         const payload = language
@@ -189,7 +209,13 @@ export function useExistingSolutions() {
           setSaveStatus("unsaved");
         }
       } catch (err: any) {
-        setError(err.message || "Failed to save existing solutions. Please try again.");
+        if (err.message) {
+          setError(err.message);
+          setErrorKey(null);
+        } else {
+          setError(null);
+          setErrorKey("solutions.errors.saveFailed");
+        }
         setSaveStatus("unsaved");
       }
     },
@@ -242,13 +268,16 @@ export function useExistingSolutions() {
   const generateWithAi = async () => {
     setLocalAiState("generating");
     setError(null);
+    setErrorKey(null);
 
     try {
       const result = await startTask<{ type: string; solutions: ExistingSolution[] }>({
         id: TASK_ID,
         scope: SCOPE,
-        title: "Existing Solutions",
-        subTitle: "Generating existing solutions with AI...",
+        title: t("solutions.title"),
+        subTitle: t("solutions.tasks.generating"),
+        uiTitleKey: "analysis:solutions.title",
+        uiSubTitleKey: "analysis:solutions.tasks.generating",
         pageRoute: PAGE_ROUTE,
         status: "generating",
         runner: async (signal) => {
@@ -269,7 +298,13 @@ export function useExistingSolutions() {
       }
     } catch (err: any) {
       if (err?.name !== "AbortError") {
-        setError(err.message || "AI generation failed. Please try again.");
+        if (err.message) {
+          setError(err.message);
+          setErrorKey(null);
+        } else {
+          setError(null);
+          setErrorKey("solutions.errors.generationFailed");
+        }
       }
       setLocalAiState("idle");
     }
@@ -277,12 +312,14 @@ export function useExistingSolutions() {
 
   const refineWithAi = async (instructions = "") => {
     if (solutions.length === 0) {
-      setError("Add or generate existing solutions before asking AI to refine them.");
+      setError(null);
+      setErrorKey("solutions.errors.addBeforeRefining");
       return;
     }
 
     setLocalAiState("refining");
     setError(null);
+    setErrorKey(null);
 
     try {
       const trimmedInstructions = instructions.trim();
@@ -293,8 +330,10 @@ export function useExistingSolutions() {
       const result = await startTask<{ type: string; solutions: ExistingSolution[] }>({
         id: TASK_ID,
         scope: SCOPE,
-        title: "Existing Solutions",
-        subTitle: "Refining existing solutions with AI...",
+        title: t("solutions.title"),
+        subTitle: t("solutions.tasks.refining"),
+        uiTitleKey: "analysis:solutions.title",
+        uiSubTitleKey: "analysis:solutions.tasks.refining",
         pageRoute: PAGE_ROUTE,
         status: "refining",
         runner: async (signal) => {
@@ -316,7 +355,13 @@ export function useExistingSolutions() {
       }
     } catch (err: any) {
       if (err?.name !== "AbortError") {
-        setError(err.message || "AI refinement failed. Please try again.");
+        if (err.message) {
+          setError(err.message);
+          setErrorKey(null);
+        } else {
+          setError(null);
+          setErrorKey("solutions.errors.refinementFailed");
+        }
       }
       setLocalAiState("idle");
     }
@@ -324,19 +369,27 @@ export function useExistingSolutions() {
 
   const translateWithAi = async () => {
     if (solutions.length === 0) {
-      setError("Add or generate existing solutions before asking AI to translate them.");
+      setError(null);
+      setErrorKey("solutions.errors.addBeforeTranslating");
       return;
     }
 
     setLocalAiState("translating");
     setError(null);
+    setErrorKey(null);
 
     try {
       const result = await startTask<{ type: string; solutions: ExistingSolution[] }>({
         id: TASK_ID,
         scope: SCOPE,
-        title: "Existing Solutions",
-        subTitle: `Translating existing solutions to ${getLanguageLabel(projectLanguage)}...`,
+        title: t("solutions.title"),
+        subTitle: t("solutions.tasks.translating", { language: getLanguageLabel(projectLanguage, t) }),
+        uiTitleKey: "analysis:solutions.title",
+        uiSubTitleKey: "analysis:solutions.tasks.translating",
+        uiSubTitleValues: { language: getLanguageLabel(projectLanguage) },
+        uiSubTitleValueKeys: LANGUAGE_KEYS[normalizeLanguage(projectLanguage)]
+          ? { language: `analysis:${LANGUAGE_KEYS[normalizeLanguage(projectLanguage)]}` }
+          : undefined,
         pageRoute: PAGE_ROUTE,
         status: "translating",
         runner: async (signal) => {
@@ -372,7 +425,13 @@ export function useExistingSolutions() {
       }
     } catch (err: any) {
       if (err?.name !== "AbortError") {
-        setError(err.message || "AI existing solution translation failed. Please try again.");
+        if (err.message) {
+          setError(err.message);
+          setErrorKey(null);
+        } else {
+          setError(null);
+          setErrorKey("solutions.errors.translationFailed");
+        }
       }
       setLocalAiState("idle");
     }
@@ -404,7 +463,10 @@ export function useExistingSolutions() {
     dismissTask(TASK_ID);
   }, [dismissTask]);
 
-  const dismissError = useCallback(() => setError(null), []);
+  const dismissError = useCallback(() => {
+    setError(null);
+    setErrorKey(null);
+  }, []);
 
   return {
     project,
@@ -416,6 +478,7 @@ export function useExistingSolutions() {
     isAiBusy,
     suggestion,
     error,
+    errorKey,
     markUnsaved,
     saveSolutions,
     generateWithAi,

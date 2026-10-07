@@ -6,10 +6,11 @@ import AiBackgroundBanner from "@/components/ai/AiBackgroundBanner";
 import HugeiconsIcon from "@/components/ui/HugeiconsIcon";
 import SaveStatusHeader from "@/components/ui/SaveStatusHeader";
 import AiActionToolbar from "@/components/ai/AiActionToolbar";
+import { useTranslation } from "react-i18next";
 
-const actorTypeOptions: { value: ActorType; label: string }[] = [
-  { value: "primary", label: "Acteur principal" },
-  { value: "external", label: "Acteur externe" },
+const actorTypeOptions: { value: ActorType; labelKey: string }[] = [
+  { value: "primary", labelKey: "actors.typePrimary" },
+  { value: "external", labelKey: "actors.typeExternal" },
 ];
 
 const iconOptions = [
@@ -25,6 +26,19 @@ const iconOptions = [
   "smart-toy",
 ];
 
+const iconLabelKeys: Record<string, string> = {
+  person: "actors.icons.person",
+  school: "actors.icons.school",
+  "admin-panel-settings": "actors.icons.adminPanelSettings",
+  "supervisor-account": "actors.icons.supervisorAccount",
+  "business-center": "actors.icons.businessCenter",
+  api: "actors.icons.api",
+  devices: "actors.icons.devices",
+  database: "actors.icons.database",
+  sensors: "actors.icons.sensors",
+  "smart-toy": "actors.icons.smartToy",
+};
+
 const createEmptyActor = (): Actor => ({
   localId: `new-${Date.now()}`,
   name: "",
@@ -34,6 +48,7 @@ const createEmptyActor = (): Actor => ({
 });
 
 export default function Actors() {
+  const { t } = useTranslation("analysis");
   const {
     actors,
     setActors,
@@ -43,6 +58,7 @@ export default function Actors() {
     isAiBusy,
     suggestion,
     error,
+    errorKey,
     markUnsaved,
     saveActors,
     generateWithAi,
@@ -90,7 +106,7 @@ export default function Actors() {
     return (
       <div className="flex flex-col min-h-[50vh] items-center justify-center">
         <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4" />
-        <p className="text-on-surface-variant font-medium text-sm">Loading actors...</p>
+        <p className="text-on-surface-variant font-medium text-sm">{t("actors.loading")}</p>
       </div>
     );
   }
@@ -104,17 +120,17 @@ export default function Actors() {
       <div className="mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <div className="flex items-center gap-1.5 mb-1.5">
-            <span className="text-xs font-bold uppercase tracking-wider text-primary">Context & Scope</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-primary">{t("actors.eyebrow")}</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-on-surface flex items-center">
-            Actors & Stakeholders
+            {t("actors.title")}
             <InfoTooltip
-              label="Actors & Roles"
-              tooltip="Identify all users and external systems interacting with your application. These actors will form the basis of your product backlog and use case diagrams."
+              label={t("actors.tooltipLabel")}
+              tooltip={t("actors.tooltip")}
             />
           </h1>
           <p className="text-sm text-on-surface-variant max-w-[42rem] mt-1.5 leading-relaxed">
-            Define the direct human users, external services, or automated hardware roles that interact with your system.
+            {t("actors.description")}
           </p>
         </div>
 
@@ -129,7 +145,7 @@ export default function Actors() {
       {/* Background AI Progress Banner */}
       <AiBackgroundBanner
         isVisible={isAiBusy}
-        moduleName="Actors & Stakeholders"
+        moduleName={t("actors.title")}
         action={aiState}
         onCancel={cancelAi}
       />
@@ -144,10 +160,10 @@ export default function Actors() {
         isTranslating={aiState === "translating"}
         isBusy={isAiBusy || aiState === "suggestion_ready"}
         canRefine={actors.length > 0}
-        refineDisabledTitle="Add or generate actors before refining"
-        refinePlaceholder="Tell AI what you'd like to improve (e.g., 'Add a System Admin and specify hardware sensors')..."
+        refineDisabledTitle={t("actors.refineDisabled")}
+        refinePlaceholder={t("actors.refinePlaceholder")}
         showTranslate={shouldShowTranslate}
-        translateLabel={`Translate to ${getLanguageLabel(projectLanguage)}`}
+        translateLabel={t("toolbar.translateTo", { language: getLanguageLabel(projectLanguage, t) })}
         primaryAction={
           <button
             type="button"
@@ -156,16 +172,16 @@ export default function Actors() {
             className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 h-9 px-4 bg-primary text-on-primary rounded-lg text-[13px] font-semibold tracking-tight hover:bg-primary/90 transition-all duration-150 shadow-2xs active:scale-[0.98] disabled:opacity-50 select-none cursor-pointer"
           >
             <HugeiconsIcon icon="add" size={16} strokeWidth={2} />
-            <span>Add Actor</span>
+            <span>{t("actors.addActor")}</span>
           </button>
         }
       />
 
-      {error && (
+      {(error || errorKey) && (
         <div className="mb-6 p-3.5 rounded-xl bg-error-container text-on-error-container border border-error/20 flex items-center justify-between gap-3 shadow-2xs">
-          <p className="text-sm font-medium">{error}</p>
-          <button onClick={dismissError} className="shrink-0 text-xs font-semibold underline hover:no-underline">
-            Dismiss
+          <p className="text-sm font-medium">{errorKey ? t(errorKey) : error}</p>
+          <button onClick={dismissError} className="shrink-0 text-xs font-semibold underline hover:no-underline" aria-label={t("common.dismiss")}>
+            {t("common.dismiss")}
           </button>
         </div>
       )}
@@ -176,22 +192,22 @@ export default function Actors() {
             <div>
               <div className="flex items-center gap-2">
                 <HugeiconsIcon icon="ai-spark" size={18} strokeWidth={1.8} className="text-primary" />
-                <h3 className="text-sm font-bold text-on-surface">AI suggestion ready</h3>
+                <h3 className="text-sm font-bold text-on-surface">{t("actors.suggestionTitle")}</h3>
               </div>
-              <p className="text-xs text-on-surface-variant mt-0.5">Review the generated actors before accepting and applying them.</p>
+              <p className="text-xs text-on-surface-variant mt-0.5">{t("actors.suggestionDescription")}</p>
             </div>
             <div className="flex items-center gap-2">
               <button
                 onClick={discardSuggestion}
                 className="h-8 px-3.5 rounded-lg border border-outline-variant bg-surface text-on-surface text-xs font-semibold hover:bg-surface-container-low transition-colors"
               >
-                Discard
+                {t("common.discard")}
               </button>
               <button
                 onClick={acceptSuggestion}
                 className="h-8 px-4 rounded-lg bg-primary text-on-primary text-xs font-semibold hover:bg-primary/90 transition-all shadow-2xs"
               >
-                Accept actors
+                {t("actors.accept")}
               </button>
             </div>
           </div>
@@ -209,9 +225,9 @@ export default function Actors() {
       <div className="space-y-6">
         <ActorSections
           actors={primaryActors}
-          title="Primary Actors"
-          subtitle="Direct human end-users and primary stakeholders"
-          badgeText="Human"
+          title={t("actors.primaryActors")}
+          subtitle={t("actors.primaryActorsDescription")}
+          badgeText={t("actors.human")}
           editingId={editingId}
           onEdit={setEditingId}
           onDelete={handleDeleteActor}
@@ -219,9 +235,9 @@ export default function Actors() {
         />
         <ActorSections
           actors={externalActors}
-          title="External Actors"
-          subtitle="Third-party services, APIs, hardware sensors, or subsystems"
-          badgeText="System / API"
+          title={t("actors.externalActors")}
+          subtitle={t("actors.externalActorsDescription")}
+          badgeText={t("actors.systemApi")}
           editingId={editingId}
           onEdit={setEditingId}
           onDelete={handleDeleteActor}
@@ -253,6 +269,7 @@ function ActorSections({
   onDelete: (id: string) => void;
   onUpdate: (id: string, updates: Partial<Actor>) => void;
 }) {
+  const { t } = useTranslation("analysis");
   return (
     <div className="bg-surface-container-lowest border border-outline-variant/80 rounded-2xl overflow-hidden shadow-2xs">
       {title && (
@@ -275,10 +292,10 @@ function ActorSections({
       )}
 
       <div className="hidden md:grid grid-cols-[220px_minmax(0,1fr)_130px_90px] gap-4 px-5 py-2.5 bg-surface-container-low/60 border-b border-outline-variant/60 text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">
-        <div>Actor Name & Icon</div>
-        <div>Description</div>
-        <div>Type</div>
-        <div className="text-right">Actions</div>
+        <div>{t("actors.actorNameIcon")}</div>
+        <div>{t("actors.descriptionLabel")}</div>
+        <div>{t("actors.typeLabel")}</div>
+        <div className="text-right">{t("actors.actions")}</div>
       </div>
 
       <div className="divide-y divide-outline-variant/60">
@@ -287,8 +304,8 @@ function ActorSections({
             <div className="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center mb-2.5 text-on-surface-variant/70">
               <HugeiconsIcon icon="group" size={20} strokeWidth={1.6} />
             </div>
-            <p className="text-sm font-medium text-on-surface-variant">No actors in this category yet.</p>
-            <p className="text-xs text-on-surface-variant/70 mt-0.5">Click "Add Actor" or "Generate with AI" to populate.</p>
+            <p className="text-sm font-medium text-on-surface-variant">{t("actors.emptyTitle")}</p>
+            <p className="text-xs text-on-surface-variant/70 mt-0.5">{t("actors.emptyDescription")}</p>
           </div>
         ) : (
           actors.map((actor) => {
@@ -314,7 +331,7 @@ function ActorSections({
                         value={actor.name}
                         onChange={(event) => onUpdate(id, { name: event.target.value })}
                         className="w-full bg-surface border border-outline-variant/80 rounded-lg px-2.5 py-1.5 text-sm text-on-surface outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-                        placeholder="Actor name"
+                        placeholder={t("actors.namePlaceholder")}
                         autoFocus
                       />
                       <select
@@ -324,7 +341,7 @@ function ActorSections({
                       >
                         {iconOptions.map((icon) => (
                           <option key={icon} value={icon}>
-                            {icon.replace(/-/g, " ")}
+                            {t(iconLabelKeys[icon])}
                           </option>
                         ))}
                       </select>
@@ -332,10 +349,12 @@ function ActorSections({
                   ) : (
                     <div className="min-w-0 pt-1">
                       <span className="font-semibold text-sm text-on-surface block truncate">
-                        {actor.name || "Untitled actor"}
+                         {actor.name || t("actors.untitled")}
                       </span>
                       <span className="text-[11px] text-on-surface-variant/70 block truncate capitalize">
-                        {actor.icon?.replace(/-/g, " ") || "person"}
+                        {actor.icon && iconLabelKeys[actor.icon]
+                          ? t(iconLabelKeys[actor.icon])
+                          : actor.icon?.replace(/-/g, " ") || t(iconLabelKeys.person)}
                       </span>
                     </div>
                   )}
@@ -348,10 +367,10 @@ function ActorSections({
                       value={actor.description}
                       onChange={(event) => onUpdate(id, { description: event.target.value })}
                       className="w-full min-h-[72px] bg-surface border border-outline-variant/80 rounded-lg px-3 py-2 text-sm text-on-surface outline-none focus:border-primary focus:ring-1 focus:ring-primary resize-y"
-                      placeholder="Describe this actor's roles, responsibilities, and permissions..."
+                      placeholder={t("actors.descriptionPlaceholder")}
                     />
                   ) : (
-                    <p className="whitespace-pre-wrap">{actor.description || <span className="text-on-surface-variant/50 italic">No description provided.</span>}</p>
+                    <p className="whitespace-pre-wrap">{actor.description || <span className="text-on-surface-variant/50 italic">{t("actors.noDescription")}</span>}</p>
                   )}
                 </div>
 
@@ -364,7 +383,7 @@ function ActorSections({
                       className="w-full bg-surface border border-outline-variant/80 rounded-lg px-2.5 py-1.5 text-xs text-on-surface outline-none focus:border-primary cursor-pointer"
                     >
                       {actorTypeOptions.map((type) => (
-                        <option key={type.value} value={type.value}>{type.label}</option>
+                        <option key={type.value} value={type.value}>{t(type.labelKey)}</option>
                       ))}
                     </select>
                   ) : (
@@ -375,7 +394,7 @@ function ActorSections({
                         : "bg-surface-container text-on-surface-variant border-outline-variant/60"
                     )}>
                       <HugeiconsIcon icon={actor.type === "external" ? "api" : "person"} size={12} strokeWidth={1.8} />
-                      {actor.type === "external" ? "External" : "Primary"}
+                      {actor.type === "external" ? t("actors.typeExternal") : t("actors.typePrimary")}
                     </span>
                   )}
                 </div>
@@ -393,7 +412,8 @@ function ActorSections({
                             ? "bg-primary text-on-primary hover:bg-primary/90 shadow-2xs"
                             : "text-on-surface-variant hover:text-primary hover:bg-surface-container"
                         )}
-                        title={isEditing ? "Save edit" : "Edit actor"}
+                        title={t(isEditing ? "actors.saveEdit" : "actors.edit")}
+                        aria-label={t(isEditing ? "actors.saveEdit" : "actors.edit")}
                       >
                         <HugeiconsIcon icon={isEditing ? "check" : "edit"} size={16} strokeWidth={1.8} />
                       </button>
@@ -401,7 +421,8 @@ function ActorSections({
                         type="button"
                         onClick={() => onDelete(id)}
                         className="w-8 h-8 rounded-lg flex items-center justify-center text-on-surface-variant hover:text-error hover:bg-error/10 transition-all cursor-pointer"
-                        title="Delete actor"
+                        title={t("actors.delete")}
+                        aria-label={t("actors.delete")}
                       >
                         <HugeiconsIcon icon="delete" size={16} strokeWidth={1.8} />
                       </button>

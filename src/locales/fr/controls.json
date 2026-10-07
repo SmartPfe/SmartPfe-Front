@@ -1,4 +1,13 @@
 {
+  "diagram": {
+    "pngImage": "Image PNG",
+    "rendering": "Rendu du diagramme…",
+    "errorTitle": "Erreur de rendu du diagramme",
+    "renderError": "Une erreur est survenue lors du rendu du diagramme.",
+    "downloadTitle": "Télécharger le diagramme au format PNG",
+    "saving": "Enregistrement…",
+    "download": "Télécharger le PNG"
+  },
   "notifications": {
     "title": "Notifications",
     "liveUpdates": "Mises à jour en direct",

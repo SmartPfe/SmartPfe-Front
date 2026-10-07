@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchApi } from "@/lib/api";
 import { useAiGeneration } from "@/context/AiGenerationContext";
+import { useTranslation } from "react-i18next";
 
 export type ActorType = "primary" | "external";
 
@@ -30,6 +31,11 @@ const LANGUAGE_LABELS: Record<string, string> = {
   fr: "French",
   ar: "Arabic",
 };
+const LANGUAGE_KEYS: Record<string, string> = {
+  en: "common.languages.en",
+  fr: "common.languages.fr",
+  ar: "common.languages.ar",
+};
 
 export function normalizeLanguage(language?: string | null) {
   const value = String(language || "").trim();
@@ -37,9 +43,11 @@ export function normalizeLanguage(language?: string | null) {
   return LANGUAGE_CODES[value.toLowerCase()] || value.toLowerCase();
 }
 
-export function getLanguageLabel(language?: string | null) {
+export function getLanguageLabel(language?: string | null, t?: (key: string) => string) {
   const normalized = normalizeLanguage(language);
-  return LANGUAGE_LABELS[normalized] || language || "current language";
+  if (!normalized) return t ? t("common.currentLanguage") : "current language";
+  const key = LANGUAGE_KEYS[normalized];
+  return key && t ? t(key) : LANGUAGE_LABELS[normalized] || language || "current language";
 }
 
 export const normalizeActors = (actors: Actor[] = []): Actor[] =>
@@ -56,6 +64,7 @@ const SCOPE = "actors";
 const PAGE_ROUTE = "/workspace/actors";
 
 export function useActors() {
+  const { t } = useTranslation("analysis");
   const { startTask, isTaskActive, getTask, tasks, dismissTask, cancelTask } = useAiGeneration();
   const [project, setProject] = useState<any>(null);
   const [actors, setActors] = useState<Actor[]>([]);
@@ -64,6 +73,7 @@ export function useActors() {
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
   const [localAiState, setLocalAiState] = useState<AiState>("idle");
   const [error, setError] = useState<string | null>(null);
+  const [errorKey, setErrorKey] = useState<string | null>(null);
   const autosaveTimerRef = useRef<number | null>(null);
   const actorsRef = useRef<Actor[]>([]);
   const handledTaskIdRef = useRef<string | null>(null);
@@ -83,7 +93,13 @@ export function useActors() {
       actorsRef.current = normalized;
       return { projectData, actors: normalized };
     } catch (err: any) {
-      setError(err.message || "Failed to load actors. Please refresh the page.");
+      if (err.message) {
+        setError(err.message);
+        setErrorKey(null);
+      } else {
+        setError(null);
+        setErrorKey("actors.errors.loadFailed");
+      }
       return null;
     } finally {
       setLoading(false);
@@ -122,6 +138,7 @@ export function useActors() {
       setLocalAiState("idle");
       if (task.error && !task.error.includes("Limit reached")) {
         setError(task.error);
+        setErrorKey(null);
       }
     }
   }, [fetchActorsData, localAiState, tasks]);
@@ -133,7 +150,8 @@ export function useActors() {
   const saveActors = useCallback(
     async (nextActors = actors, showValidation = false, language?: string) => {
       if (!project?._id) {
-        setError("Project is not ready yet. Please refresh the page.");
+        setError(null);
+        setErrorKey("actors.errors.projectNotReady");
         return;
       }
 
@@ -142,7 +160,8 @@ export function useActors() {
       );
       if (hasIncompleteActor) {
         if (showValidation) {
-          setError("Please fill each actor name and description before saving.");
+          setError(null);
+          setErrorKey("actors.errors.requiredBeforeSave");
         }
         setSaveStatus("unsaved");
         return;
@@ -150,6 +169,7 @@ export function useActors() {
 
       setSaveStatus("saving");
       setError(null);
+      setErrorKey(null);
 
       try {
         const payload = language
@@ -176,7 +196,13 @@ export function useActors() {
           setSaveStatus("unsaved");
         }
       } catch (err: any) {
-        setError(err.message || "Failed to save actors. Please try again.");
+        if (err.message) {
+          setError(err.message);
+          setErrorKey(null);
+        } else {
+          setError(null);
+          setErrorKey("actors.errors.saveFailed");
+        }
         setSaveStatus("unsaved");
       }
     },
@@ -225,13 +251,16 @@ export function useActors() {
   const generateWithAi = async () => {
     setLocalAiState("generating");
     setError(null);
+    setErrorKey(null);
 
     try {
       const result = await startTask<{ type: string; actors: Actor[] }>({
         id: TASK_ID,
         scope: SCOPE,
-        title: "Actors & Stakeholders",
-        subTitle: "Generating actors with AI...",
+        title: t("actors.title"),
+        subTitle: t("actors.tasks.generating"),
+        uiTitleKey: "analysis:actors.title",
+        uiSubTitleKey: "analysis:actors.tasks.generating",
         pageRoute: PAGE_ROUTE,
         status: "generating",
         runner: async (signal) => {
@@ -252,7 +281,13 @@ export function useActors() {
       }
     } catch (err: any) {
       if (err?.name !== "AbortError") {
-        setError(err.message || "AI generation failed. Please try again.");
+        if (err.message) {
+          setError(err.message);
+          setErrorKey(null);
+        } else {
+          setError(null);
+          setErrorKey("actors.errors.generationFailed");
+        }
       }
       setLocalAiState("idle");
     }
@@ -260,12 +295,14 @@ export function useActors() {
 
   const refineWithAi = async (instructions = "") => {
     if (actors.length === 0) {
-      setError("Add or generate actors before asking AI to refine them.");
+      setError(null);
+      setErrorKey("actors.errors.addBeforeRefining");
       return;
     }
 
     setLocalAiState("refining");
     setError(null);
+    setErrorKey(null);
 
     try {
       const trimmedInstructions = instructions.trim();
@@ -276,8 +313,10 @@ export function useActors() {
       const result = await startTask<{ type: string; actors: Actor[] }>({
         id: TASK_ID,
         scope: SCOPE,
-        title: "Actors & Stakeholders",
-        subTitle: "Refining actors with AI...",
+        title: t("actors.title"),
+        subTitle: t("actors.tasks.refining"),
+        uiTitleKey: "analysis:actors.title",
+        uiSubTitleKey: "analysis:actors.tasks.refining",
         pageRoute: PAGE_ROUTE,
         status: "refining",
         runner: async (signal) => {
@@ -299,7 +338,13 @@ export function useActors() {
       }
     } catch (err: any) {
       if (err?.name !== "AbortError") {
-        setError(err.message || "AI refinement failed. Please try again.");
+        if (err.message) {
+          setError(err.message);
+          setErrorKey(null);
+        } else {
+          setError(null);
+          setErrorKey("actors.errors.refinementFailed");
+        }
       }
       setLocalAiState("idle");
     }
@@ -307,19 +352,27 @@ export function useActors() {
 
   const translateWithAi = async () => {
     if (actors.length === 0) {
-      setError("Add or generate actors before asking AI to translate them.");
+      setError(null);
+      setErrorKey("actors.errors.addBeforeTranslating");
       return;
     }
 
     setLocalAiState("translating");
     setError(null);
+    setErrorKey(null);
 
     try {
       const result = await startTask<{ type: string; actors: Actor[] }>({
         id: TASK_ID,
         scope: SCOPE,
-        title: "Actors & Stakeholders",
-        subTitle: `Translating actors to ${getLanguageLabel(projectLanguage)}...`,
+        title: t("actors.title"),
+        subTitle: t("actors.tasks.translating", { language: getLanguageLabel(projectLanguage, t) }),
+        uiTitleKey: "analysis:actors.title",
+        uiSubTitleKey: "analysis:actors.tasks.translating",
+        uiSubTitleValues: { language: getLanguageLabel(projectLanguage) },
+        uiSubTitleValueKeys: LANGUAGE_KEYS[normalizeLanguage(projectLanguage)]
+          ? { language: `analysis:${LANGUAGE_KEYS[normalizeLanguage(projectLanguage)]}` }
+          : undefined,
         pageRoute: PAGE_ROUTE,
         status: "translating",
         runner: async (signal) => {
@@ -355,7 +408,13 @@ export function useActors() {
       }
     } catch (err: any) {
       if (err?.name !== "AbortError") {
-        setError(err.message || "AI actor translation failed. Please try again.");
+        if (err.message) {
+          setError(err.message);
+          setErrorKey(null);
+        } else {
+          setError(null);
+          setErrorKey("actors.errors.translationFailed");
+        }
       }
       setLocalAiState("idle");
     }
@@ -383,7 +442,10 @@ export function useActors() {
     dismissTask(TASK_ID);
   }, [dismissTask]);
 
-  const dismissError = useCallback(() => setError(null), []);
+  const dismissError = useCallback(() => {
+    setError(null);
+    setErrorKey(null);
+  }, []);
 
   return {
     project,
@@ -395,6 +457,7 @@ export function useActors() {
     isAiBusy,
     suggestion,
     error,
+    errorKey,
     markUnsaved,
     saveActors,
     generateWithAi,

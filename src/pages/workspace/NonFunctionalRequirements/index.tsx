@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import InfoTooltip from "@/components/ui/InfoTooltip";
 import {
@@ -48,6 +49,7 @@ const createEmptyRequirement = (index: number, category = "Performance"): NonFun
 });
 
 export default function NonFunctionalRequirements() {
+  const { t } = useTranslation("planning");
   const {
     requirements,
     setRequirements,
@@ -69,6 +71,8 @@ export default function NonFunctionalRequirements() {
     discardSuggestion,
     dismissError,
   } = useNonFunctionalRequirements();
+  const localizedProjectLanguage = getPlanningLanguageLabel(projectLanguage, t);
+  const displayError = resolveNonFunctionalError(error, t);
 
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -107,7 +111,7 @@ export default function NonFunctionalRequirements() {
     return (
       <div className="flex flex-col min-h-[50vh] items-center justify-center">
         <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4" />
-        <p className="text-on-surface-variant font-medium text-sm">Loading non-functional requirements...</p>
+        <p className="text-on-surface-variant font-medium text-sm">{t("nonFunctional.loading")}</p>
       </div>
     );
   }
@@ -118,17 +122,17 @@ export default function NonFunctionalRequirements() {
       <div className="mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <div className="flex items-center gap-1.5 mb-1.5">
-            <span className="text-xs font-bold uppercase tracking-wider text-primary">System Quality & SLA</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-primary">{t("nonFunctional.eyebrow")}</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-on-surface flex items-center">
-            Non-Functional Requirements
+            {t("nonFunctional.title")}
             <InfoTooltip
-              label="Quality Attributes"
-              tooltip="Define constraints and quality standards including performance latency, security policies, reliability metrics, and usability guidelines."
+              label={t("nonFunctional.tooltipLabel")}
+              tooltip={t("nonFunctional.tooltip")}
             />
           </h1>
           <p className="text-sm text-on-surface-variant max-w-[42rem] mt-1.5 leading-relaxed">
-            Specify the operational criteria, security standards, and performance attributes your application must uphold.
+            {t("nonFunctional.description")}
           </p>
         </div>
 
@@ -143,7 +147,7 @@ export default function NonFunctionalRequirements() {
       {/* Background AI Progress Banner */}
       <AiBackgroundBanner
         isVisible={isAiBusy}
-        moduleName="Non-Functional Requirements"
+        moduleName={t("nonFunctional.title")}
         action={aiState}
         onCancel={cancelAi}
       />
@@ -158,10 +162,10 @@ export default function NonFunctionalRequirements() {
         isTranslating={aiState === "translating"}
         isBusy={isAiBusy || aiState === "suggestion_ready"}
         canRefine={requirements.length > 0}
-        refineDisabledTitle="Add or generate requirements before refining"
-        refinePlaceholder="Tell AI what you'd like to improve (e.g., 'Add strict OWASP Top 10 security standards and 99.9% uptime SLA')..."
+        refineDisabledTitle={t("nonFunctional.refineDisabled")}
+        refinePlaceholder={t("nonFunctional.refinePlaceholder")}
         showTranslate={shouldShowTranslate}
-        translateLabel={`Translate to ${getLanguageLabel(projectLanguage)}`}
+        translateLabel={t("common.translateTo", { language: localizedProjectLanguage })}
         primaryAction={
           <button
             type="button"
@@ -170,16 +174,16 @@ export default function NonFunctionalRequirements() {
             className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 h-9 px-4 bg-primary text-on-primary rounded-lg text-[13px] font-semibold tracking-tight hover:bg-primary/90 transition-all duration-150 shadow-2xs active:scale-[0.98] disabled:opacity-50 select-none cursor-pointer"
           >
             <HugeiconsIcon icon="add" size={16} strokeWidth={2} />
-            <span>Add NFR</span>
+            <span>{t("nonFunctional.add")}</span>
           </button>
         }
       />
 
-      {error && (
+      {displayError && (
         <div className="mb-6 p-3.5 rounded-xl bg-error-container text-on-error-container border border-error/20 flex items-center justify-between gap-3 shadow-2xs">
-          <p className="text-sm font-medium">{error}</p>
+          <p className="text-sm font-medium">{displayError}</p>
           <button onClick={dismissError} className="shrink-0 text-xs font-semibold underline hover:no-underline">
-            Dismiss
+            {t("common.dismiss")}
           </button>
         </div>
       )}
@@ -191,10 +195,10 @@ export default function NonFunctionalRequirements() {
             <div>
               <div className="flex items-center gap-2">
                 <HugeiconsIcon icon="ai-spark" size={18} strokeWidth={1.8} className="text-primary" />
-                <h3 className="text-sm font-bold text-on-surface">AI suggestion ready</h3>
+                <h3 className="text-sm font-bold text-on-surface">{t("nonFunctional.suggestionTitle")}</h3>
               </div>
               <p className="text-xs text-on-surface-variant mt-0.5">
-                Review the generated non-functional quality standards before applying them.
+                {t("nonFunctional.suggestionDescription")}
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -202,13 +206,13 @@ export default function NonFunctionalRequirements() {
                 onClick={discardSuggestion}
                 className="h-8 px-3.5 rounded-lg border border-outline-variant bg-surface text-on-surface text-xs font-semibold hover:bg-surface-container-low transition-colors cursor-pointer"
               >
-                Discard
+                {t("nonFunctional.discard")}
               </button>
               <button
                 onClick={acceptSuggestion}
                 className="h-8 px-4 rounded-lg bg-primary text-on-primary text-xs font-semibold hover:bg-primary/90 transition-all shadow-2xs cursor-pointer"
               >
-                Accept requirements
+                {t("nonFunctional.accept")}
               </button>
             </div>
           </div>
@@ -233,8 +237,8 @@ export default function NonFunctionalRequirements() {
           <div className="w-12 h-12 rounded-full bg-surface-container border border-outline-variant/80 flex items-center justify-center group-hover:scale-110 group-hover:text-primary transition-all duration-200">
             <HugeiconsIcon icon="add" size={22} strokeWidth={2} />
           </div>
-          <span className="font-semibold text-sm text-on-surface">Add First Quality Requirement</span>
-          <span className="text-xs text-on-surface-variant/70">Or click "Generate with AI" to analyze security, scalability, and performance goals</span>
+          <span className="font-semibold text-sm text-on-surface">{t("nonFunctional.emptyTitle")}</span>
+          <span className="text-xs text-on-surface-variant/70">{t("nonFunctional.emptyDescription")}</span>
         </button>
       ) : (
         <RequirementGrid
@@ -267,6 +271,7 @@ function RequirementGrid({
   onUpdate: (id: string, updates: Partial<NonFunctionalRequirement>) => void;
   onAdd: (category: string) => void;
 }) {
+  const { t } = useTranslation("planning");
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       {groupedRequirements.map((group) => {
@@ -279,7 +284,7 @@ function RequirementGrid({
                 <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border border-outline-variant/50", style.bg, style.color)}>
                   <HugeiconsIcon icon={style.icon} size={16} strokeWidth={1.8} />
                 </div>
-                <h2 className="text-base font-bold text-on-surface tracking-tight">{group.category}</h2>
+                <h2 className="text-base font-bold text-on-surface tracking-tight">{categoryDisplayLabel(group.category, t)}</h2>
               </div>
               <span className="text-xs font-mono font-semibold text-on-surface-variant px-2.5 py-0.5 rounded-full bg-surface-container border border-outline-variant/60">
                 {group.requirements.length}
@@ -307,7 +312,7 @@ function RequirementGrid({
                   className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-dashed border-outline-variant/80 text-xs font-semibold text-on-surface-variant hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all cursor-pointer"
                 >
                   <HugeiconsIcon icon="add" size={14} strokeWidth={2} />
-                  <span>Add {group.category} Requirement</span>
+                  <span>{t("nonFunctional.addCategory", { category: categoryDisplayLabel(group.category, t) })}</span>
                 </button>
               )}
             </div>
@@ -333,6 +338,7 @@ function RequirementCard({
   onDelete: (id: string) => void;
   onUpdate: (id: string, updates: Partial<NonFunctionalRequirement>) => void;
 }) {
+  const { t } = useTranslation("planning");
   const id = getRequirementKey(requirement);
   const isEditing = editingId === id;
 
@@ -356,12 +362,12 @@ function RequirementCard({
               value={requirement.title}
               onChange={(event) => onUpdate(id, { title: event.target.value })}
               className="flex-1 bg-surface border border-outline-variant/80 rounded-lg px-2.5 py-1 text-xs font-bold text-on-surface outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-              placeholder="Requirement title"
+              placeholder={t("nonFunctional.titlePlaceholder")}
               autoFocus
             />
           ) : (
             <h3 className="font-bold text-sm text-on-surface tracking-tight truncate">
-              {requirement.title || "Untitled requirement"}
+              {requirement.title || t("common.untitledRequirement")}
             </h3>
           )}
         </div>
@@ -378,7 +384,8 @@ function RequirementCard({
                   ? "bg-primary text-on-primary hover:bg-primary/90 shadow-2xs"
                   : "text-on-surface-variant hover:text-primary hover:bg-surface-container"
               )}
-              title={isEditing ? "Save edit" : "Edit requirement"}
+              title={t(isEditing ? "common.saveEdit" : "common.edit")}
+              aria-label={t(isEditing ? "common.saveEdit" : "common.edit")}
             >
               <HugeiconsIcon icon={isEditing ? "check" : "edit"} size={15} strokeWidth={1.8} />
             </button>
@@ -386,7 +393,8 @@ function RequirementCard({
               type="button"
               onClick={() => onDelete(id)}
               className="w-7 h-7 rounded-lg flex items-center justify-center text-on-surface-variant hover:text-error hover:bg-error/10 transition-all cursor-pointer"
-              title="Delete requirement"
+              title={t("common.delete")}
+              aria-label={t("common.delete")}
             >
               <HugeiconsIcon icon="delete" size={15} strokeWidth={1.8} />
             </button>
@@ -401,7 +409,7 @@ function RequirementCard({
             value={requirement.description}
             onChange={(event) => onUpdate(id, { description: event.target.value })}
             className="w-full min-h-[80px] bg-surface border border-outline-variant/80 rounded-lg px-3 py-2 text-xs text-on-surface outline-none focus:border-primary focus:ring-1 focus:ring-primary resize-y"
-            placeholder="Specify threshold (e.g., 'API response latency must not exceed 200ms under 5,000 req/sec')..."
+            placeholder={t("nonFunctional.descriptionPlaceholder")}
           />
           <div className="grid grid-cols-2 gap-2">
             <select
@@ -411,7 +419,7 @@ function RequirementCard({
             >
               {priorityOptions.map((priority) => (
                 <option key={priority} value={priority}>
-                  {priority}
+                  {t(priorityLabelKey(priority))}
                 </option>
               ))}
             </select>
@@ -422,7 +430,7 @@ function RequirementCard({
             >
               {statusOptions.map((status) => (
                 <option key={status} value={status}>
-                  {status}
+                  {t(statusLabelKey(status))}
                 </option>
               ))}
             </select>
@@ -431,14 +439,14 @@ function RequirementCard({
       ) : (
         <>
           <p className="text-xs text-on-surface-variant leading-relaxed line-clamp-3">
-            {requirement.description || <span className="text-on-surface-variant/50 italic">No description provided.</span>}
+            {requirement.description || <span className="text-on-surface-variant/50 italic">{t("common.noDescription")}</span>}
           </p>
           <div className="mt-3 flex items-center gap-2">
             <span className={cn("text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border", priorities[requirement.priority])}>
-              {requirement.priority}
+              {t(priorityLabelKey(requirement.priority))}
             </span>
             <span className="text-[10px] font-semibold text-on-surface-variant px-2 py-0.5 rounded-full bg-surface-container border border-outline-variant/60">
-              {requirement.status}
+              {t(statusLabelKey(requirement.status))}
             </span>
           </div>
         </>
@@ -462,5 +470,41 @@ function getCategoryStyle(category: string) {
 
 function getRequirementKey(requirement: NonFunctionalRequirement) {
   return requirement._id || requirement.localId || requirement.code;
+}
+
+function priorityLabelKey(priority: RequirementPriority) {
+  return ({
+    "Must Have": "common.priorityLabels.mustHave",
+    "Should Have": "common.priorityLabels.shouldHave",
+    "Could Have": "common.priorityLabels.couldHave",
+    "Won't Have": "common.priorityLabels.wontHave",
+  } as const)[priority];
+}
+
+function statusLabelKey(status: RequirementStatus) {
+  return ({ Draft: "common.statusLabels.draft", "In Review": "common.statusLabels.inReview", Approved: "common.statusLabels.approved" } as const)[status];
+}
+
+function categoryDisplayLabel(category: string, t: (key: string) => string) {
+  const categoryKeys: Record<string, string> = {
+    Performance: "performance", Scalability: "scalability", Security: "security", Privacy: "privacy",
+    Usability: "usability", Accessibility: "accessibility", Reliability: "reliability", Availability: "availability",
+    Maintainability: "maintainability", Compatibility: "compatibility", Quality: "quality",
+  };
+  const key = categoryKeys[category];
+  return key ? t(`nonFunctional.categoryLabels.${key}`) : category;
+}
+
+function getPlanningLanguageLabel(language: string, t: (key: string) => string) {
+  const label = getLanguageLabel(language).toLowerCase();
+  if (label === "english") return t("common.languageNames.english");
+  if (label === "french") return t("common.languageNames.french");
+  if (label === "arabic") return t("common.languageNames.arabic");
+  return getLanguageLabel(language);
+}
+
+function resolveNonFunctionalError(error: { translationKey: string } | { message: string } | null, t: (key: string) => string) {
+  if (!error) return "";
+  return "translationKey" in error ? t(error.translationKey) : error.message;
 }
 

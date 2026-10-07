@@ -18,6 +18,7 @@ export type FunctionalRequirement = {
 
 export type AiState = "idle" | "generating" | "refining" | "translating" | "suggestion_ready";
 export type SaveStatus = "unsaved" | "saving" | "saved";
+export type FunctionalRequirementError = { translationKey: string } | { message: string };
 
 const LANGUAGE_CODES: Record<string, string> = {
   english: "en",
@@ -80,6 +81,12 @@ const TASK_ID = "functional-requirements:main";
 const SCOPE = "functional-requirements";
 const PAGE_ROUTE = "/workspace/functional-requirements";
 
+function getTaskLanguageTranslationKey(language: string) {
+  const normalized = normalizeLanguage(language);
+  const languageNames: Record<string, string> = { en: "english", fr: "french", ar: "arabic" };
+  return languageNames[normalized] ? `planning:common.languageNames.${languageNames[normalized]}` : undefined;
+}
+
 export function useFunctionalRequirements() {
   const { startTask, isTaskActive, getTask, tasks, dismissTask, cancelTask } = useAiGeneration();
   const [project, setProject] = useState<any>(null);
@@ -88,7 +95,7 @@ export function useFunctionalRequirements() {
   const [loading, setLoading] = useState(true);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
   const [localAiState, setLocalAiState] = useState<AiState>("idle");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<FunctionalRequirementError | null>(null);
   const autosaveTimerRef = useRef<number | null>(null);
   const requirementsRef = useRef<FunctionalRequirement[]>([]);
   const handledTaskIdRef = useRef<string | null>(null);
@@ -108,7 +115,7 @@ export function useFunctionalRequirements() {
       requirementsRef.current = normalized;
       return { projectData, requirements: normalized };
     } catch (err: any) {
-      setError(err.message || "Failed to load functional requirements. Please refresh the page.");
+      setError(err.message ? { message: err.message } : { translationKey: "errors.loadFunctional" });
       return null;
     } finally {
       setLoading(false);
@@ -146,7 +153,7 @@ export function useFunctionalRequirements() {
     } else if (task.status === "error") {
       setLocalAiState("idle");
       if (task.error && !task.error.includes("Limit reached")) {
-        setError(task.error);
+        setError({ message: task.error });
       }
     }
   }, [fetchRequirementsData, localAiState, tasks]);
@@ -158,7 +165,7 @@ export function useFunctionalRequirements() {
   const saveRequirements = useCallback(
     async (nextRequirements = requirements, showValidation = false, language?: string) => {
       if (!project?._id) {
-        setError("Project is not ready yet. Please refresh the page.");
+        setError({ translationKey: "errors.projectNotReady" });
         return;
       }
 
@@ -170,7 +177,7 @@ export function useFunctionalRequirements() {
       );
       if (hasIncompleteRequirement) {
         if (showValidation) {
-          setError("Please fill each requirement module, title, and description before saving.");
+          setError({ translationKey: "errors.saveFunctionalValidation" });
         }
         setSaveStatus("unsaved");
         return;
@@ -205,7 +212,7 @@ export function useFunctionalRequirements() {
           setSaveStatus("unsaved");
         }
       } catch (err: any) {
-        setError(err.message || "Failed to save functional requirements. Please try again.");
+        setError(err.message ? { message: err.message } : { translationKey: "errors.saveFunctional" });
         setSaveStatus("unsaved");
       }
     },
@@ -263,7 +270,9 @@ export function useFunctionalRequirements() {
         id: TASK_ID,
         scope: SCOPE,
         title: "Functional Requirements",
+        uiTitleKey: "planning:functional.title",
         subTitle: "Generating functional requirements with AI...",
+        uiSubTitleKey: "planning:functional.tasks.generating",
         pageRoute: PAGE_ROUTE,
         status: "generating",
         runner: async (signal) => {
@@ -284,7 +293,7 @@ export function useFunctionalRequirements() {
       }
     } catch (err: any) {
       if (err?.name !== "AbortError") {
-        setError(err.message || "AI generation failed. Please try again.");
+        setError(err.message ? { message: err.message } : { translationKey: "errors.aiGeneration" });
       }
       setLocalAiState("idle");
     }
@@ -292,7 +301,7 @@ export function useFunctionalRequirements() {
 
   const refineWithAi = async (instructions = "") => {
     if (requirements.length === 0) {
-      setError("Add or generate functional requirements before asking AI to refine them.");
+      setError({ translationKey: "errors.refineFunctionalEmpty" });
       return;
     }
 
@@ -309,7 +318,9 @@ export function useFunctionalRequirements() {
         id: TASK_ID,
         scope: SCOPE,
         title: "Functional Requirements",
+        uiTitleKey: "planning:functional.title",
         subTitle: "Refining functional requirements with AI...",
+        uiSubTitleKey: "planning:functional.tasks.refining",
         pageRoute: PAGE_ROUTE,
         status: "refining",
         runner: async (signal) => {
@@ -331,7 +342,7 @@ export function useFunctionalRequirements() {
       }
     } catch (err: any) {
       if (err?.name !== "AbortError") {
-        setError(err.message || "AI refinement failed. Please try again.");
+        setError(err.message ? { message: err.message } : { translationKey: "errors.aiRefinement" });
       }
       setLocalAiState("idle");
     }
@@ -339,7 +350,7 @@ export function useFunctionalRequirements() {
 
   const translateWithAi = async () => {
     if (requirements.length === 0) {
-      setError("Add or generate functional requirements before asking AI to translate them.");
+      setError({ translationKey: "errors.translateFunctionalEmpty" });
       return;
     }
 
@@ -351,7 +362,13 @@ export function useFunctionalRequirements() {
         id: TASK_ID,
         scope: SCOPE,
         title: "Functional Requirements",
+        uiTitleKey: "planning:functional.title",
         subTitle: `Translating functional requirements to ${getLanguageLabel(projectLanguage)}...`,
+        uiSubTitleKey: "planning:functional.tasks.translating",
+        uiSubTitleValues: { language: getLanguageLabel(projectLanguage) },
+        ...(getTaskLanguageTranslationKey(projectLanguage)
+          ? { uiSubTitleValueKeys: { language: getTaskLanguageTranslationKey(projectLanguage)! } }
+          : {}),
         pageRoute: PAGE_ROUTE,
         status: "translating",
         runner: async (signal) => {
@@ -389,7 +406,7 @@ export function useFunctionalRequirements() {
       }
     } catch (err: any) {
       if (err?.name !== "AbortError") {
-        setError(err.message || "AI functional requirement translation failed. Please try again.");
+        setError(err.message ? { message: err.message } : { translationKey: "errors.translateFunctional" });
       }
       setLocalAiState("idle");
     }

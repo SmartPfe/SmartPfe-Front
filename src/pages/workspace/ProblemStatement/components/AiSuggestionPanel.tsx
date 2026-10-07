@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import * as Diff from "diff";
 
 interface AiSuggestionPanelProps {
@@ -20,6 +21,7 @@ export default function AiSuggestionPanel({
   onAccept,
   onDiscard,
 }: AiSuggestionPanelProps) {
+  const { t } = useTranslation("design");
   const cleanCurrent   = useMemo(() => stripHtml(currentText),   [currentText]);
   const cleanSuggested = useMemo(() => stripHtml(suggestedText), [suggestedText]);
 
@@ -32,19 +34,19 @@ export default function AiSuggestionPanel({
     <div className="mt-6 border border-outline-variant rounded-xl overflow-hidden bg-surface-bright shadow-sm">
       {/* Header */}
       <div className="px-4 py-3 border-b border-outline-variant bg-surface-container flex items-center justify-between">
-        <h3 className="text-label-md font-semibold text-on-surface">Suggested revision</h3>
+        <h3 className="text-label-md font-semibold text-on-surface">{t("problem.suggestion.title")}</h3>
         <div className="flex items-center gap-2">
           <button
             onClick={onDiscard}
             className="px-4 py-1.5 rounded-md border border-outline-variant text-on-surface text-label-md font-medium hover:bg-surface-container-high transition-colors"
           >
-            Discard
+            {t("problem.suggestion.discard")}
           </button>
           <button
             onClick={onAccept}
             className="px-4 py-1.5 rounded-md bg-primary text-on-primary text-label-md font-medium hover:opacity-90 transition-opacity"
           >
-            Accept
+            {t("problem.suggestion.accept")}
           </button>
         </div>
       </div>
@@ -53,15 +55,15 @@ export default function AiSuggestionPanel({
       <div className="grid grid-cols-2 divide-x divide-outline-variant max-h-[420px] overflow-y-auto">
         {/* Current */}
         <div className="p-5 bg-surface-container-lowest">
-          <p className="text-label-sm text-on-surface-variant uppercase tracking-wider mb-3">Current</p>
+          <p className="text-label-sm text-on-surface-variant uppercase tracking-wider mb-3">{t("problem.suggestion.current")}</p>
           <div className="text-body-md text-on-surface whitespace-pre-wrap opacity-75 leading-relaxed">
-            {cleanCurrent || <span className="italic text-on-surface-variant">Empty</span>}
+            {cleanCurrent || <span className="italic text-on-surface-variant">{t("problem.suggestion.empty")}</span>}
           </div>
         </div>
 
         {/* Suggested with diff highlights */}
         <div className="p-5 bg-secondary/5">
-          <p className="text-label-sm text-secondary uppercase tracking-wider mb-3">Suggested</p>
+          <p className="text-label-sm text-secondary uppercase tracking-wider mb-3">{t("problem.suggestion.suggested")}</p>
           <div className="text-body-md text-on-surface whitespace-pre-wrap leading-relaxed">
             {diffs.map((part, i) => {
               if (part.added) {

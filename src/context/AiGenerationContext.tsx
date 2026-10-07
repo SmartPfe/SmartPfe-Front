@@ -9,6 +9,11 @@ export interface AiTask {
   targetId?: string; // e.g. sectionId
   title: string; // User-facing task title e.g. "Chapter 1.2: Problem Formulation"
   subTitle?: string; // e.g. "Generating initial draft..."
+  // Display-only metadata; never used by task runners or generation requests.
+  uiTitleKey?: string;
+  uiSubTitleKey?: string;
+  uiSubTitleValues?: Record<string, string | number>;
+  uiSubTitleValueKeys?: Record<string, string>;
   pageRoute: string; // Route to navigate to, e.g. "/workspace/report-builder"
   navigationState?: Record<string, any>; // State to pass to navigate, e.g. { activeSectionId: "sec-1.2" }
   status: AiTaskStatus;
@@ -24,6 +29,10 @@ export interface StartTaskOptions {
   targetId?: string;
   title: string;
   subTitle?: string;
+  uiTitleKey?: string;
+  uiSubTitleKey?: string;
+  uiSubTitleValues?: Record<string, string | number>;
+  uiSubTitleValueKeys?: Record<string, string>;
   pageRoute: string;
   navigationState?: Record<string, any>;
   status?: AiTaskStatus;
@@ -176,6 +185,10 @@ export function AiGenerationProvider({ children }: { children: React.ReactNode }
         targetId,
         title,
         subTitle,
+        uiTitleKey: options.uiTitleKey,
+        uiSubTitleKey: options.uiSubTitleKey,
+        uiSubTitleValues: options.uiSubTitleValues,
+        uiSubTitleValueKeys: options.uiSubTitleValueKeys,
         pageRoute,
         navigationState,
         status,

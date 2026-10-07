@@ -1,0 +1,198 @@
+{
+  "problem": {
+    "loading": "Loading editor...",
+    "eyebrow": "Problem Definition",
+    "title": "Problem Statement",
+    "tooltip": "Clearly articulate the issue your project aims to solve.",
+    "description": "Clearly define the real-world problem or research challenge your project aims to resolve.",
+    "dismiss": "Dismiss",
+    "generateDisabled": "Editor already has content — use Refine instead",
+    "refineDisabled": "Write something first, then ask AI to refine it",
+    "refinePlaceholder": "Tell AI what you'd like to improve (e.g., 'Make it more academic and concise')...",
+    "translateLabel": "Translate to {{language}}",
+    "languages": { "en": "English", "fr": "French", "ar": "Arabic", "current": "current language" },
+    "progress": {
+      "generate": "Generating problem statement with AI...",
+      "refine": "Refining problem statement with AI...",
+      "translate": "Translating problem statement to {{language}}..."
+    },
+    "editorPlaceholder": "Start writing your problem statement...\n\nDescribe the problem you're solving, why it matters, and what your project proposes.",
+    "errors": {
+      "load": "Failed to load your project. Please refresh the page.",
+      "save": "Failed to save. Please try again.",
+      "generate": "AI generation failed. Please try again.",
+      "emptyRefine": "The editor is empty. Write something before asking AI to refine it.",
+      "refine": "AI refinement failed. Please try again.",
+      "emptyTranslate": "The editor is empty. Write something before asking AI to translate it.",
+      "translate": "AI translation failed. Please try again."
+    },
+    "suggestion": {
+      "title": "Suggested revision",
+      "discard": "Discard",
+      "accept": "Accept",
+      "current": "Current",
+      "empty": "Empty",
+      "suggested": "Suggested"
+    },
+    "toolbar": {
+      "bold": "Bold",
+      "italic": "Italic",
+      "heading1": "Heading 1",
+      "heading2": "Heading 2",
+      "bulletList": "Bullet List",
+      "numberedList": "Numbered List",
+      "word": "word",
+      "words": "words"
+    },
+    "aiAction": {
+      "translate": "Translate",
+      "generateDisabled": "Editor already has content — use Refine instead",
+      "generateTitle": "Generate a full first draft with AI",
+      "refineDisabled": "Write something first, then ask AI to refine it",
+      "refineTitle": "Improve and expand your current text with AI",
+      "refinePlaceholder": "Tell AI what you'd like to improve (optional)...",
+      "cancel": "Cancel",
+      "refine": "Refine",
+      "generating": "Generating...",
+      "generate": "Generate with AI",
+      "refining": "Refining...",
+      "refineAction": "Refine with AI",
+      "translating": "Translating..."
+    }
+  },
+  "uml": {
+    "loading": "Loading UML preparation...",
+    "eyebrow": "Architecture Modeling",
+    "title": "UML Preparation",
+    "tooltipLabel": "UML Architecture",
+    "tooltip": "Generate, refine, and edit Use Case, Class, Sequence, and Activity diagrams rendered directly with PlantUML.",
+    "description": "Design and generate system architecture models with interactive PlantUML rendering and entity editing.",
+    "dismiss": "Dismiss",
+    "addClass": "Add Class",
+    "suggestionTitle": "AI suggestion ready for {{diagram}}",
+    "suggestionDescription": "Review and accept the generated diagram model.",
+    "discard": "Discard",
+    "acceptSuggestion": "Accept suggestion",
+    "diagramsHeading": "Diagrams",
+    "diagrams": {
+      "usecase": "Use Case Diagram",
+      "class": "Class Diagram",
+      "sequence": "Sequence Diagram",
+      "activity": "Activity Diagram"
+    },
+    "descriptions": {
+      "usecase": "Define the system boundary, primary/secondary actors, and actions with <<include>> and <<extend>> relations.",
+      "sequence": "Define multi-tier architectural participants, message flows, activations, and alternative paths.",
+      "activity": "Map core business workflows with decision diamonds (if/else), actions, and terminal endpoints.",
+      "class": "Define domain entities with attributes, typed methods, and standard UML relationships."
+    },
+    "architecturalPrecision": "Architectural Precision",
+    "diagramSyncDescription": "Each diagram is generated and refined independently with synced PlantUML rendering.",
+    "syncedWithRequirements": "Synced with Requirements",
+    "views": { "diagram": "Diagram", "elements": "Entities", "code": "Markup" },
+    "class": {
+      "responsibility": "Class responsibility",
+      "name": "Class name",
+      "type": "Class type",
+      "edit": "Edit class",
+      "finishEditing": "Finish editing class",
+      "delete": "Delete class",
+      "attributes": "Attributes",
+      "methods": "Methods",
+      "plantUml": "PlantUML for this class",
+      "addNew": "Add New Class",
+      "onePerLine": "One item per line",
+      "noItems": "No items yet.",
+      "relationships": "Relationships",
+      "add": "Add",
+      "relationshipLabel": "label",
+      "relationshipType": "Relationship type",
+      "source": "Source class",
+      "target": "Target class",
+      "deleteRelationship": "Delete relationship",
+      "types": {
+        "association": "Association",
+        "inheritance": "Inheritance",
+        "composition": "Composition",
+        "aggregation": "Aggregation",
+        "dependency": "Dependency"
+      }
+    },
+    "useCase": {
+      "systemBoundary": "System Boundary Name",
+      "systemPlaceholder": "e.g. Smart PFE Platform",
+      "systemHelp": "Use cases are enclosed inside this boundary box. Primary actors appear on the left, secondary external services on the right.",
+      "primaryActors": "Primary Actors (Left)",
+      "primaryActorsPlaceholder": "e.g. Student\nMentor\nAdmin",
+      "secondaryActors": "Secondary Actors (Right)",
+      "secondaryActorsPlaceholder": "e.g. PaymentGateway\nNotificationService\nAIService",
+      "useCases": "Use Cases (Inside Box)",
+      "useCasesPlaceholder": "e.g. Sign In\nSubmit PFE Topic\nReview Proposal\nProcess Payment",
+      "relationships": "Use Case Relationships (<<include>> & <<extend>>)",
+      "addRelation": "Add Relation",
+      "deleteRelation": "Delete use case relation",
+      "noRelations": "No include/extend relations defined. Click \"Add Relation\" to connect use cases."
+    },
+    "sequence": {
+      "scenarioTitle": "Scenario Title",
+      "scenarioPlaceholder": "e.g. Core Authentication & Project Submission Flow",
+      "participants": "Architectural Participants",
+      "participantsPlaceholder": "User (actor)\nFrontend (boundary)\nAuthController (control)\nDatabase (database)",
+      "participantsTip": "Tip: Format as",
+      "participantsTipSuffix": "where type can be: actor, boundary, control, entity, database.",
+      "messageFlow": "Sequential Message Flow",
+      "addMessage": "Add Message",
+      "deleteMessage": "Delete message",
+      "source": "Source",
+      "target": "Target",
+      "messageMethod": "Message / Method Call",
+      "return": "Return",
+      "altFlow": "Alternative & Error Handling Branch (alt / else)",
+      "altFlowPlaceholder": "e.g. Invalid credentials or validation failure"
+    },
+    "activity": {
+      "workflowTitle": "Workflow Title",
+      "workflowPlaceholder": "e.g. Proposal Validation & Milestone Review Process",
+      "steps": "Workflow Steps & Decision Points",
+      "addAction": "Add Action",
+      "addDecision": "Add Decision (if/else)",
+      "noSteps": "No structured steps defined yet. Click \"Add Action\" or \"Add Decision\".",
+      "deleteStep": "Delete step",
+      "decisionPoint": "Decision Point",
+      "actionStep": "Action Step",
+      "actionPlaceholder": "Describe action...",
+      "condition": "Condition",
+      "yesBranch": "Yes / Then Branch",
+      "noBranch": "No / Else Branch",
+      "conditionPlaceholder": "e.g. Validation successful?",
+      "yesPlaceholder": "e.g. Proceed to generation",
+      "noPlaceholder": "e.g. Return error message"
+    },
+    "markup": {
+      "title": "PlantUML Markup",
+      "generatedFromEntities": "Generated from your entities",
+      "copy": "Copy",
+      "copied": "Copied!"
+    },
+    "ai": {
+      "refinePlaceholder": "Tell AI what you'd like to refine in the {{diagram}} (e.g. 'Add JWT Auth middleware and RefreshToken entity')...",
+      "translate": "Translate to {{language}}"
+    },
+    "languages": { "en": "English", "fr": "French", "ar": "Arabic", "current": "current language" },
+    "progress": {
+      "generateAll": "Generating full UML model with AI...",
+      "generateDiagram": "Generating {{diagram}} diagram with AI...",
+      "refine": "Refining UML model with AI...",
+      "translate": "Translating UML preparation to {{language}}..."
+    },
+    "errors": {
+      "load": "Failed to load UML preparation. Please refresh the page.",
+      "projectNotReady": "Project is not ready yet. Please refresh the page.",
+      "save": "Failed to save UML preparation. Please try again.",
+      "generate": "AI generation failed. Please try again.",
+      "refine": "AI refinement failed. Please try again.",
+      "emptyTranslate": "Add or generate UML classes before asking AI to translate them.",
+      "translate": "AI UML preparation translation failed. Please try again."
+    }
+  }
+}

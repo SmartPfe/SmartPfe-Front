@@ -1,10 +1,12 @@
 import { Editor } from "@tiptap/react";
+import { useTranslation } from "react-i18next";
 
 interface EditorToolbarProps {
   editor: Editor | null;
 }
 
 export default function EditorToolbar({ editor }: EditorToolbarProps) {
+  const { t } = useTranslation("design");
   if (!editor) {
     return null;
   }
@@ -21,7 +23,7 @@ export default function EditorToolbar({ editor }: EditorToolbarProps) {
           className={`p-1.5 rounded-md flex items-center justify-center transition-colors ${
             editor.isActive("bold") ? "bg-primary-container text-on-primary-container" : "text-on-surface-variant hover:bg-surface-container"
           }`}
-          title="Bold"
+          title={t("problem.toolbar.bold")}
         >
           <span className="material-symbols-outlined text-[18px]">format_bold</span>
         </button>
@@ -32,7 +34,7 @@ export default function EditorToolbar({ editor }: EditorToolbarProps) {
           className={`p-1.5 rounded-md flex items-center justify-center transition-colors ${
             editor.isActive("italic") ? "bg-primary-container text-on-primary-container" : "text-on-surface-variant hover:bg-surface-container"
           }`}
-          title="Italic"
+          title={t("problem.toolbar.italic")}
         >
           <span className="material-symbols-outlined text-[18px]">format_italic</span>
         </button>
@@ -45,7 +47,7 @@ export default function EditorToolbar({ editor }: EditorToolbarProps) {
           className={`p-1.5 rounded-md flex items-center justify-center transition-colors font-bold text-sm ${
             editor.isActive("heading", { level: 1 }) ? "bg-primary-container text-on-primary-container" : "text-on-surface-variant hover:bg-surface-container"
           }`}
-          title="Heading 1"
+          title={t("problem.toolbar.heading1")}
         >
           H1
         </button>
@@ -55,7 +57,7 @@ export default function EditorToolbar({ editor }: EditorToolbarProps) {
           className={`p-1.5 rounded-md flex items-center justify-center transition-colors font-bold text-sm ${
             editor.isActive("heading", { level: 2 }) ? "bg-primary-container text-on-primary-container" : "text-on-surface-variant hover:bg-surface-container"
           }`}
-          title="Heading 2"
+          title={t("problem.toolbar.heading2")}
         >
           H2
         </button>
@@ -68,7 +70,7 @@ export default function EditorToolbar({ editor }: EditorToolbarProps) {
           className={`p-1.5 rounded-md flex items-center justify-center transition-colors ${
             editor.isActive("bulletList") ? "bg-primary-container text-on-primary-container" : "text-on-surface-variant hover:bg-surface-container"
           }`}
-          title="Bullet List"
+          title={t("problem.toolbar.bulletList")}
         >
           <span className="material-symbols-outlined text-[18px]">format_list_bulleted</span>
         </button>
@@ -78,14 +80,14 @@ export default function EditorToolbar({ editor }: EditorToolbarProps) {
           className={`p-1.5 rounded-md flex items-center justify-center transition-colors ${
             editor.isActive("orderedList") ? "bg-primary-container text-on-primary-container" : "text-on-surface-variant hover:bg-surface-container"
           }`}
-          title="Numbered List"
+          title={t("problem.toolbar.numberedList")}
         >
           <span className="material-symbols-outlined text-[18px]">format_list_numbered</span>
         </button>
       </div>
 
       <div className="text-label-sm text-on-surface-variant pr-2">
-        {wordCount} {wordCount === 1 ? 'word' : 'words'}
+        {wordCount} {t(wordCount === 1 ? "problem.toolbar.word" : "problem.toolbar.words")}
       </div>
     </div>
   );

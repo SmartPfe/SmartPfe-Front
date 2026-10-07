@@ -3,6 +3,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { renderToString } from '@plantuml/core';
 import { toPng } from 'html-to-image';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 interface PlantUmlRendererProps {
   markup: string;
@@ -11,10 +12,12 @@ interface PlantUmlRendererProps {
 }
 
 export default function PlantUmlRenderer({ markup, className, diagramName = 'diagram' }: PlantUmlRendererProps) {
+  const { t } = useTranslation('controls');
   const [svg, setSvg] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [downloading, setDownloading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorIsFallback, setErrorIsFallback] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // ── Render PlantUML markup → SVG via @plantuml/core ─────────────
@@ -24,6 +27,7 @@ export default function PlantUmlRenderer({ markup, className, diagramName = 'dia
     const renderDiagram = () => {
       setLoading(true);
       setError(null);
+      setErrorIsFallback(false);
 
       try {
         const lines = markup.split('\n');
@@ -44,7 +48,8 @@ export default function PlantUmlRenderer({ markup, className, diagramName = 'dia
         );
       } catch (err: any) {
         if (isMounted) {
-          setError(err.message || 'An error occurred while rendering the diagram.');
+          setError(err.message || '');
+          setErrorIsFallback(!err.message);
           setLoading(false);
         }
       }
@@ -85,7 +90,7 @@ export default function PlantUmlRenderer({ markup, className, diagramName = 'dia
           const handle = await (window as any).showSaveFilePicker({
             suggestedName: `${cleanFileName}.png`,
             types: [{
-              description: 'PNG Image',
+              description: t('diagram.pngImage'),
               accept: { 'image/png': ['.png'] },
             }],
           });
@@ -120,18 +125,18 @@ export default function PlantUmlRenderer({ markup, className, diagramName = 'dia
     return (
       <div className={cn("flex flex-col items-center justify-center min-h-[450px] w-full bg-surface-container-low/50 rounded-xl border border-outline-variant", className)}>
         <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
-        <p className="text-sm font-medium text-on-surface-variant animate-pulse">Rendering diagram...</p>
+        <p className="text-sm font-medium text-on-surface-variant animate-pulse">{t('diagram.rendering')}</p>
       </div>
     );
   }
 
-  if (error) {
+  if (error || errorIsFallback) {
     return (
       <div className={cn("flex flex-col items-center justify-center min-h-[450px] w-full bg-error-container/20 rounded-xl border border-error/30 p-6 text-center", className)}>
         <span className="material-symbols-outlined text-error text-[32px] mb-3">error_outline</span>
-        <h3 className="text-base font-bold text-on-surface mb-2">Diagram Rendering Error</h3>
+        <h3 className="text-base font-bold text-on-surface mb-2">{t('diagram.errorTitle')}</h3>
         <p className="text-sm text-on-surface-variant max-w-md break-all">
-          {error}
+          {errorIsFallback ? t('diagram.renderError') : error}
         </p>
       </div>
     );
@@ -150,7 +155,8 @@ export default function PlantUmlRenderer({ markup, className, diagramName = 'dia
             type="button"
             onClick={downloadPng}
             disabled={downloading}
-            title="Download diagram as PNG image"
+            title={t('diagram.downloadTitle')}
+            aria-label={t('diagram.downloadTitle')}
             className="group/btn px-2.5 py-2.5 text-sm font-semibold rounded-xl bg-primary hover:bg-primary/90 text-on-primary flex items-center gap-0 hover:gap-2 transition-all duration-300 shadow-md disabled:opacity-50 overflow-hidden"
           >
             {downloading ? (
@@ -159,7 +165,7 @@ export default function PlantUmlRenderer({ markup, className, diagramName = 'dia
               <span className="material-symbols-outlined text-[18px] shrink-0">download</span>
             )}
             <span className="max-w-0 group-hover/btn:max-w-[120px] overflow-hidden whitespace-nowrap transition-all duration-300 opacity-0 group-hover/btn:opacity-100">
-              {downloading ? 'Saving...' : 'Download PNG'}
+              {downloading ? t('diagram.saving') : t('diagram.download')}
             </span>
           </button>
         </div>

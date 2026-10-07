@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useEditor, EditorContent, Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
@@ -7,6 +7,7 @@ import EditorToolbar from "./EditorToolbar";
 
 interface RichTextEditorProps {
   content: string;
+  placeholder: string;
   onChange: (html: string, plainText: string, isEmpty: boolean) => void;
   readOnly?: boolean;
   externalUpdateTrigger?: { content: string; timestamp: number };
@@ -14,16 +15,18 @@ interface RichTextEditorProps {
 
 export default function RichTextEditor({
   content,
+  placeholder,
   onChange,
   readOnly = false,
   externalUpdateTrigger,
 }: RichTextEditorProps) {
+  const placeholderRef = useRef(placeholder);
+  placeholderRef.current = placeholder;
   const editor = useEditor({
     extensions: [
       StarterKit,
       Placeholder.configure({
-        placeholder:
-          "Start writing your problem statement...\n\nDescribe the problem you're solving, why it matters, and what your project proposes.",
+        placeholder: () => placeholderRef.current,
       }),
       CharacterCount,
     ],
@@ -42,6 +45,12 @@ export default function RichTextEditor({
       onChange(html, plainText, isEmpty);
     },
   });
+
+  useEffect(() => {
+    if (editor) {
+      editor.view.dispatch(editor.state.tr.setMeta("addToHistory", false));
+    }
+  }, [editor, placeholder]);
 
   // Handle external updates (e.g. AI generation/accepting suggestions)
   useEffect(() => {

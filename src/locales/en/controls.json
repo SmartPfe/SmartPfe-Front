@@ -1,4 +1,13 @@
 {
+  "diagram": {
+    "pngImage": "PNG Image",
+    "rendering": "Rendering diagram...",
+    "errorTitle": "Diagram Rendering Error",
+    "renderError": "An error occurred while rendering the diagram.",
+    "downloadTitle": "Download diagram as PNG image",
+    "saving": "Saving...",
+    "download": "Download PNG"
+  },
   "notifications": {
     "title": "Notifications",
     "liveUpdates": "Live updates",

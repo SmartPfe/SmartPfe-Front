@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
 import { Window } from 'happy-dom';
-import React, { act, useState } from 'react';
+import React, { act, useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { createRoot, type Root } from 'react-dom/client';
 import { MemoryRouter } from 'react-router-dom';
 import { InterfaceLanguageProvider, useInterfaceLanguage } from '../src/context/InterfaceLanguageContext';
@@ -12,6 +13,17 @@ import GoogleLoginButton from '../src/components/GoogleLoginButton';
 import i18n from '../src/lib/i18n';
 import Signup from '../src/pages/auth/Signup';
 import { displayOptions } from '../src/lib/onboardingOptions';
+import { AiGenerationProvider, useAiGeneration } from '../src/context/AiGenerationContext';
+import FloatingAiDock from '../src/components/ai/FloatingAiDock';
+import RichTextEditor from '../src/pages/workspace/ProblemStatement/components/RichTextEditor';
+import { useActors } from '../src/pages/workspace/Actors/hooks/useActors';
+import { RequirementsTable } from '../src/pages/workspace/FunctionalRequirements/index';
+import FunctionalRequirements from '../src/pages/workspace/FunctionalRequirements/index';
+import NonFunctionalRequirements from '../src/pages/workspace/NonFunctionalRequirements/index';
+import ProductBacklog from '../src/pages/workspace/ProductBacklog/index';
+import Actors from '../src/pages/workspace/Actors';
+import ExistingSolutions from '../src/pages/workspace/ExistingSolutions/index';
+import { CreditProvider } from '../src/context/CreditContext';
 
 test('Google SDK bootstrap follows account/device UI preference and ignores content language', () => {
   const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
@@ -39,7 +51,7 @@ test('Google SDK bootstrap follows account/device UI preference and ignores cont
 type FetchResponse = { ok: boolean; json: () => Promise<unknown> };
 type FetchMock = (input: RequestInfo | URL, init?: RequestInit) => Promise<FetchResponse>;
 
-const globalNames = ['window', 'document', 'navigator', 'localStorage', 'fetch', 'Event', 'StorageEvent', 'IS_REACT_ACT_ENVIRONMENT'];
+const globalNames = ['window', 'document', 'navigator', 'localStorage', 'fetch', 'Event', 'StorageEvent', 'IS_REACT_ACT_ENVIRONMENT', 'HTMLElement', 'Element', 'Node', 'MutationObserver', 'DOMParser', 'getComputedStyle', 'ShadowRoot'];
 const originalGlobals = new Map(globalNames.map((name) => [name, Object.getOwnPropertyDescriptor(globalThis, name)]));
 
 function setGlobal(name: string, value: unknown) {
@@ -63,6 +75,8 @@ function installBrowser(t: test.TestContext, fetchMock: FetchMock) {
   setGlobal('Event', browser.Event);
   setGlobal('StorageEvent', browser.StorageEvent);
   setGlobal('IS_REACT_ACT_ENVIRONMENT', true);
+  for (const name of ['HTMLElement', 'Element', 'Node', 'MutationObserver', 'DOMParser', 'ShadowRoot']) setGlobal(name, (browser as any)[name]);
+  setGlobal('getComputedStyle', browser.getComputedStyle.bind(browser));
 
   const container = browser.document.createElement('div');
   browser.document.body.append(container);
@@ -394,4 +408,178 @@ test('visible local signup validation changes language without sending an authen
   assert.ok(browserEnv.container.textContent?.includes('Password must be at least 6 characters.'));
   assert.ok(!browserEnv.container.textContent?.includes('Le mot de passe doit contenir au moins 6 caractères.'));
   assert.equal(requestCount, 0);
+});
+
+test('a live task changes display language without restarting or aborting its runner', async (t) => {
+  const env = installBrowser(t, async () => { throw new Error('No network calls expected'); });
+  let runnerCount = 0;
+  let taskSignal: AbortSignal | undefined;
+  let finish!: (value: string) => void;
+  const pending = new Promise<string>(resolve => { finish = resolve; });
+  function RunningTask() {
+    const { startTask } = useAiGeneration();
+    useEffect(() => {
+      void startTask({ id: 'stage5-display-test', scope: 'actors', title: 'Actors & Stakeholders',
+        subTitle: 'Generating actors with AI...', uiTitleKey: 'analysis:actors.title',
+        uiSubTitleKey: 'analysis:actors.tasks.generating', pageRoute: '/workspace/actors',
+        runner: async signal => { runnerCount++; taskSignal = signal; return pending; } });
+    }, [startTask]);
+    return <FloatingAiDock />;
+  }
+  await act(async () => {
+    await i18n.changeLanguage('en');
+    env.root.render(<MemoryRouter initialEntries={['/workspace/settings']}><AiGenerationProvider><RunningTask /></AiGenerationProvider></MemoryRouter>);
+  });
+  assert.ok(env.container.textContent?.includes(i18n.t('actors.title', { ns: 'analysis', lng: 'en' })));
+  await act(async () => { await i18n.changeLanguage('fr'); });
+  assert.ok(env.container.textContent?.includes(i18n.t('actors.title', { ns: 'analysis', lng: 'fr' })));
+  assert.ok(env.container.textContent?.includes(i18n.t('actors.tasks.generating', { ns: 'analysis', lng: 'fr' })));
+  assert.equal(runnerCount, 1);
+  assert.equal(taskSignal?.aborted, false);
+  await act(async () => { finish('unchanged English generated content'); });
+});
+
+test('rich-text placeholder and toolbar switch language without replacing content or reporting an edit', async (t) => {
+  const env = installBrowser(t, async () => { throw new Error('No network calls expected'); });
+  let updates = 0;
+  function EditorHarness() {
+    const { t: translate } = useTranslation('design');
+    return <RichTextEditor content="<p>Keep this English project content.</p>" placeholder={translate('problem.editorPlaceholder')}
+      onChange={() => { updates++; }} />;
+  }
+  await act(async () => { await i18n.changeLanguage('en'); env.root.render(<EditorHarness />); });
+  await act(async () => { await new Promise(resolve => setTimeout(resolve, 30)); });
+  const originalEditor = env.container.querySelector('.ProseMirror');
+  assert.ok(originalEditor);
+  const originalHtml = originalEditor.innerHTML;
+  const baselineUpdates = updates;
+  await act(async () => { await i18n.changeLanguage('fr'); });
+  assert.equal(env.container.querySelector('.ProseMirror'), originalEditor);
+  assert.equal(originalEditor.innerHTML, originalHtml);
+  assert.equal(updates, baselineUpdates);
+  assert.ok(env.container.querySelector('button[title="Gras"]'));
+});
+
+test('an empty rich-text editor refreshes its placeholder without reporting a content change', async (t) => {
+  const env = installBrowser(t, async () => { throw new Error('No network calls expected'); });
+  let updates = 0;
+  function EmptyEditorHarness() {
+    const { t: translate } = useTranslation('design');
+    return <RichTextEditor content="" placeholder={translate('problem.editorPlaceholder')} onChange={() => { updates++; }} />;
+  }
+  await act(async () => { await i18n.changeLanguage('en'); env.root.render(<EmptyEditorHarness />); });
+  await act(async () => { await new Promise(resolve => setTimeout(resolve, 30)); });
+  const paragraph = env.container.querySelector('.ProseMirror p')!;
+  assert.equal(paragraph.getAttribute('data-placeholder'), i18n.t('problem.editorPlaceholder', { ns: 'design', lng: 'en' }));
+  const baseline = updates;
+  await act(async () => { await i18n.changeLanguage('fr'); });
+  assert.equal(paragraph.getAttribute('data-placeholder'), i18n.t('problem.editorPlaceholder', { ns: 'design', lng: 'fr' }));
+  assert.equal(updates, baseline);
+});
+
+test('switching interface language leaves a loaded Actors hook unchanged and sends no save or generation request', async (t) => {
+  const requests: string[] = [];
+  const actor = { _id: 'actor-a', name: 'External English actor', description: 'Keep this user content', type: 'external', icon: 'api' };
+  const env = installBrowser(t, async input => {
+    requests.push(String(input));
+    const body = String(input).endsWith('/actors') ? { actors: [actor] } : { _id: 'project-a', basics: { language: 'Arabic' }, actorsLanguage: 'Arabic' };
+    return { ...jsonResponse(body), headers: new Headers({ 'content-type': 'application/json' }) };
+  });
+  function ActorHarness() {
+    const state = useActors();
+    return <output>{JSON.stringify({ actors: state.actors, projectLanguage: state.projectLanguage, actorsLanguage: state.actorsLanguage })}</output>;
+  }
+  await act(async () => {
+    await i18n.changeLanguage('en');
+    env.root.render(<MemoryRouter><AiGenerationProvider><ActorHarness /></AiGenerationProvider></MemoryRouter>);
+  });
+  const original = env.container.textContent;
+  assert.ok(original?.includes('External English actor'));
+  assert.equal(requests.length, 2);
+  await act(async () => { await i18n.changeLanguage('fr'); });
+  await act(async () => { await new Promise(resolve => setTimeout(resolve, 80)); });
+  assert.equal(env.container.textContent, original);
+  assert.equal(requests.length, 2);
+  assert.ok(original?.includes('"projectLanguage":"ar"'));
+});
+
+test('French requirement options preserve canonical priority and status values across a UI switch', async (t) => {
+  const env = installBrowser(t, async () => { throw new Error('No network calls expected'); });
+  const original = { _id: 'r-a', code: 'FR-01', module: 'My custom English module', title: 'My English title',
+    description: 'My unchanged description', priority: 'Must Have' as const, status: 'Draft' as const };
+  const changes: Record<string, unknown>[] = [];
+  await act(async () => {
+    await i18n.changeLanguage('fr');
+    env.root.render(<RequirementsTable requirements={[original]} editingId="r-a" onEdit={() => undefined}
+      onDelete={() => undefined} onMove={() => undefined} onUpdate={(_id, value) => changes.push(value)} />);
+  });
+  const [priority, status] = [...env.container.querySelectorAll('select')];
+  assert.equal(priority.value, 'Must Have');
+  assert.equal(priority.querySelector('option[value="Must Have"]')?.textContent?.trim(), 'Obligatoire');
+  assert.equal(status.querySelector('option[value="Draft"]')?.textContent?.trim(), 'Brouillon');
+  await act(async () => {
+    priority.value = 'Could Have';
+    priority.dispatchEvent(new env.browser.Event('change', { bubbles: true }));
+    status.value = 'In Review';
+    status.dispatchEvent(new env.browser.Event('change', { bubbles: true }));
+  });
+  assert.deepEqual(changes, [{ priority: 'Could Have' }, { status: 'In Review' }]);
+  await act(async () => { await i18n.changeLanguage('en'); });
+  assert.equal(changes.length, 2);
+  assert.equal(env.container.querySelector('input')?.value, original.module);
+  assert.equal(priority.querySelector('option[value="Could Have"]')?.textContent?.trim(), 'Could Have');
+});
+
+test('planning and analysis pages render French and change locale without starting requests', async (t) => {
+  const pages = [
+    { Page: Actors, ns: 'analysis', key: 'actors.title', path: '/workspace/actors' },
+    { Page: ExistingSolutions, ns: 'analysis', key: 'solutions.title', path: '/workspace/solutions' },
+    { Page: FunctionalRequirements, ns: 'planning', key: 'functional.title', path: '/workspace/functional-requirements' },
+    { Page: NonFunctionalRequirements, ns: 'planning', key: 'nonFunctional.title', path: '/workspace/non-functional-requirements' },
+    { Page: ProductBacklog, ns: 'planning', key: 'backlog.title', path: '/workspace/backlog' },
+  ];
+  for (const { Page, ns, key, path } of pages) {
+    await t.test(path, async child => {
+      const requests: string[] = [];
+      const env = installBrowser(child, async (input, options) => {
+        assert.equal(options?.method || 'GET', 'GET');
+        requests.push(String(input));
+        const body = String(input).endsWith('/my-project') ? { _id: 'p', basics: { language: 'Arabic' } } : {};
+        return { ...jsonResponse(body), headers: new Headers({ 'content-type': 'application/json' }) };
+      });
+      await act(async () => {
+        await i18n.changeLanguage('fr');
+        env.root.render(<MemoryRouter initialEntries={[path]}><CreditProvider><AiGenerationProvider><Page /></AiGenerationProvider></CreditProvider></MemoryRouter>);
+      });
+      assert.ok(env.container.querySelector('h1')?.textContent?.trim().startsWith(i18n.t(key, { ns, lng: 'fr' })));
+      const initialRequests = requests.length;
+      assert.ok(initialRequests >= 2);
+      await act(async () => { await i18n.changeLanguage('en'); });
+      assert.ok(env.container.querySelector('h1')?.textContent?.trim().startsWith(i18n.t(key, { ns, lng: 'en' })));
+      assert.equal(requests.length, initialRequests);
+    });
+  }
+});
+
+test('Actors local validation is visible and updates language without a save request', async (t) => {
+  const requests: string[] = [];
+  const env = installBrowser(t, async (input, options) => {
+    assert.equal(options?.method || 'GET', 'GET');
+    requests.push(String(input));
+    return { ...jsonResponse({}), headers: new Headers({ 'content-type': 'application/json' }) };
+  });
+  await act(async () => {
+    await i18n.changeLanguage('fr');
+    env.root.render(<MemoryRouter initialEntries={['/workspace/actors']}><CreditProvider><AiGenerationProvider><Actors /></AiGenerationProvider></CreditProvider></MemoryRouter>);
+  });
+  const initialRequests = requests.length;
+  await act(async () => {
+    const saveButton = [...env.container.querySelectorAll('button')].find(button => button.textContent?.trim() === 'Enregistrer maintenant');
+    assert.ok(saveButton);
+    saveButton.dispatchEvent(new env.browser.MouseEvent('click', { bubbles: true }));
+  });
+  assert.ok(env.container.textContent?.includes(i18n.t('actors.errors.projectNotReady', { ns: 'analysis', lng: 'fr' })));
+  await act(async () => { await i18n.changeLanguage('en'); });
+  assert.ok(env.container.textContent?.includes(i18n.t('actors.errors.projectNotReady', { ns: 'analysis', lng: 'en' })));
+  assert.equal(requests.length, initialRequests);
 });

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import InfoTooltip from "@/components/ui/InfoTooltip";
 import { useProblemStatement } from "./hooks/useProblemStatement";
 import { getLanguageLabel } from "./hooks/useProblemStatement";
@@ -9,6 +10,7 @@ import SaveStatusHeader from "@/components/ui/SaveStatusHeader";
 import AiActionToolbar from "@/components/ai/AiActionToolbar";
 
 export default function ProblemStatement() {
+  const { t } = useTranslation("design");
   const {
     project,
     loading,
@@ -18,6 +20,7 @@ export default function ProblemStatement() {
     suggestion,
     snapshotHtml: hookSnapshotHtml,
     error,
+    errorKey,
     saveContent,
     markUnsaved,
     generateWithAi,
@@ -137,7 +140,7 @@ export default function ProblemStatement() {
     return (
       <div className="flex flex-col min-h-[50vh] items-center justify-center">
         <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
-        <p className="text-on-surface-variant font-medium">Loading editor...</p>
+        <p className="text-on-surface-variant font-medium">{t("problem.loading")}</p>
       </div>
     );
   }
@@ -148,17 +151,17 @@ export default function ProblemStatement() {
       <div className="mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <div className="flex items-center gap-1.5 mb-1.5">
-            <span className="text-xs font-bold uppercase tracking-wider text-primary">Problem Definition</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-primary">{t("problem.eyebrow")}</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-on-surface flex items-center">
-            Problem Statement
+            {t("problem.title")}
             <InfoTooltip
-              label="Problem Statement"
-              tooltip="Clearly articulate the issue your project aims to solve."
+              label={t("problem.title")}
+              tooltip={t("problem.tooltip")}
             />
           </h1>
           <p className="text-sm text-on-surface-variant max-w-[42rem] mt-1.5 leading-relaxed">
-            Clearly define the real-world problem or research challenge your project aims to resolve.
+            {t("problem.description")}
           </p>
         </div>
 
@@ -178,17 +181,17 @@ export default function ProblemStatement() {
       {/* Background AI Progress Banner */}
       <AiBackgroundBanner
         isVisible={isAiBusy}
-        moduleName="Problem Statement"
+        moduleName={t("problem.title")}
         action={aiState}
         onCancel={cancelAi}
       />
 
       {/* Error Banner */}
-      {error && (
+      {(error || errorKey) && (
         <div className="mb-6 p-3.5 rounded-xl bg-error-container text-on-error-container border border-error/20 flex items-center justify-between gap-3 shadow-2xs">
-          <p className="text-sm font-medium">{error}</p>
+          <p className="text-sm font-medium">{errorKey ? t(errorKey) : error}</p>
           <button onClick={dismissError} className="shrink-0 text-xs font-semibold underline hover:no-underline">
-            Dismiss
+            {t("problem.dismiss")}
           </button>
         </div>
       )}
@@ -204,17 +207,18 @@ export default function ProblemStatement() {
         isBusy={isAiBusy || aiState === "suggestion_ready"}
         canGenerate={isEditorEmpty}
         canRefine={!isEditorEmpty}
-        generateDisabledTitle="Editor already has content — use Refine instead"
-        refineDisabledTitle="Write something first, then ask AI to refine it"
-        refinePlaceholder="Tell AI what you'd like to improve (e.g., 'Make it more academic and concise')..."
+        generateDisabledTitle={t("problem.generateDisabled")}
+        refineDisabledTitle={t("problem.refineDisabled")}
+        refinePlaceholder={t("problem.refinePlaceholder")}
         showTranslate={shouldShowTranslate}
-        translateLabel={`Translate to ${getLanguageLabel(projectLanguage)}`}
+        translateLabel={t("problem.translateLabel", { language: getLanguageLabel(projectLanguage) })}
       />
 
       {/* Editor */}
       <div className="mt-3">
         <RichTextEditor
           content={project?.description?.problemStatement || ""}
+          placeholder={t("problem.editorPlaceholder")}
           externalUpdateTrigger={externalUpdate}
           onChange={(html, plainText, isEmpty) => {
             editorHtmlRef.current = html;

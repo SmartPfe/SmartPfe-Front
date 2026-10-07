@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { fetchApi } from "@/lib/api";
+import i18n from "@/lib/i18n";
 import { useAiGeneration } from "@/context/AiGenerationContext";
 
 export type UmlClass = {
@@ -97,12 +98,6 @@ const LANGUAGE_CODES: Record<string, string> = {
   ar: "ar",
 };
 
-const LANGUAGE_LABELS: Record<string, string> = {
-  en: "English",
-  fr: "French",
-  ar: "Arabic",
-};
-
 export function normalizeLanguage(language?: string | null) {
   const value = String(language || "").trim();
   if (!value) return "";
@@ -111,7 +106,7 @@ export function normalizeLanguage(language?: string | null) {
 
 export function getLanguageLabel(language?: string | null) {
   const normalized = normalizeLanguage(language);
-  return LANGUAGE_LABELS[normalized] || language || "current language";
+  return normalized ? i18n.t(`uml.languages.${normalized}`, { ns: "design", defaultValue: language || "current language" }) : i18n.t("uml.languages.current", { ns: "design" });
 }
 
 export const emptyUmlPreparation: UmlPreparation = {
@@ -475,6 +470,7 @@ export function useUmlPreparation() {
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
   const [localAiState, setLocalAiState] = useState<AiState>("idle");
   const [error, setError] = useState<string | null>(null);
+  const [errorKey, setErrorKey] = useState<string | null>(null);
   const autosaveTimerRef = useRef<number | null>(null);
   const umlRef = useRef<UmlPreparation>(emptyUmlPreparation);
   const handledTaskIdRef = useRef<string | null>(null);
@@ -494,7 +490,8 @@ export function useUmlPreparation() {
       umlRef.current = normalized;
       return { projectData, umlPreparation: normalized };
     } catch (err: any) {
-      setError(err.message || "Failed to load UML preparation. Please refresh the page.");
+      setError(err.message || null);
+      setErrorKey(err.message ? null : "uml.errors.load");
       return null;
     } finally {
       setLoading(false);
@@ -533,6 +530,7 @@ export function useUmlPreparation() {
       setLocalAiState("idle");
       if (task.error && !task.error.includes("Limit reached")) {
         setError(task.error);
+        setErrorKey(null);
       }
     }
   }, [fetchUmlPreparation, localAiState, tasks]);
@@ -570,13 +568,15 @@ export function useUmlPreparation() {
 
   const saveUmlPreparation = useCallback(async (nextPreparation = umlPreparation, language?: string) => {
     if (!project?._id) {
-      setError("Project is not ready yet. Please refresh the page.");
+      setError(null);
+      setErrorKey("uml.errors.projectNotReady");
       return;
     }
 
     const normalized = normalizeUmlPreparation(nextPreparation);
     setSaveStatus("saving");
     setError(null);
+    setErrorKey(null);
 
     try {
       const payload = language
@@ -597,7 +597,8 @@ export function useUmlPreparation() {
         setSaveStatus("unsaved");
       }
     } catch (err: any) {
-      setError(err.message || "Failed to save UML preparation. Please try again.");
+      setError(err.message || null);
+      setErrorKey(err.message ? null : "uml.errors.save");
       setSaveStatus("unsaved");
     }
   }, [project?._id, umlPreparation]);
@@ -623,13 +624,20 @@ export function useUmlPreparation() {
   const generateWithAi = async (diagramType = "all") => {
     setLocalAiState("generating");
     setError(null);
+    setErrorKey(null);
 
     try {
       const result = await startTask<{ type: string; umlPreparation: UmlPreparation }>({
         id: TASK_ID,
         scope: SCOPE,
-        title: "UML Preparation",
-        subTitle: diagramType === "all" ? "Generating full UML model with AI..." : `Generating ${diagramType} diagram with AI...`,
+        title: i18n.t("uml.title", { ns: "design" }),
+        subTitle: diagramType === "all"
+          ? i18n.t("uml.progress.generateAll", { ns: "design" })
+          : i18n.t("uml.progress.generateDiagram", { ns: "design", diagram: i18n.t(`uml.diagrams.${diagramType}`, { ns: "design", defaultValue: diagramType }) }),
+        uiTitleKey: "design:uml.title",
+        uiSubTitleKey: diagramType === "all" ? "design:uml.progress.generateAll" : "design:uml.progress.generateDiagram",
+        uiSubTitleValues: diagramType === "all" ? undefined : { diagram: diagramType },
+        uiSubTitleValueKeys: diagramType === "all" ? undefined : { diagram: `design:uml.diagrams.${diagramType}` },
         pageRoute: PAGE_ROUTE,
         status: "generating",
         runner: async (signal) => {
@@ -651,7 +659,8 @@ export function useUmlPreparation() {
       }
     } catch (err: any) {
       if (err?.name !== "AbortError") {
-        setError(err.message || "AI generation failed. Please try again.");
+        setError(err.message || null);
+        setErrorKey(err.message ? null : "uml.errors.generate");
       }
       setLocalAiState("idle");
     }
@@ -663,6 +672,7 @@ export function useUmlPreparation() {
   const refineWithAi = async (instructions = "", diagramType = "all") => {
     setLocalAiState("refining");
     setError(null);
+    setErrorKey(null);
 
     try {
       const trimmedInstructions = instructions.trim();
@@ -675,8 +685,10 @@ export function useUmlPreparation() {
       const result = await startTask<{ type: string; umlPreparation: UmlPreparation }>({
         id: TASK_ID,
         scope: SCOPE,
-        title: "UML Preparation",
-        subTitle: "Refining UML model with AI...",
+        title: i18n.t("uml.title", { ns: "design" }),
+        subTitle: i18n.t("uml.progress.refine", { ns: "design" }),
+        uiTitleKey: "design:uml.title",
+        uiSubTitleKey: "design:uml.progress.refine",
         pageRoute: PAGE_ROUTE,
         status: "refining",
         runner: async (signal) => {
@@ -698,7 +710,8 @@ export function useUmlPreparation() {
       }
     } catch (err: any) {
       if (err?.name !== "AbortError") {
-        setError(err.message || "AI refinement failed. Please try again.");
+        setError(err.message || null);
+        setErrorKey(err.message ? null : "uml.errors.refine");
       }
       setLocalAiState("idle");
     }
@@ -706,19 +719,27 @@ export function useUmlPreparation() {
 
   const translateWithAi = async () => {
     if (umlPreparation.classes.length === 0) {
-      setError("Add or generate UML classes before asking AI to translate them.");
+      setError(null);
+      setErrorKey("uml.errors.emptyTranslate");
       return;
     }
 
     setLocalAiState("translating");
     setError(null);
+    setErrorKey(null);
 
     try {
       const result = await startTask<{ type: string; umlPreparation: UmlPreparation }>({
         id: TASK_ID,
         scope: SCOPE,
-        title: "UML Preparation",
-        subTitle: `Translating UML preparation to ${getLanguageLabel(projectLanguage)}...`,
+        title: i18n.t("uml.title", { ns: "design" }),
+        subTitle: i18n.t("uml.progress.translate", { ns: "design", language: getLanguageLabel(projectLanguage) }),
+        uiTitleKey: "design:uml.title",
+        uiSubTitleKey: "design:uml.progress.translate",
+        uiSubTitleValues: { language: getLanguageLabel(projectLanguage) },
+        uiSubTitleValueKeys: ["en", "fr", "ar"].includes(normalizeLanguage(projectLanguage))
+          ? { language: `design:uml.languages.${normalizeLanguage(projectLanguage)}` }
+          : {},
         pageRoute: PAGE_ROUTE,
         status: "translating",
         runner: async (signal) => {
@@ -754,7 +775,8 @@ export function useUmlPreparation() {
       }
     } catch (err: any) {
       if (err?.name !== "AbortError") {
-        setError(err.message || "AI UML preparation translation failed. Please try again.");
+        setError(err.message || null);
+        setErrorKey(err.message ? null : "uml.errors.translate");
       }
       setLocalAiState("idle");
     }
@@ -786,7 +808,7 @@ export function useUmlPreparation() {
     dismissTask(TASK_ID);
   }, [dismissTask]);
 
-  const dismissError = useCallback(() => setError(null), []);
+  const dismissError = useCallback(() => { setError(null); setErrorKey(null); }, []);
 
   return {
     umlPreparation,
@@ -797,6 +819,7 @@ export function useUmlPreparation() {
     isAiBusy,
     suggestion,
     error,
+    errorKey,
     markUnsaved,
     saveUmlPreparation,
     generateWithAi,

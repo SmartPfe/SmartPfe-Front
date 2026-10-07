@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import InfoTooltip from "@/components/ui/InfoTooltip";
 import {
@@ -34,6 +35,7 @@ const createEmptyBacklogItem = (index: number, primaryActorOptions: string[]): P
 });
 
 export default function ProductBacklog() {
+  const { t } = useTranslation("planning");
   const {
     productBacklog,
     setProductBacklog,
@@ -57,6 +59,8 @@ export default function ProductBacklog() {
     discardSuggestion,
     dismissError,
   } = useProductBacklog();
+  const localizedProjectLanguage = getPlanningLanguageLabel(projectLanguage, t);
+  const displayError = resolveBacklogError(error, t);
 
   const [activeEpic, setActiveEpic] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
@@ -71,8 +75,8 @@ export default function ProductBacklog() {
 
   const epics = useMemo(() => {
     const uniqueEpics = Array.from(new Set(productBacklog.map((item) => item.epic).filter(Boolean)));
-    return ["All", ...uniqueEpics];
-  }, [productBacklog]);
+    return [{ value: "all", label: t("common.all") }, ...uniqueEpics.map((epic) => ({ value: epic.toLowerCase(), label: epic }))];
+  }, [productBacklog, t]);
 
   const totalDuration = productBacklog.reduce((sum, item) => sum + Number(item.durationDays || 0), 0);
   const durationGap = targetDurationDays ? totalDuration - targetDurationDays : 0;
@@ -131,7 +135,7 @@ export default function ProductBacklog() {
     return (
       <div className="flex flex-col min-h-[50vh] items-center justify-center">
         <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4" />
-        <p className="text-on-surface-variant font-medium text-sm">Loading product backlog...</p>
+        <p className="text-on-surface-variant font-medium text-sm">{t("backlog.loading")}</p>
       </div>
     );
   }
@@ -142,17 +146,17 @@ export default function ProductBacklog() {
       <div className="mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <div className="flex items-center gap-1.5 mb-1.5">
-            <span className="text-xs font-bold uppercase tracking-wider text-primary">Agile Planning</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-primary">{t("backlog.eyebrow")}</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-on-surface flex items-center">
-            Product Backlog
+            {t("backlog.title")}
             <InfoTooltip
-              label="Backlog Specs"
-              tooltip="Organize project epics, user stories, assigned actors, sprints, and priorities for your engineering report."
+              label={t("backlog.tooltipLabel")}
+              tooltip={t("backlog.tooltip")}
             />
           </h1>
           <p className="text-sm text-on-surface-variant max-w-[42rem] mt-1.5 leading-relaxed">
-            Build a report-ready Product Backlog with epics, primary actors, user stories, and estimation metrics.
+            {t("backlog.description")}
           </p>
         </div>
 
@@ -167,7 +171,7 @@ export default function ProductBacklog() {
       {/* Background AI Progress Banner */}
       <AiBackgroundBanner
         isVisible={isAiBusy}
-        moduleName="Product Backlog"
+        moduleName={t("backlog.title")}
         action={aiState}
         onCancel={cancelAi}
       />
@@ -182,10 +186,10 @@ export default function ProductBacklog() {
         isTranslating={aiState === "translating"}
         isBusy={isAiBusy || aiState === "suggestion_ready"}
         canRefine={productBacklog.length > 0}
-        refineDisabledTitle="Add or generate user stories before refining"
-        refinePlaceholder="Tell AI what you'd like to improve (e.g., 'Split into Sprint 1, 2, and 3 with clear acceptance stories')..."
+        refineDisabledTitle={t("backlog.refineDisabled")}
+        refinePlaceholder={t("backlog.refinePlaceholder")}
         showTranslate={shouldShowTranslate}
-        translateLabel={`Translate to ${getLanguageLabel(projectLanguage)}`}
+        translateLabel={t("common.translateTo", { language: localizedProjectLanguage })}
         primaryAction={
           <button
             type="button"
@@ -194,16 +198,16 @@ export default function ProductBacklog() {
             className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 h-9 px-4 bg-primary text-on-primary rounded-lg text-[13px] font-semibold tracking-tight hover:bg-primary/90 transition-all duration-150 shadow-2xs active:scale-[0.98] disabled:opacity-50 select-none cursor-pointer"
           >
             <HugeiconsIcon icon="add" size={16} strokeWidth={2} />
-            <span>Add Story</span>
+            <span>{t("backlog.addStory")}</span>
           </button>
         }
       />
 
-      {error && (
+      {displayError && (
         <div className="mb-6 p-3.5 rounded-xl bg-error-container text-on-error-container border border-error/20 flex items-center justify-between gap-3 shadow-2xs">
-          <p className="text-sm font-medium">{error}</p>
+          <p className="text-sm font-medium">{displayError}</p>
           <button onClick={dismissError} className="shrink-0 text-xs font-semibold underline hover:no-underline">
-            Dismiss
+            {t("common.dismiss")}
           </button>
         </div>
       )}
@@ -215,10 +219,10 @@ export default function ProductBacklog() {
             <div>
               <div className="flex items-center gap-2">
                 <HugeiconsIcon icon="ai-spark" size={18} strokeWidth={1.8} className="text-primary" />
-                <h3 className="text-sm font-bold text-on-surface">AI suggestion ready</h3>
+                <h3 className="text-sm font-bold text-on-surface">{t("backlog.suggestionTitle")}</h3>
               </div>
               <p className="text-xs text-on-surface-variant mt-0.5">
-                Review the generated product backlog before applying it to your project.
+                {t("backlog.suggestionDescription")}
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -226,13 +230,13 @@ export default function ProductBacklog() {
                 onClick={discardSuggestion}
                 className="h-8 px-3.5 rounded-lg border border-outline-variant bg-surface text-on-surface text-xs font-semibold hover:bg-surface-container-low transition-colors cursor-pointer"
               >
-                Discard
+                {t("backlog.discard")}
               </button>
               <button
                 onClick={acceptSuggestion}
                 className="h-8 px-4 rounded-lg bg-primary text-on-primary text-xs font-semibold hover:bg-primary/90 transition-all shadow-2xs cursor-pointer"
               >
-                Accept backlog
+                {t("backlog.accept")}
               </button>
             </div>
           </div>
@@ -260,9 +264,9 @@ export default function ProductBacklog() {
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-lg font-bold font-mono text-on-surface leading-none">{productBacklog.length}</span>
-                <span className="text-xs font-semibold text-on-surface-variant">User Stories</span>
+                <span className="text-xs font-semibold text-on-surface-variant">{t("backlog.userStories")}</span>
               </div>
-              <span className="text-[11px] text-on-surface-variant/80 mt-0.5 block">{highPriorityCount} marked High Priority</span>
+              <span className="text-[11px] text-on-surface-variant/80 mt-0.5 block">{highPriorityCount} {t("backlog.highPriority")}</span>
             </div>
           </div>
 
@@ -273,11 +277,11 @@ export default function ProductBacklog() {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-lg font-bold font-mono text-on-surface leading-none">{totalDuration}d</span>
-                <span className="text-xs font-semibold text-on-surface-variant">Planned Effort</span>
+                <span className="text-lg font-bold font-mono text-on-surface leading-none">{totalDuration}{t("backlog.dayShort")}</span>
+                <span className="text-xs font-semibold text-on-surface-variant">{t("backlog.plannedEffort")}</span>
               </div>
               <span className="text-[11px] text-on-surface-variant/80 mt-0.5 block">
-                {targetDurationDays ? `Target: ~${targetDurationDays} days` : "Duration unset in onboarding"}
+                {targetDurationDays ? t("backlog.target", { days: targetDurationDays }) : t("backlog.durationUnset")}
               </span>
             </div>
           </div>
@@ -287,10 +291,10 @@ export default function ProductBacklog() {
             <div className="flex items-center justify-between text-xs mb-1.5">
               <span className="font-semibold text-on-surface-variant flex items-center gap-1.5">
                 <HugeiconsIcon icon="timeline" size={13} strokeWidth={1.8} className="text-primary" />
-                Schedule Fit
+                {t("backlog.scheduleFit")}
               </span>
               <span className={cn("text-[10px] font-bold font-mono px-2 py-0.5 rounded-full border", Math.abs(durationGap) <= 10 || !targetDurationDays ? "text-secondary bg-secondary/10 border-secondary/20" : "text-error bg-error/10 border-error/20")}>
-                {targetDurationDays ? `${durationGap > 0 ? "+" : ""}${durationGap}d balance` : "Optimal"}
+                {targetDurationDays ? t("backlog.balance", { balance: `${durationGap > 0 ? "+" : ""}${durationGap}`, dayShort: t("backlog.dayShort") }) : t("backlog.optimal")}
               </span>
             </div>
             <div className="h-2 w-full bg-surface-container-high rounded-full overflow-hidden">
@@ -307,12 +311,12 @@ export default function ProductBacklog() {
           <div className="min-w-0 flex-1 overflow-x-auto no-scrollbar">
             <div className="flex min-w-max items-center gap-1.5 pr-2">
               {epics.map((epic) => {
-                const isActive = activeEpic === epic.toLowerCase();
+                const isActive = activeEpic === epic.value;
                 return (
                   <button
-                    key={epic}
+                    key={epic.value}
                     type="button"
-                    onClick={() => setActiveEpic(epic.toLowerCase())}
+                    onClick={() => setActiveEpic(epic.value)}
                     className={cn(
                       "inline-flex items-center justify-center px-3 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 whitespace-nowrap border cursor-pointer",
                       isActive
@@ -320,7 +324,7 @@ export default function ProductBacklog() {
                         : "bg-surface text-on-surface-variant hover:text-on-surface hover:bg-surface-container border-outline-variant/70"
                     )}
                   >
-                    {epic}
+                    {epic.label}
                   </button>
                 );
               })}
@@ -333,10 +337,10 @@ export default function ProductBacklog() {
               onChange={(event) => setPriorityFilter(event.target.value)}
               className="px-3 py-1.5 bg-surface border border-outline-variant/80 rounded-lg text-xs text-on-surface outline-none focus:border-primary cursor-pointer w-full sm:w-auto"
             >
-              <option value="all">All priorities</option>
+              <option value="all">{t("backlog.allPriorities")}</option>
               {priorityOptions.map((priority) => (
                 <option key={priority} value={priority}>
-                  {priority} Priority
+                  {t("backlog.priority", { priority: t("common.priorityLabels." + priority.toLowerCase()) })}
                 </option>
               ))}
             </select>
@@ -352,7 +356,7 @@ export default function ProductBacklog() {
                 type="text"
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
-                placeholder="Search backlog..."
+                placeholder={t("backlog.searchPlaceholder")}
                 className="pl-8.5 pr-3 py-1.5 bg-surface border border-outline-variant/80 rounded-lg text-xs text-on-surface outline-none focus:border-primary focus:ring-1 focus:ring-primary w-full"
               />
             </div>
@@ -369,8 +373,8 @@ export default function ProductBacklog() {
             <div className="w-12 h-12 rounded-full bg-surface-container border border-outline-variant/80 flex items-center justify-center group-hover:scale-110 group-hover:text-primary transition-all duration-200">
               <HugeiconsIcon icon="add" size={22} strokeWidth={2} />
             </div>
-            <span className="font-semibold text-sm text-on-surface">Add First User Story</span>
-            <span className="text-xs text-on-surface-variant/70">Or click "Generate with AI" to construct a complete agile breakdown</span>
+            <span className="font-semibold text-sm text-on-surface">{t("backlog.emptyTitle")}</span>
+            <span className="text-xs text-on-surface-variant/70">{t("backlog.emptyDescription")}</span>
           </button>
         ) : (
           <BacklogTable
@@ -407,6 +411,7 @@ function BacklogTable({
   onMove: (id: string, direction: -1 | 1) => void;
   onUpdate: (id: string, updates: Partial<ProductBacklogItem>) => void;
 }) {
+  const { t } = useTranslation("planning");
   const getEpicRowSpan = (index: number) => {
     const epic = items[index]?.epic;
     if (!epic || items[index - 1]?.epic === epic) return 0;
@@ -433,12 +438,12 @@ function BacklogTable({
       <table className="w-full min-w-[940px] text-left border-collapse">
         <thead className="bg-surface-container-low/60 sticky top-0 z-10">
           <tr>
-            <th className="w-[180px] px-5 py-2.5 border-b border-outline-variant/60 text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">Epic</th>
-            <th className="w-[80px] px-4 py-2.5 border-b border-outline-variant/60 text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">ID</th>
-            <th className="w-[180px] px-4 py-2.5 border-b border-outline-variant/60 text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">As a</th>
-            <th className="px-5 py-2.5 border-b border-outline-variant/60 text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">I want (User Story)</th>
-            <th className="w-[120px] px-4 py-2.5 border-b border-outline-variant/60 text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">Sprint</th>
-            <th className="w-[120px] px-4 py-2.5 border-b border-outline-variant/60 text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">Priority</th>
+            <th className="w-[180px] px-5 py-2.5 border-b border-outline-variant/60 text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">{t("backlog.epic")}</th>
+            <th className="w-[80px] px-4 py-2.5 border-b border-outline-variant/60 text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">{t("common.id")}</th>
+            <th className="w-[180px] px-4 py-2.5 border-b border-outline-variant/60 text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">{t("backlog.asA")}</th>
+            <th className="px-5 py-2.5 border-b border-outline-variant/60 text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">{t("backlog.iWant")}</th>
+            <th className="w-[120px] px-4 py-2.5 border-b border-outline-variant/60 text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">{t("backlog.sprint")}</th>
+            <th className="w-[120px] px-4 py-2.5 border-b border-outline-variant/60 text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">{t("common.priority")}</th>
             <th className="w-[120px] px-4 py-2.5 border-b border-outline-variant/60 text-right"></th>
           </tr>
         </thead>
@@ -446,7 +451,7 @@ function BacklogTable({
           {items.length === 0 ? (
             <tr>
               <td colSpan={7} className="px-6 py-12 text-center text-xs text-on-surface-variant/70">
-                No matching backlog stories found.
+                {t("backlog.noMatching")}
               </td>
             </tr>
           ) : (
@@ -471,7 +476,7 @@ function BacklogTable({
                           value={item.epic}
                           onChange={(event) => onUpdate(id, { epic: event.target.value })}
                           className="w-full bg-surface border border-outline-variant/80 rounded-lg px-2.5 py-1 text-xs font-bold text-on-surface outline-none focus:border-primary"
-                          placeholder="Epic"
+                          placeholder={t("backlog.epic")}
                         />
                       ) : (
                         <span className="text-xs font-bold text-on-surface block tracking-tight">{item.epic}</span>
@@ -512,7 +517,7 @@ function BacklogTable({
                             })
                           }
                           className="w-full min-h-[70px] bg-surface border border-outline-variant/80 rounded-lg px-2.5 py-1 text-xs font-semibold text-on-surface outline-none focus:border-primary resize-y"
-                          placeholder="Primary actor"
+                          placeholder={t("backlog.actorPlaceholder")}
                         />
                       )
                     ) : (
@@ -534,20 +539,20 @@ function BacklogTable({
                           value={item.task}
                           onChange={(event) => onUpdate(id, { task: event.target.value })}
                           className="w-full min-h-[70px] bg-surface border border-outline-variant/80 rounded-lg px-3 py-1.5 text-xs text-on-surface outline-none focus:border-primary resize-y font-medium"
-                          placeholder="Create an account."
+                          placeholder={t("backlog.taskPlaceholder")}
                           autoFocus
                         />
                         <input
                           value={item.notes}
                           onChange={(event) => onUpdate(id, { notes: event.target.value })}
                           className="w-full bg-surface border border-outline-variant/80 rounded-lg px-2.5 py-1 text-xs text-on-surface outline-none focus:border-primary"
-                          placeholder="Optional acceptance criteria / notes"
+                          placeholder={t("backlog.notesPlaceholder")}
                         />
                       </div>
                     ) : (
                       <div className="flex flex-col gap-1">
                         <span className="text-xs font-medium leading-relaxed text-on-surface">
-                          {item.task || "Untitled user story"}
+                          {item.task || t("backlog.untitledStory")}
                         </span>
                         {item.notes && (
                           <span className="text-[11px] text-on-surface-variant leading-relaxed line-clamp-2 pr-6">
@@ -565,11 +570,11 @@ function BacklogTable({
                         value={item.sprint}
                         onChange={(event) => onUpdate(id, { sprint: event.target.value })}
                         className="w-24 bg-surface border border-outline-variant/80 rounded-lg px-2 py-1 text-xs text-on-surface outline-none focus:border-primary"
-                        placeholder="Sprint 1"
+                        placeholder={t("backlog.sprintPlaceholder")}
                       />
                     ) : (
                       <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-surface-container border border-outline-variant/60 text-on-surface-variant inline-flex items-center">
-                        {item.sprint || "Sprint 1"}
+                        {item.sprint || t("backlog.sprintPlaceholder")}
                       </span>
                     )}
                   </td>
@@ -584,13 +589,13 @@ function BacklogTable({
                       >
                         {priorityOptions.map((priority) => (
                           <option key={priority} value={priority}>
-                            {priority}
+                            {t(`common.priorityLabels.${priority.toLowerCase()}`)}
                           </option>
                         ))}
                       </select>
                     ) : (
                       <span className={cn("text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border inline-flex", priorityStyles[item.priority])}>
-                        {item.priority}
+                        {t(`common.priorityLabels.${item.priority.toLowerCase()}`)}
                       </span>
                     )}
                   </td>
@@ -604,7 +609,8 @@ function BacklogTable({
                           onClick={() => onMove(id, -1)}
                           disabled={index === 0}
                           className="w-7 h-7 rounded-lg flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
-                          title="Move up"
+                          title={t("common.moveUp")}
+                          aria-label={t("common.moveUp")}
                         >
                           <HugeiconsIcon icon="arrow-right" size={14} strokeWidth={1.8} className="-rotate-90" />
                         </button>
@@ -613,7 +619,8 @@ function BacklogTable({
                           onClick={() => onMove(id, 1)}
                           disabled={index === items.length - 1}
                           className="w-7 h-7 rounded-lg flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
-                          title="Move down"
+                          title={t("common.moveDown")}
+                          aria-label={t("common.moveDown")}
                         >
                           <HugeiconsIcon icon="arrow-right" size={14} strokeWidth={1.8} className="rotate-90" />
                         </button>
@@ -626,7 +633,8 @@ function BacklogTable({
                               ? "bg-primary text-on-primary hover:bg-primary/90 shadow-2xs"
                               : "text-on-surface-variant hover:text-primary hover:bg-surface-container"
                           )}
-                          title={isEditing ? "Save edit" : "Edit user story"}
+                          title={t(isEditing ? "backlog.saveEdit" : "backlog.editStory")}
+                          aria-label={t(isEditing ? "backlog.saveEdit" : "backlog.editStory")}
                         >
                           <HugeiconsIcon icon={isEditing ? "check" : "edit"} size={16} strokeWidth={1.8} />
                         </button>
@@ -634,7 +642,8 @@ function BacklogTable({
                           type="button"
                           onClick={() => onDelete(id)}
                           className="w-8 h-8 rounded-lg flex items-center justify-center text-on-surface-variant hover:text-error hover:bg-error/10 transition-all cursor-pointer"
-                          title="Delete user story"
+                          title={t("backlog.deleteStory")}
+                          aria-label={t("backlog.deleteStory")}
                         >
                           <HugeiconsIcon icon="delete" size={16} strokeWidth={1.8} />
                         </button>
@@ -653,5 +662,18 @@ function BacklogTable({
 
 function getBacklogKey(item: ProductBacklogItem) {
   return item._id || item.localId || item.code;
+}
+
+function getPlanningLanguageLabel(language: string, t: (key: string) => string) {
+  const label = getLanguageLabel(language).toLowerCase();
+  if (label === "english") return t("common.languageNames.english");
+  if (label === "french") return t("common.languageNames.french");
+  if (label === "arabic") return t("common.languageNames.arabic");
+  return getLanguageLabel(language);
+}
+
+function resolveBacklogError(error: { translationKey: string } | { message: string } | null, t: (key: string) => string) {
+  if (!error) return "";
+  return "translationKey" in error ? t(error.translationKey) : error.message;
 }
 

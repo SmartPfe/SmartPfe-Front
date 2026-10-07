@@ -14,11 +14,17 @@ import enOnboarding from '@/locales/en/onboarding.json';
 import frOnboarding from '@/locales/fr/onboarding.json';
 import enLanding from '@/locales/en/landing.json';
 import frLanding from '@/locales/fr/landing.json';
+import enDesign from '@/locales/en/design.json';
+import frDesign from '@/locales/fr/design.json';
+import enPlanning from '@/locales/en/planning.json';
+import frPlanning from '@/locales/fr/planning.json';
+import enAnalysis from '@/locales/en/analysis.json';
+import frAnalysis from '@/locales/fr/analysis.json';
 
 void i18n.use(initReactI18next).init({
   resources: {
-    en: { common: enCommon, settings: enSettings, controls: enControls, shell: enShell, auth: enAuth, onboarding: enOnboarding, landing: enLanding },
-    fr: { common: frCommon, settings: frSettings, controls: frControls, shell: frShell, auth: frAuth, onboarding: frOnboarding, landing: frLanding },
+    en: { common: enCommon, settings: enSettings, controls: enControls, shell: enShell, auth: enAuth, onboarding: enOnboarding, landing: enLanding, design: enDesign, planning: enPlanning, analysis: enAnalysis },
+    fr: { common: frCommon, settings: frSettings, controls: frControls, shell: frShell, auth: frAuth, onboarding: frOnboarding, landing: frLanding, design: frDesign, planning: frPlanning, analysis: frAnalysis },
   },
   lng: 'en',
   fallbackLng: 'en',

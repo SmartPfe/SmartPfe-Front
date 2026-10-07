@@ -39,7 +39,7 @@ export default function FloatingAiDock() {
     if (task.scope === "system" && task.id.startsWith("system:concurrency-limit-")) {
       return t("aiDock.concurrentTitle");
     }
-    return task.title || t("aiDock.defaultTitle");
+    return task.uiTitleKey ? t(task.uiTitleKey) : task.title || t("aiDock.defaultTitle");
   };
   const getTaskMessage = (task: (typeof allTasks)[number], isCompleted: boolean, isError: boolean) => {
     if (task.scope === "system" && task.id.startsWith("system:concurrency-limit-")) {
@@ -51,6 +51,11 @@ export default function FloatingAiDock() {
     if (isCompleted) return t("aiDock.readyToView");
     if (task.subTitle === "Ready") return t("aiDock.ready");
     if (task.subTitle === "Failed") return t("aiDock.failed");
+    if (!isError && task.uiSubTitleKey) {
+      const values = { ...task.uiSubTitleValues };
+      for (const [name, key] of Object.entries(task.uiSubTitleValueKeys || {})) values[name] = t(key);
+      return t(task.uiSubTitleKey, values);
+    }
     if (task.subTitle === "Generating content with AI...") return t("aiDock.generatingInBackground");
     if (task.subTitle) return task.subTitle;
     if (isError) {
