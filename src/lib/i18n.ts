@@ -20,11 +20,19 @@ import enPlanning from '@/locales/en/planning.json';
 import frPlanning from '@/locales/fr/planning.json';
 import enAnalysis from '@/locales/en/analysis.json';
 import frAnalysis from '@/locales/fr/analysis.json';
+import enOutline from '@/locales/en/outline.json';
+import frOutline from '@/locales/fr/outline.json';
+import enReport from '@/locales/en/report.json';
+import frReport from '@/locales/fr/report.json';
+import enDelivery from '@/locales/en/delivery.json';
+import frDelivery from '@/locales/fr/delivery.json';
+import enJury from '@/locales/en/jury.json';
+import frJury from '@/locales/fr/jury.json';
 
 void i18n.use(initReactI18next).init({
   resources: {
-    en: { common: enCommon, settings: enSettings, controls: enControls, shell: enShell, auth: enAuth, onboarding: enOnboarding, landing: enLanding, design: enDesign, planning: enPlanning, analysis: enAnalysis },
-    fr: { common: frCommon, settings: frSettings, controls: frControls, shell: frShell, auth: frAuth, onboarding: frOnboarding, landing: frLanding, design: frDesign, planning: frPlanning, analysis: frAnalysis },
+    en: { common: enCommon, settings: enSettings, controls: enControls, shell: enShell, auth: enAuth, onboarding: enOnboarding, landing: enLanding, design: enDesign, planning: enPlanning, analysis: enAnalysis, outline: enOutline, report: enReport, delivery: enDelivery, jury: enJury },
+    fr: { common: frCommon, settings: frSettings, controls: frControls, shell: frShell, auth: frAuth, onboarding: frOnboarding, landing: frLanding, design: frDesign, planning: frPlanning, analysis: frAnalysis, outline: frOutline, report: frReport, delivery: frDelivery, jury: frJury },
   },
   lng: 'en',
   fallbackLng: 'en',

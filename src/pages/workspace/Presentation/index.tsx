@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import InfoTooltip from "@/components/ui/InfoTooltip";
 import { cn } from "@/lib/utils";
 import {
@@ -17,6 +18,7 @@ import AiActionToolbar from "@/components/ai/AiActionToolbar";
 const durations: PresentationDuration[] = [5, 10, 15, 20];
 
 export default function PresentationPage() {
+  const { t } = useTranslation("delivery");
   const {
     presentation,
     projectLanguage,
@@ -33,6 +35,8 @@ export default function PresentationPage() {
     cancelAi,
     dismissError,
   } = usePresentation();
+  const localizedProjectLanguage = getDeliveryLanguageLabel(projectLanguage, t);
+  const displayError = resolveDeliveryError(error, t);
 
   const [selectedSlideId, setSelectedSlideId] = useState<string | null>(null);
   const [notesOpen, setNotesOpen] = useState(true);
@@ -66,10 +70,10 @@ export default function PresentationPage() {
   }, [selectedIndex, selectedSlideId, slides]);
 
   const pacingLabel = useMemo(() => {
-    if (!slides.length) return "AI will adapt slide count & pacing";
+    if (!slides.length) return t("presentation.pacingEmpty");
     const minutesPerSlide = presentation.durationMinutes / slides.length;
-    return `${minutesPerSlide.toFixed(1)} min / slide average`;
-  }, [presentation.durationMinutes, slides.length]);
+    return t("presentation.pacingAverage", { minutes: minutesPerSlide.toFixed(1) });
+  }, [presentation.durationMinutes, slides.length, t]);
 
   const setDuration = (durationMinutes: PresentationDuration) => {
     updatePresentation((current) => ({ ...current, durationMinutes }));
@@ -118,7 +122,7 @@ export default function PresentationPage() {
     return (
       <div className="flex min-h-[50vh] flex-col items-center justify-center">
         <div className="mb-4 h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-        <p className="text-sm font-medium text-on-surface-variant">Loading presentation...</p>
+        <p className="text-sm font-medium text-on-surface-variant">{t("presentation.loading")}</p>
       </div>
     );
   }
@@ -129,17 +133,17 @@ export default function PresentationPage() {
       <div className="mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <div className="flex items-center gap-1.5 mb-1.5">
-            <span className="text-xs font-bold uppercase tracking-wider text-primary">Academic Defense</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-primary">{t("presentation.eyebrow")}</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-on-surface flex items-center">
-            Presentation
+            {t("presentation.title")}
             <InfoTooltip
-              label="Defense"
-              tooltip="Generate and edit a complete PFE defense presentation with structured slides and speaker notes."
+              label={t("presentation.tooltipLabel")}
+              tooltip={t("presentation.tooltip")}
             />
           </h1>
           <p className="text-sm text-on-surface-variant max-w-[48rem] mt-1.5 leading-relaxed">
-            Prepare your slides, key bullet points, and speaker talking notes for the final jury defense.
+            {t("presentation.description")}
           </p>
         </div>
 
@@ -154,7 +158,7 @@ export default function PresentationPage() {
       {/* Background AI Progress Banner */}
       <AiBackgroundBanner
         isVisible={isAiBusy}
-        moduleName="Presentation & Defense"
+        moduleName={t("presentation.moduleName")}
         action={aiState}
         onCancel={cancelAi}
       />
@@ -163,7 +167,7 @@ export default function PresentationPage() {
       <div className="mb-6 rounded-2xl border border-outline-variant/80 bg-surface-container-lowest p-3.5 sm:p-4 shadow-2xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex flex-wrap items-center gap-3">
-            <span className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Target Duration</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">{t("presentation.targetDuration")}</span>
             <div className="inline-flex bg-surface-container p-1 rounded-xl border border-outline-variant/60">
               {durations.map((duration) => (
                 <button
@@ -178,7 +182,7 @@ export default function PresentationPage() {
                       : "text-on-surface-variant hover:text-on-surface hover:bg-surface/50"
                   )}
                 >
-                  {duration} min
+                  {duration} {t("presentation.minutes")}
                 </button>
               ))}
             </div>
@@ -186,7 +190,7 @@ export default function PresentationPage() {
 
           <div className="flex items-center gap-2 text-xs font-semibold text-on-surface-variant">
             <HugeiconsIcon icon="clock" size={15} strokeWidth={1.8} className="text-primary" />
-            <span>{slides.length} slides · {pacingLabel}</span>
+            <span>{t("presentation.slideCount", { count: slides.length })} · {pacingLabel}</span>
           </div>
         </div>
       </div>
@@ -201,10 +205,10 @@ export default function PresentationPage() {
         isTranslating={aiState === "translating"}
         isBusy={isAiBusy}
         canRefine={Boolean(selectedSlide)}
-        refineDisabledTitle="Select a slide before refining"
-        refinePlaceholder={`Tell AI what you'd like to improve in Slide ${selectedIndex + 1} (e.g., 'Make bullet points more concise and add strong speaker talking points')...`}
+        refineDisabledTitle={t("presentation.refineDisabled")}
+        refinePlaceholder={t("presentation.refinePlaceholder", { slide: selectedIndex + 1 })}
         showTranslate={shouldShowTranslate}
-        translateLabel={`Translate to ${getLanguageLabel(projectLanguage)}`}
+        translateLabel={t("common.translateTo", { language: localizedProjectLanguage })}
         primaryAction={
           <button
             type="button"
@@ -213,16 +217,16 @@ export default function PresentationPage() {
             className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 h-9 px-4 bg-primary text-on-primary rounded-lg text-[13px] font-semibold tracking-tight hover:bg-primary/90 transition-all duration-150 shadow-2xs active:scale-[0.98] disabled:opacity-50 select-none cursor-pointer"
           >
             <HugeiconsIcon icon="add" size={16} strokeWidth={2} />
-            <span>Add Slide</span>
+            <span>{t("presentation.addSlide")}</span>
           </button>
         }
       />
 
-      {error && (
+      {displayError && (
         <div className="mb-6 p-3.5 rounded-xl bg-error-container text-on-error-container border border-error/20 flex items-center justify-between gap-3 shadow-2xs">
-          <p className="text-sm font-medium">{error}</p>
+          <p className="text-sm font-medium">{displayError}</p>
           <button onClick={dismissError} className="shrink-0 text-xs font-semibold underline hover:no-underline">
-            Dismiss
+            {t("common.dismiss")}
           </button>
         </div>
       )}
@@ -232,9 +236,9 @@ export default function PresentationPage() {
           <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary border border-primary/20">
             <HugeiconsIcon icon="presentation" size={32} strokeWidth={1.8} />
           </div>
-          <h2 className="mb-2 text-2xl font-bold tracking-tight text-on-surface">Generate your defense presentation</h2>
+          <h2 className="mb-2 text-2xl font-bold tracking-tight text-on-surface">{t("presentation.emptyTitle")}</h2>
           <p className="max-w-xl text-sm text-on-surface-variant leading-relaxed">
-            Choose a target duration above and click <span className="font-semibold text-primary">Generate with AI</span> to build your editable slides and speaker talking points.
+            {t("presentation.emptyDescription")}
           </p>
         </section>
       ) : (
@@ -243,16 +247,17 @@ export default function PresentationPage() {
             <div className="border-b border-outline-variant/80 p-4 bg-surface-container-low/40">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <h2 className="text-sm font-bold text-on-surface tracking-tight">Slide Deck</h2>
+                  <h2 className="text-sm font-bold text-on-surface tracking-tight">{t("presentation.slideDeck")}</h2>
                   <p className="text-xs text-on-surface-variant font-medium">
-                    {slides.length} slides · {presentation.durationMinutes} min
+                    {t("presentation.slideCountDuration", { slides: t("presentation.slideCount", { count: slides.length }), minutes: presentation.durationMinutes })}
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={addSlide}
                   disabled={!isAiIdle}
-                  title="Add slide"
+                  title={t("presentation.addSlideTitle")}
+                  aria-label={t("presentation.addSlideTitle")}
                   className="w-8 h-8 rounded-lg bg-primary text-on-primary shadow-2xs flex items-center justify-center hover:bg-primary/90 transition-all cursor-pointer disabled:opacity-50"
                 >
                   <HugeiconsIcon icon="add" size={16} strokeWidth={2} />
@@ -288,7 +293,7 @@ export default function PresentationPage() {
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-xs font-bold text-on-surface">{slide.title || `Slide ${index + 1}`}</span>
                     <span className="block truncate text-[11px] text-on-surface-variant/80">
-                      {index + 1 < slides.length ? `Next: ${slides[index + 1].title}` : "Final slide"}
+                      {index + 1 < slides.length ? t("presentation.nextSlide", { title: slides[index + 1].title }) : t("presentation.finalSlide")}
                     </span>
                   </span>
                   <span className="text-on-surface-variant/40 hover:text-on-surface-variant shrink-0 flex items-center">
@@ -305,17 +310,17 @@ export default function PresentationPage() {
                 <div className="min-w-0 flex-1">
                   <div className="mb-1.5 flex items-center gap-2">
                     <span className="text-xs font-bold uppercase tracking-wider text-primary">
-                      Slide {selectedIndex + 1} of {slides.length}
+                      {t("presentation.slidePosition", { current: selectedIndex + 1, total: slides.length })}
                     </span>
                   </div>
                   <input
                     value={selectedSlide.title}
                     onChange={(event) => updateSlide(selectedSlide.id, { title: event.target.value })}
                     className="w-full bg-transparent pb-1 text-xl sm:text-2xl font-bold tracking-tight text-on-surface outline-none transition-colors border-b border-transparent focus:border-primary placeholder:text-on-surface-variant/40"
-                    placeholder="Slide title"
+                    placeholder={t("presentation.slideTitlePlaceholder")}
                   />
                   <p className="mt-2 text-xs text-on-surface-variant">
-                    {nextSlide ? `Next slide: ${nextSlide.title}` : "This is the closing slide."}
+                    {nextSlide ? t("presentation.nextSlidePreview", { title: nextSlide.title }) : t("presentation.closingSlide")}
                   </p>
                 </div>
 
@@ -323,7 +328,8 @@ export default function PresentationPage() {
                   type="button"
                   onClick={() => deleteSlide(selectedSlide.id)}
                   disabled={!isAiIdle}
-                  title="Delete slide"
+                  title={t("presentation.deleteSlide")}
+                  aria-label={t("presentation.deleteSlide")}
                   className="w-8 h-8 rounded-lg flex items-center justify-center text-on-surface-variant hover:text-error hover:bg-error/10 transition-colors cursor-pointer disabled:opacity-50 shrink-0"
                 >
                   <HugeiconsIcon icon="delete" size={17} strokeWidth={1.8} />
@@ -334,7 +340,7 @@ export default function PresentationPage() {
                 <div className="rounded-2xl border border-outline-variant/80 bg-surface p-4 sm:p-5 shadow-2xs">
                   <div className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-on-surface">
                     <HugeiconsIcon icon="list-ordered" size={16} strokeWidth={1.8} className="text-primary" />
-                    <span>Bullet Points</span>
+                    <span>{t("presentation.bulletPoints")}</span>
                   </div>
                   <textarea
                     value={selectedSlide.bullets.join("\n")}
@@ -343,7 +349,7 @@ export default function PresentationPage() {
                     })}
                     rows={7}
                     className="w-full resize-y rounded-xl border border-outline-variant/80 bg-surface-container-lowest p-3.5 text-xs sm:text-sm leading-relaxed text-on-surface outline-none transition-all placeholder:text-on-surface-variant/60 focus:border-primary focus:ring-1 focus:ring-primary"
-                    placeholder="One bullet per line"
+                    placeholder={t("presentation.bulletPlaceholder")}
                   />
                 </div>
 
@@ -355,7 +361,7 @@ export default function PresentationPage() {
                   >
                     <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-on-surface">
                       <HugeiconsIcon icon="person" size={16} strokeWidth={1.8} className="text-primary" />
-                      <span>Speaker Talking Points</span>
+                      <span>{t("presentation.speakerTalkingPoints")}</span>
                     </div>
                     <HugeiconsIcon icon={notesOpen ? "chevron-down" : "chevron-right"} size={16} strokeWidth={1.8} className="text-on-surface-variant" />
                   </button>
@@ -367,7 +373,7 @@ export default function PresentationPage() {
                         onChange={(event) => updateSlide(selectedSlide.id, { notes: event.target.value })}
                         rows={7}
                         className="w-full resize-y rounded-xl border border-outline-variant/80 bg-surface p-3.5 text-xs sm:text-sm leading-relaxed text-on-surface outline-none transition-all placeholder:text-on-surface-variant/60 focus:border-primary focus:ring-1 focus:ring-primary"
-                        placeholder="What should the presenter say during this slide?"
+                        placeholder={t("presentation.notesPlaceholder")}
                       />
                     </div>
                   )}
@@ -379,4 +385,17 @@ export default function PresentationPage() {
       )}
     </div>
   );
+}
+
+function getDeliveryLanguageLabel(language: string, t: (key: string) => string) {
+  const label = getLanguageLabel(language).toLowerCase();
+  if (label === "english") return t("presentation.languageNames.english");
+  if (label === "french") return t("presentation.languageNames.french");
+  if (label === "arabic") return t("presentation.languageNames.arabic");
+  return getLanguageLabel(language);
+}
+
+function resolveDeliveryError(error: { translationKey: string } | { message: string } | null, t: (key: string) => string) {
+  if (!error) return "";
+  return "translationKey" in error ? t(error.translationKey) : error.message;
 }

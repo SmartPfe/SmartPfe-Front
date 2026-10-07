@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import InfoTooltip from "@/components/ui/InfoTooltip";
@@ -32,7 +33,64 @@ const paragraphHtml = (value = "") =>
     .map((paragraph) => `<p>${paragraph}</p>`)
     .join("");
 
+export function getPitchExportCopy(language?: string | null) {
+  const normalizedLanguage = normalizeLanguage(language);
+  if (normalizedLanguage === "fr") {
+    return {
+      title: "Discours oral",
+      slide: "Diapositive",
+      estimatedDuration: "Durée estimée :",
+      speech: "Discours",
+      speakerTips: "Conseils de présentation orale",
+      noSpeakerTips: "Aucun conseil de présentation pour le moment.",
+      noSpeech: "Aucun discours pour le moment.",
+      presentationDuration: "Durée de la présentation :",
+      estimatedCurrentDuration: "Durée actuelle estimée :",
+      minuteUnit: "min",
+      secondUnit: "s",
+    };
+  }
+  if (normalizedLanguage === "ar") {
+    return {
+      title: "خطاب العرض",
+      slide: "الشريحة",
+      estimatedDuration: "المدة المقدرة:",
+      speech: "الخطاب",
+      speakerTips: "نصائح الإلقاء",
+      noSpeakerTips: "لا توجد نصائح للإلقاء بعد.",
+      noSpeech: "لا يوجد خطاب بعد.",
+      presentationDuration: "مدة العرض التقديمي:",
+      estimatedCurrentDuration: "المدة الحالية المقدرة:",
+      minuteUnit: "دقيقة",
+      secondUnit: "ثانية",
+    };
+  }
+  return {
+    title: "Pitch Speech",
+    slide: "Slide",
+    estimatedDuration: "Estimated duration:",
+    speech: "Speech",
+    speakerTips: "Speaker Tips",
+    noSpeakerTips: "No speaker tips yet.",
+    noSpeech: "No speech yet.",
+    presentationDuration: "Presentation Duration:",
+    estimatedCurrentDuration: "Estimated Current Duration:",
+    minuteUnit: "min",
+    secondUnit: "sec",
+  };
+}
+
+function formatPitchExportDuration(seconds: number, language?: string | null) {
+  const copy = getPitchExportCopy(language);
+  const safeSeconds = Math.max(0, Math.round(seconds));
+  const minutes = Math.floor(safeSeconds / 60);
+  const remainingSeconds = safeSeconds % 60;
+  if (minutes === 0) return `${remainingSeconds} ${copy.secondUnit}`;
+  return `${minutes} ${copy.minuteUnit} ${String(remainingSeconds).padStart(2, "0")} ${copy.secondUnit}`;
+}
+
 export default function PitchPage() {
+  const { t } = useTranslation("delivery");
   const navigate = useNavigate();
   const {
     pitch,
@@ -50,6 +108,8 @@ export default function PitchPage() {
     cancelAi,
     dismissError,
   } = usePitch();
+  const localizedProjectLanguage = getDeliveryLanguageLabel(projectLanguage, t);
+  const displayError = resolveDeliveryError(error, t);
 
   const [selectedSlideId, setSelectedSlideId] = useState<string | null>(null);
   const [tipsOpen, setTipsOpen] = useState(true);
@@ -101,19 +161,21 @@ export default function PitchPage() {
   };
 
   const exportPdf = () => {
+    const projectExportCopy = getPitchExportCopy(projectLanguage);
     const sections = slides.map((slide, index) => {
+      const slideExportCopy = getPitchExportCopy(normalizeLanguage(slide.language) || normalizeLanguage(projectLanguage));
       const tips = slide.tips.length
         ? `<ul>${slide.tips.map((tip) => `<li>${escapeHtml(tip)}</li>`).join("")}</ul>`
-        : "<p>No speaker tips yet.</p>";
+        : `<p>${slideExportCopy.noSpeakerTips}</p>`;
 
       return `
         <section class="slide">
-          <p class="kicker">Slide ${index + 1}</p>
-          <h2>${escapeHtml(slide.title || `Slide ${index + 1}`)}</h2>
-          <p class="duration">Estimated duration: ${formatDuration(getCurrentSeconds(slide))}</p>
-          <h3>Speech</h3>
-          ${paragraphHtml(slide.speech) || "<p>No speech yet.</p>"}
-          <h3>Speaker Tips</h3>
+          <p class="kicker">${slideExportCopy.slide} ${index + 1}</p>
+          <h2>${escapeHtml(slide.title || `${slideExportCopy.slide} ${index + 1}`)}</h2>
+          <p class="duration">${slideExportCopy.estimatedDuration} ${formatPitchExportDuration(getCurrentSeconds(slide), slide.language || projectLanguage)}</p>
+          <h3>${slideExportCopy.speech}</h3>
+          ${paragraphHtml(slide.speech) || `<p>${slideExportCopy.noSpeech}</p>`}
+          <h3>${slideExportCopy.speakerTips}</h3>
           ${tips}
         </section>
       `;
@@ -123,7 +185,7 @@ export default function PitchPage() {
       <!doctype html>
       <html>
         <head>
-          <title>Pitch Speech</title>
+          <title>${projectExportCopy.title}</title>
           <style>
             * { box-sizing: border-box; }
             body { margin: 0; color: #1f2937; font-family: Arial, sans-serif; line-height: 1.55; }
@@ -149,9 +211,9 @@ export default function PitchPage() {
         <body>
           <main>
             <header>
-              <h1>Pitch Speech</h1>
-              <p class="meta">Presentation Duration: ${pitch.durationMinutes} min</p>
-              <p class="meta">Estimated Current Duration: ${formatDuration(totalEstimatedSeconds)}</p>
+              <h1>${projectExportCopy.title}</h1>
+              <p class="meta">${projectExportCopy.presentationDuration} ${pitch.durationMinutes} ${projectExportCopy.minuteUnit}</p>
+              <p class="meta">${projectExportCopy.estimatedCurrentDuration} ${formatPitchExportDuration(totalEstimatedSeconds, projectLanguage)}</p>
             </header>
             ${sections}
           </main>
@@ -160,7 +222,7 @@ export default function PitchPage() {
     `;
 
     const printFrame = document.createElement("iframe");
-    printFrame.title = "Pitch PDF Export";
+    printFrame.title = t("pitch.printFrameTitle");
     printFrame.style.position = "fixed";
     printFrame.style.right = "0";
     printFrame.style.bottom = "0";
@@ -205,7 +267,7 @@ export default function PitchPage() {
     return (
       <div className="flex min-h-[50vh] flex-col items-center justify-center">
         <div className="mb-4 h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-        <p className="text-sm font-medium text-on-surface-variant">Loading pitch...</p>
+        <p className="text-sm font-medium text-on-surface-variant">{t("pitch.loading")}</p>
       </div>
     );
   }
@@ -216,17 +278,17 @@ export default function PitchPage() {
       <div className="mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <div className="flex items-center gap-1.5 mb-1.5">
-            <span className="text-xs font-bold uppercase tracking-wider text-primary">Oral Defense Speech</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-primary">{t("pitch.eyebrow")}</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-on-surface flex items-center">
-            Pitch Speech
+            {t("pitch.title")}
             <InfoTooltip
-              label="Speech"
-              tooltip="Craft the exact spoken script and timing for every slide of your defense presentation."
+              label={t("pitch.tooltipLabel")}
+              tooltip={t("pitch.tooltip")}
             />
           </h1>
           <p className="text-sm text-on-surface-variant max-w-[48rem] mt-1.5 leading-relaxed">
-            Write and rehearse your full oral presentation speech with live time estimates and speaker delivery tips.
+            {t("pitch.description")}
           </p>
         </div>
 
@@ -241,7 +303,7 @@ export default function PitchPage() {
       {/* Background AI Progress Banner */}
       <AiBackgroundBanner
         isVisible={isAiBusy}
-        moduleName="Pitch & Defense Speech"
+        moduleName={t("pitch.moduleName")}
         action={aiState}
         onCancel={cancelAi}
       />
@@ -251,12 +313,12 @@ export default function PitchPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Target Duration:</span>
-              <span className="text-sm font-bold font-mono text-on-surface">{pitch.durationMinutes} min</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">{t("pitch.targetDuration")}</span>
+              <span className="text-sm font-bold font-mono text-on-surface">{pitch.durationMinutes} {t("pitch.minutes")}</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Estimated Speech:</span>
-              <span className="text-sm font-bold font-mono text-primary">{formatDuration(totalEstimatedSeconds)}</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">{t("pitch.estimatedSpeech")}</span>
+              <span className="text-sm font-bold font-mono text-primary">{formatDeliveryDuration(totalEstimatedSeconds, t)}</span>
             </div>
           </div>
 
@@ -264,10 +326,11 @@ export default function PitchPage() {
             type="button"
             onClick={exportPdf}
             disabled={!hasPitch}
+            aria-label={t("pitch.exportSpeechPdf")}
             className="inline-flex items-center gap-2 h-8 px-3.5 rounded-lg border border-outline-variant/80 bg-surface text-xs font-bold text-on-surface hover:bg-surface-container transition-all shadow-2xs cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <HugeiconsIcon icon="book-open" size={15} strokeWidth={1.8} className="text-primary" />
-            <span>Export Speech PDF</span>
+            <span>{t("pitch.exportSpeechPdf")}</span>
           </button>
         </div>
       </div>
@@ -282,31 +345,32 @@ export default function PitchPage() {
         isTranslating={aiState === "translating"}
         isBusy={isAiBusy}
         canRefine={hasPitch}
-        refineDisabledTitle="Generate speech before refining"
-        refinePlaceholder="Tell AI what to refine across the entire pitch speech (e.g., 'Make the speech more engaging and confident for an academic jury')..."
+        refineDisabledTitle={t("pitch.refineDisabled")}
+        refinePlaceholder={t("pitch.refinePlaceholder")}
         showTranslate={shouldShowTranslate}
-        translateLabel={`Translate to ${getLanguageLabel(projectLanguage)}`}
+        translateLabel={t("common.translateTo", { language: localizedProjectLanguage })}
         primaryAction={
           selectedSlide ? (
             <button
               type="button"
               onClick={() => generateSlideWithAi(selectedSlide.slideId)}
               disabled={isAiBusy}
+              aria-label={t("pitch.regenerateSlide")}
               className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 h-9 px-4 bg-primary text-on-primary rounded-lg text-[13px] font-semibold tracking-tight hover:bg-primary/90 transition-all duration-150 shadow-2xs active:scale-[0.98] disabled:opacity-50 select-none cursor-pointer"
             >
               <HugeiconsIcon icon="refresh" size={15} strokeWidth={2} />
-              <span>Regenerate Slide</span>
+              <span>{t("pitch.regenerateSlide")}</span>
               <CreditBadge actionKey="pitch_slide" className="border-white/25 bg-white/15 text-white" />
             </button>
           ) : undefined
         }
       />
 
-      {error && (
+      {displayError && (
         <div className="mb-6 p-3.5 rounded-xl bg-error-container text-on-error-container border border-error/20 flex items-center justify-between gap-3 shadow-2xs">
-          <p className="text-sm font-medium">{error}</p>
+          <p className="text-sm font-medium">{displayError}</p>
           <button onClick={dismissError} className="shrink-0 text-xs font-semibold underline hover:no-underline">
-            Dismiss
+            {t("common.dismiss")}
           </button>
         </div>
       )}
@@ -316,16 +380,16 @@ export default function PitchPage() {
           <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary border border-primary/20">
             <HugeiconsIcon icon="presentation" size={32} strokeWidth={1.8} />
           </div>
-          <h2 className="mb-2 text-2xl font-bold tracking-tight text-on-surface">Generate your presentation first</h2>
+          <h2 className="mb-2 text-2xl font-bold tracking-tight text-on-surface">{t("pitch.emptyTitle")}</h2>
           <p className="mb-6 text-sm text-on-surface-variant leading-relaxed">
-            The speech script aligns directly with your slide structure and duration. Generate your presentation slides before crafting the speech.
+            {t("pitch.emptyDescription")}
           </p>
           <button
             type="button"
             onClick={() => navigate("/workspace/presentation")}
             className="inline-flex items-center gap-2 h-9 px-5 rounded-lg bg-primary text-on-primary text-xs font-bold shadow-2xs hover:bg-primary/90 transition-all cursor-pointer"
           >
-            <span>Go to Presentation</span>
+            <span>{t("pitch.goToPresentation")}</span>
             <HugeiconsIcon icon="arrow-right" size={14} strokeWidth={2} />
           </button>
         </section>
@@ -333,8 +397,8 @@ export default function PitchPage() {
         <section className="grid min-h-[580px] grid-cols-1 overflow-hidden rounded-2xl border border-outline-variant/80 bg-surface shadow-2xs lg:grid-cols-[280px_minmax(0,1fr)] xl:grid-cols-[320px_minmax(0,1fr)]">
           <aside className="min-w-0 border-b border-outline-variant/80 bg-surface-container-lowest px-3 py-4 lg:border-b-0 lg:border-r">
             <div className="mb-3 px-2 flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-outline-variant">Slides</span>
-              <span className="text-xs font-semibold text-primary">{slides.length} total</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-outline-variant">{t("pitch.slides")}</span>
+              <span className="text-xs font-semibold text-primary">{t("pitch.slideCount", { count: slides.length })}</span>
             </div>
             <nav className="flex flex-col gap-1.5 pr-1">
               {slides.map((slide, index) => (
@@ -361,11 +425,11 @@ export default function PitchPage() {
               <div className="mx-auto flex max-w-[860px] flex-col">
                 <div className="mb-6 pb-4 border-b border-outline-variant/60">
                   <div className="mb-2 flex flex-wrap items-center gap-x-4 gap-y-2">
-                    <span className="text-xs font-bold uppercase tracking-wider text-primary">Slide {selectedIndex + 1}</span>
+                    <span className="text-xs font-bold uppercase tracking-wider text-primary">{t("pitch.slideNumber", { number: selectedIndex + 1 })}</span>
                     <span className="inline-flex items-center gap-1.5 rounded-lg border border-outline-variant/80 bg-surface px-2.5 py-1 text-xs text-on-surface-variant font-medium shadow-2xs">
                       <HugeiconsIcon icon="clock" size={13} strokeWidth={1.8} className="text-primary" />
-                      <span>Speaking duration:</span>
-                      <span className="font-bold text-on-surface font-mono">{formatDuration(getCurrentSeconds(selectedSlide))}</span>
+                      <span>{t("pitch.speakingDuration")}</span>
+                      <span className="font-bold text-on-surface font-mono">{formatDeliveryDuration(getCurrentSeconds(selectedSlide), t)}</span>
                     </span>
                   </div>
                   <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-on-surface leading-snug">
@@ -380,7 +444,7 @@ export default function PitchPage() {
                       onChange={(event) => updateSlide(selectedSlide.slideId, { speech: event.target.value })}
                       rows={14}
                       className="min-h-[380px] w-full resize-y rounded-xl border border-outline-variant/80 bg-surface-container-lowest p-4 sm:p-5 text-xs sm:text-sm leading-relaxed text-on-surface outline-none transition-all placeholder:text-on-surface-variant/60 focus:border-primary focus:ring-1 focus:ring-primary font-sans"
-                      placeholder="Generate with AI or start drafting the oral speech for this slide..."
+                      placeholder={t("pitch.speechPlaceholder")}
                     />
                   </label>
 
@@ -392,7 +456,7 @@ export default function PitchPage() {
                     >
                       <div className="flex items-center gap-2">
                         <HugeiconsIcon icon="lightbulb" size={16} strokeWidth={1.8} className="text-primary" />
-                        <span>Speaker Delivery Tips</span>
+                        <span>{t("pitch.speakerDeliveryTips")}</span>
                       </div>
                       <HugeiconsIcon icon={tipsOpen ? "chevron-down" : "chevron-right"} size={16} strokeWidth={1.8} className="text-on-surface-variant" />
                     </button>
@@ -404,7 +468,7 @@ export default function PitchPage() {
                           onChange={(event) => updateTips(selectedSlide.slideId, event.target.value)}
                           rows={4}
                           className="w-full resize-y rounded-lg border border-outline-variant/80 bg-surface p-3 text-xs sm:text-sm leading-relaxed text-on-surface outline-none transition-all placeholder:text-on-surface-variant/60 focus:border-primary focus:ring-1 focus:ring-primary"
-                          placeholder="Emphasis, pauses, transitions, or mistakes to avoid."
+                          placeholder={t("pitch.tipsPlaceholder")}
                         />
                       </div>
                     )}
@@ -417,4 +481,25 @@ export default function PitchPage() {
       )}
     </div>
   );
+}
+
+function getDeliveryLanguageLabel(language: string, t: (key: string) => string) {
+  const label = getLanguageLabel(language).toLowerCase();
+  if (label === "english") return t("pitch.languageNames.english");
+  if (label === "french") return t("pitch.languageNames.french");
+  if (label === "arabic") return t("pitch.languageNames.arabic");
+  return getLanguageLabel(language);
+}
+
+function resolveDeliveryError(error: { translationKey: string } | { message: string } | null, t: (key: string) => string) {
+  if (!error) return "";
+  return "translationKey" in error ? t(error.translationKey) : error.message;
+}
+
+function formatDeliveryDuration(seconds: number, t: (key: string, options?: any) => string) {
+  const safeSeconds = Math.max(0, Math.round(seconds));
+  const minutes = Math.floor(safeSeconds / 60);
+  const remainingSeconds = safeSeconds % 60;
+  if (minutes === 0) return t("pitch.durationSeconds", { seconds: remainingSeconds });
+  return t("pitch.durationMinutes", { minutes, seconds: String(remainingSeconds).padStart(2, "0") });
 }

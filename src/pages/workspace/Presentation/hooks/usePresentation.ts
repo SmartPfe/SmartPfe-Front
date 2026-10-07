@@ -7,6 +7,7 @@ import { useAiGeneration } from "@/context/AiGenerationContext";
 export type PresentationDuration = 5 | 10 | 15 | 20;
 export type AiState = "idle" | "generating" | "refining" | "translating";
 export type SaveStatus = "unsaved" | "saving" | "saved";
+export type PresentationError = { translationKey: string } | { message: string };
 
 export type PresentationSlide = {
   id: string;
@@ -97,6 +98,12 @@ const TASK_ID = "presentation:main";
 const SCOPE = "presentation";
 const PAGE_ROUTE = "/workspace/presentation";
 
+function getTaskLanguageTranslationKey(language: string) {
+  const normalized = normalizeLanguage(language);
+  const languageNames: Record<string, string> = { en: "english", fr: "french", ar: "arabic" };
+  return languageNames[normalized] ? `delivery:presentation.languageNames.${languageNames[normalized]}` : undefined;
+}
+
 export function usePresentation() {
   const { startTask, isTaskActive, getTask, tasks, dismissTask, cancelTask } = useAiGeneration();
   const location = useLocation();
@@ -107,7 +114,7 @@ export function usePresentation() {
   const [loading, setLoading] = useState(true);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
   const [localAiState, setLocalAiState] = useState<AiState>("idle");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<PresentationError | null>(null);
   const autosaveTimerRef = useRef<number | null>(null);
   const presentationRef = useRef<PresentationDeck>(presentation);
   const handledTaskIdRef = useRef<string | null>(null);
@@ -132,7 +139,7 @@ export function usePresentation() {
       presentationRef.current = normalized;
       return { projectData, presentation: normalized };
     } catch (err: any) {
-      setError(err.message || "Failed to load presentation. Please refresh the page.");
+      setError(err.message ? { message: err.message } : { translationKey: "presentation.errors.load" });
       return null;
     } finally {
       setLoading(false);
@@ -167,7 +174,7 @@ export function usePresentation() {
     } else if (task.status === "error") {
       setLocalAiState("idle");
       if (task.error && !task.error.includes("Limit reached")) {
-        setError(task.error);
+        setError({ message: task.error });
       }
     }
   }, [fetchPresentation, localAiState, tasks]);
@@ -205,13 +212,13 @@ export function usePresentation() {
 
   const savePresentation = useCallback(async (nextPresentation = presentation, showValidation = false) => {
     if (!project?._id) {
-      setError("Project is not ready yet. Please refresh the page.");
+      setError({ translationKey: "presentation.errors.projectNotReady" });
       return;
     }
 
     const normalized = normalizePresentation(nextPresentation);
     if (showValidation && normalized.slides.length === 0) {
-      setError("Generate or add at least one slide before saving.");
+      setError({ translationKey: "presentation.errors.saveValidation" });
       setSaveStatus("unsaved");
       return;
     }
@@ -232,7 +239,7 @@ export function usePresentation() {
         setSaveStatus("unsaved");
       }
     } catch (err: any) {
-      setError(err.message || "Failed to save presentation. Please try again.");
+      setError(err.message ? { message: err.message } : { translationKey: "presentation.errors.save" });
       setSaveStatus("unsaved");
     }
   }, [presentation, project?._id]);
@@ -270,7 +277,10 @@ export function usePresentation() {
         id: TASK_ID,
         scope: SCOPE,
         title: "Presentation & Defense",
+        uiTitleKey: "delivery:presentation.title",
         subTitle: `Generating ${durationMinutes}-minute presentation slides with AI...`,
+        uiSubTitleKey: "delivery:presentation.tasks.generate",
+        uiSubTitleValues: { minutes: durationMinutes },
         pageRoute: PAGE_ROUTE,
         status: "generating",
         runner: async (signal) => {
@@ -303,7 +313,7 @@ export function usePresentation() {
       }
     } catch (err: any) {
       if (err?.name !== "AbortError") {
-        setError(err.message || "AI presentation generation failed. Please try again.");
+        setError(err.message ? { message: err.message } : { translationKey: "presentation.errors.generate" });
       }
       setLocalAiState("idle");
     }
@@ -311,7 +321,7 @@ export function usePresentation() {
 
   const refineWithAi = async (slideId = "", instructions = "") => {
     if (presentation.slides.length === 0) {
-      setError("Generate or add slides before asking AI to refine them.");
+      setError({ translationKey: "presentation.errors.refineEmpty" });
       return;
     }
 
@@ -330,7 +340,9 @@ export function usePresentation() {
         id: TASK_ID,
         scope: SCOPE,
         title: "Presentation & Defense",
+        uiTitleKey: "delivery:presentation.title",
         subTitle: slideId ? "Refining selected slide with AI..." : "Refining presentation slides with AI...",
+        uiSubTitleKey: slideId ? "delivery:presentation.tasks.refineSlide" : "delivery:presentation.tasks.refineDeck",
         pageRoute: PAGE_ROUTE,
         status: "refining",
         runner: async (signal) => {
@@ -370,7 +382,7 @@ export function usePresentation() {
       }
     } catch (err: any) {
       if (err?.name !== "AbortError") {
-        setError(err.message || "AI presentation refinement failed. Please try again.");
+        setError(err.message ? { message: err.message } : { translationKey: "presentation.errors.refine" });
       }
       setLocalAiState("idle");
     }
@@ -387,7 +399,13 @@ export function usePresentation() {
         id: TASK_ID,
         scope: SCOPE,
         title: "Presentation & Defense",
+        uiTitleKey: "delivery:presentation.title",
         subTitle: `Translating slide to ${getLanguageLabel(projectLanguage)}...`,
+        uiSubTitleKey: "delivery:presentation.tasks.translateSlide",
+        uiSubTitleValues: { language: getLanguageLabel(projectLanguage) },
+        ...(getTaskLanguageTranslationKey(projectLanguage)
+          ? { uiSubTitleValueKeys: { language: getTaskLanguageTranslationKey(projectLanguage)! } }
+          : {}),
         pageRoute: PAGE_ROUTE,
         status: "translating",
         runner: async (signal) => {
@@ -427,7 +445,7 @@ export function usePresentation() {
       }
     } catch (err: any) {
       if (err?.name !== "AbortError") {
-        setError(err.message || "AI presentation translation failed. Please try again.");
+        setError(err.message ? { message: err.message } : { translationKey: "presentation.errors.translate" });
       }
       setLocalAiState("idle");
     }

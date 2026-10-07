@@ -5,6 +5,7 @@ import { useAiGeneration } from "@/context/AiGenerationContext";
 import { PresentationDuration } from "../../Presentation/hooks/usePresentation";
 
 export type SaveStatus = "unsaved" | "saving" | "saved";
+export type PitchError = { translationKey: string } | { message: string };
 export type AiState = "idle" | "generating" | "refining" | "translating";
 
 export type PitchSlide = {
@@ -111,6 +112,12 @@ const TASK_ID = "pitch:main";
 const SCOPE = "pitch";
 const PAGE_ROUTE = "/workspace/pitch";
 
+function getTaskLanguageTranslationKey(language: string) {
+  const normalized = normalizeLanguage(language);
+  const languageNames: Record<string, string> = { en: "english", fr: "french", ar: "arabic" };
+  return languageNames[normalized] ? `delivery:pitch.languageNames.${languageNames[normalized]}` : undefined;
+}
+
 export function usePitch() {
   const { startTask, isTaskActive, getTask, tasks, dismissTask, cancelTask } = useAiGeneration();
   const location = useLocation();
@@ -120,7 +127,7 @@ export function usePitch() {
   const [loading, setLoading] = useState(true);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
   const [localAiState, setLocalAiState] = useState<AiState>("idle");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<PitchError | null>(null);
   const autosaveTimerRef = useRef<number | null>(null);
   const pitchRef = useRef<PitchDeck>(pitch);
   const handledTaskIdRef = useRef<string | null>(null);
@@ -141,7 +148,7 @@ export function usePitch() {
       pitchRef.current = normalized;
       return { projectData, pitch: normalized };
     } catch (err: any) {
-      setError(err.message || "Failed to load pitch. Please refresh the page.");
+      setError(err.message ? { message: err.message } : { translationKey: "pitch.errors.load" });
       return null;
     } finally {
       setLoading(false);
@@ -176,7 +183,7 @@ export function usePitch() {
     } else if (task.status === "error") {
       setLocalAiState("idle");
       if (task.error && !task.error.includes("Limit reached")) {
-        setError(task.error);
+        setError({ message: task.error });
       }
     }
   }, [fetchPitch, localAiState, tasks]);
@@ -214,7 +221,7 @@ export function usePitch() {
 
   const savePitch = useCallback(async (nextPitch = pitch, showValidation = false) => {
     if (!project?._id) {
-      setError("Project is not ready yet. Please refresh the page.");
+      setError({ translationKey: "pitch.errors.projectNotReady" });
       return;
     }
 
@@ -225,7 +232,7 @@ export function usePitch() {
     }
 
     if (showValidation && normalized.slides.length === 0) {
-      setError("Generate your presentation before saving a pitch.");
+      setError({ translationKey: "pitch.errors.saveValidation" });
       setSaveStatus("unsaved");
       return;
     }
@@ -246,7 +253,7 @@ export function usePitch() {
         setSaveStatus("unsaved");
       }
     } catch (err: any) {
-      setError(err.message || "Failed to save pitch. Please try again.");
+      setError(err.message ? { message: err.message } : { translationKey: "pitch.errors.save" });
       setSaveStatus("unsaved");
     }
   }, [pitch, project?._id]);
@@ -280,7 +287,10 @@ export function usePitch() {
     body?: Record<string, unknown>,
     nextAiState: Exclude<AiState, "idle"> = "generating",
     taskSubTitle = "Generating defense pitch with AI...",
-    errorMessage = "AI pitch generation failed. Please try again."
+    errorMessageKey = "pitch.errors.generate",
+    uiSubTitleKey = "delivery:pitch.tasks.generate",
+    uiSubTitleValues?: Record<string, string | number>,
+    uiSubTitleValueKeys?: Record<string, string>
   ) => {
     setLocalAiState(nextAiState);
     setError(null);
@@ -290,7 +300,11 @@ export function usePitch() {
         id: TASK_ID,
         scope: SCOPE,
         title: "Pitch & Defense Speech",
+        uiTitleKey: "delivery:pitch.title",
         subTitle: taskSubTitle,
+        uiSubTitleKey,
+        uiSubTitleValues,
+        uiSubTitleValueKeys,
         pageRoute: PAGE_ROUTE,
         status: nextAiState,
         runner: async (signal) => {
@@ -323,7 +337,7 @@ export function usePitch() {
       }
     } catch (err: any) {
       if (err?.name !== "AbortError") {
-        setError(err.message || errorMessage);
+        setError(err.message ? { message: err.message } : { translationKey: errorMessageKey });
       }
       setLocalAiState("idle");
     }
@@ -334,13 +348,15 @@ export function usePitch() {
       "/ai/pitch/generate",
       undefined,
       "generating",
-      "Generating complete defense speech with AI..."
+      "Generating complete defense speech with AI...",
+      "pitch.errors.generate",
+      "delivery:pitch.tasks.generateComplete"
     );
   };
 
   const refineWithAi = async (instructions = "") => {
     if (pitch.slides.every((slide) => !slide.speech.trim())) {
-      setError("Generate the pitch before asking AI to refine it.");
+      setError({ translationKey: "pitch.errors.refineEmpty" });
       return;
     }
 
@@ -350,7 +366,8 @@ export function usePitch() {
       { pitch: pitchRef.current, ...(trimmedInstructions ? { instructions: trimmedInstructions } : {}) },
       "refining",
       "Refining complete defense pitch with AI...",
-      "AI pitch refinement failed. Please try again."
+      "pitch.errors.refine",
+      "delivery:pitch.tasks.refineComplete"
     );
   };
 
@@ -359,14 +376,16 @@ export function usePitch() {
       "/ai/pitch/slide/generate",
       { pitch: pitchRef.current, slideId },
       "generating",
-      "Generating speech for selected slide..."
+      "Generating speech for selected slide...",
+      "pitch.errors.generate",
+      "delivery:pitch.tasks.generateSlide"
     );
   };
 
   const refineSlideWithAi = async (slideId: string, instructions = "") => {
     const slide = pitch.slides.find((item) => item.slideId === slideId);
     if (!slide?.speech.trim()) {
-      setError("Generate speech for this slide before asking AI to refine it.");
+      setError({ translationKey: "pitch.errors.refineSlideEmpty" });
       return;
     }
 
@@ -376,7 +395,8 @@ export function usePitch() {
       { pitch: pitchRef.current, slideId, ...(trimmedInstructions ? { instructions: trimmedInstructions } : {}) },
       "refining",
       "Refining selected slide speech with AI...",
-      "AI slide speech refinement failed. Please try again."
+      "pitch.errors.refineSlide",
+      "delivery:pitch.tasks.refineSlide"
     );
   };
 
@@ -386,7 +406,10 @@ export function usePitch() {
       { pitch: pitchRef.current, slideId },
       "translating",
       `Translating slide speech to ${getLanguageLabel(projectLanguage)}...`,
-      "AI slide speech translation failed. Please try again."
+      "pitch.errors.translateSlide",
+      "delivery:pitch.tasks.translateSlide",
+      { language: getLanguageLabel(projectLanguage) },
+      getTaskLanguageTranslationKey(projectLanguage) ? { language: getTaskLanguageTranslationKey(projectLanguage)! } : undefined
     );
   };
 

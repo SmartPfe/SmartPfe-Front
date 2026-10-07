@@ -8,6 +8,7 @@ export type ChapterStatus = "not-started" | "in-progress" | "completed";
 export type DetailLevel = "summary" | "standard" | "detailed";
 export type SaveStatus = "unsaved" | "saving" | "saved";
 export type AiState = "idle" | "generating" | "refining" | "acting" | "translating" | "finalizing";
+export type ReportStudioError = { translationKey: string } | { message: string };
 
 export type ReportChapter = {
   _id?: string;
@@ -195,7 +196,7 @@ export function useReportStudio() {
   const [loading, setLoading] = useState(true);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
   const [localAiState, setLocalAiState] = useState<AiState>("idle");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ReportStudioError | null>(null);
   const autosaveTimerRef = useRef<number | null>(null);
   const chaptersRef = useRef<ReportChapter[]>([]);
 
@@ -222,7 +223,7 @@ export function useReportStudio() {
         setSourceFingerprint(chapterData.sourceFingerprint || "");
         setFinalReport(chapterData.finalReport || null);
       } catch (err: any) {
-        setError(err.message || "Failed to load report studio. Please refresh the page.");
+        setError(err.message ? { message: err.message } : { translationKey: "errors.load" });
       } finally {
         setLoading(false);
       }
@@ -274,7 +275,7 @@ export function useReportStudio() {
 
     const normalized = nextChapters.map(normalizeChapter);
     if (showValidation && normalized.length === 0) {
-      setError("Generate or edit at least one report chapter before saving.");
+      setError({ translationKey: "errors.saveEmpty" });
       setSaveStatus("unsaved");
       return;
     }
@@ -296,7 +297,7 @@ export function useReportStudio() {
         setSaveStatus("unsaved");
       }
     } catch (err: any) {
-      setError(err.message || "Failed to save report chapters. Please try again.");
+      setError(err.message ? { message: err.message } : { translationKey: "errors.save" });
       setSaveStatus("unsaved");
     }
   }, [project?._id, reportChapters, sourceFingerprint]);
@@ -359,7 +360,7 @@ export function useReportStudio() {
   const generateChapter = async (sectionId: string, detailLevel: DetailLevel) => {
     const targetSection = flatSections.find((item) => item.section.id === sectionId);
     if (!isLeafReportSection(targetSection)) {
-      setError("Select a child report section before generating content.");
+      setError({ translationKey: "errors.selectChildGenerate" });
       return;
     }
 
@@ -374,6 +375,9 @@ export function useReportStudio() {
         targetId: sectionId,
         title: `${targetSection?.number} ${targetSection?.section.title || "Section"}`,
         subTitle: `Generating ${detailLevel} draft...`,
+        uiSubTitleKey: "report:tasks.generate",
+        uiSubTitleValues: { detail: detailLevel },
+        uiSubTitleValueKeys: { detail: `report:editor.detailLevels.${detailLevel}` },
         pageRoute: "/workspace/report-builder",
         navigationState: { activeSectionId: sectionId },
         status: "generating",
@@ -395,7 +399,7 @@ export function useReportStudio() {
         },
       });
     } catch (err: any) {
-      setError(err.message || "AI chapter generation failed. Please try again.");
+      setError(err.message ? { message: err.message } : { translationKey: "errors.generate" });
     } finally {
       setLocalAiState("idle");
     }
@@ -412,7 +416,7 @@ export function useReportStudio() {
   ) => {
     const targetSection = flatSections.find((item) => item.section.id === sectionId);
     if (!isLeafReportSection(targetSection)) {
-      setError("Select a child report section before using AI tools.");
+      setError({ translationKey: "errors.selectChildAction" });
       return;
     }
 
@@ -429,6 +433,23 @@ export function useReportStudio() {
         targetId: sectionId,
         title: `${targetSection?.number} ${targetSection?.section.title || "Section"}`,
         subTitle: `${action} in progress...`,
+        uiSubTitleKey: "report:tasks.action",
+        uiSubTitleValues: { action },
+        uiSubTitleValueKeys: {
+          action: `report:actions.${({
+            "Rewrite Selection": "rewrite",
+            "Regenerate Selection": "regenerate",
+            Expand: "expand",
+            Shorten: "shorten",
+            "Make More Technical": "technical",
+            Simplify: "simplify",
+            "Improve Grammar": "grammar",
+            "Explain Better": "explain",
+            "Continue Writing": "continue",
+            "Improve Academic Style": "academic",
+            Translate: "translate",
+          } as const)[action]}.label`,
+        },
         pageRoute: "/workspace/report-builder",
         navigationState: { activeSectionId: sectionId },
         status: nextStatus,
@@ -457,7 +478,7 @@ export function useReportStudio() {
         },
       });
     } catch (err: any) {
-      setError(err.message || "AI writing action failed. Please try again.");
+      setError(err.message ? { message: err.message } : { translationKey: "errors.action" });
     } finally {
       setLocalAiState("idle");
     }
@@ -479,6 +500,8 @@ export function useReportStudio() {
         scope: "report-builder",
         title: "Full Report Compilation",
         subTitle: "Compiling LaTeX & Markdown report...",
+        uiTitleKey: "report:tasks.compileTitle",
+        uiSubTitleKey: "report:tasks.compileSubtitle",
         pageRoute: "/workspace/report-builder",
         navigationState: { activeSectionId: "overview" },
         status: "finalizing",
@@ -492,7 +515,7 @@ export function useReportStudio() {
         },
       });
     } catch (err: any) {
-      setError(err.message || "Complete report generation failed. Please try again.");
+      setError(err.message ? { message: err.message } : { translationKey: "errors.compile" });
     } finally {
       setLocalAiState("idle");
     }

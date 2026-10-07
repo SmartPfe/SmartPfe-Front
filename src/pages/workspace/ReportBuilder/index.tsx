@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import InfoTooltip from "@/components/ui/InfoTooltip";
 import { cn } from "@/lib/utils";
 import { useAiGeneration } from "@/context/AiGenerationContext";
@@ -25,10 +26,18 @@ import CreditBadge from "@/components/credits/CreditBadge";
 
 type StudioTab = "rich" | "markdown" | "latex";
 
-const detailLabels: Record<DetailLevel, string> = {
-  summary: "Summary",
-  standard: "Standard",
-  detailed: "Detailed",
+const actionTranslationKeys: Record<AiAction | "Translate", string> = {
+  "Rewrite Selection": "rewrite",
+  "Regenerate Selection": "regenerate",
+  Expand: "expand",
+  Shorten: "shorten",
+  "Make More Technical": "technical",
+  Simplify: "simplify",
+  "Improve Grammar": "grammar",
+  "Explain Better": "explain",
+  "Continue Writing": "continue",
+  "Improve Academic Style": "academic",
+  Translate: "translate",
 };
 
 export interface ToolConfig {
@@ -69,6 +78,7 @@ const CONTEXTUAL_POLISH_ACTIONS = new Set<AiAction>([
 ]);
 
 export default function ReportBuilder() {
+  const { t } = useTranslation("report");
   const {
     project,
     reportStructure,
@@ -93,6 +103,7 @@ export default function ReportBuilder() {
     generateCompleteReport,
     dismissError,
   } = useReportStudio();
+  const displayError = error ? ("translationKey" in error ? t(error.translationKey) : error.message) : "";
 
   const location = useLocation();
   const { setActiveRouteState } = useAiGeneration();
@@ -235,7 +246,7 @@ export default function ReportBuilder() {
     return (
       <div className="flex flex-col min-h-[50vh] items-center justify-center">
         <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4" />
-        <p className="text-on-surface-variant font-medium text-sm">Loading AI Report Studio...</p>
+        <p className="text-on-surface-variant font-medium text-sm">{t("loading")}</p>
       </div>
     );
   }
@@ -245,14 +256,14 @@ export default function ReportBuilder() {
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
         <div>
           <div className="flex items-center gap-1.5 mb-1.5">
-            <span className="text-xs font-bold uppercase tracking-wider text-primary">Academic Delivery & Manuscript</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-primary">{t("header.eyebrow")}</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-on-surface flex items-center">
-            Academic Report Builder
-            <InfoTooltip label="Report Builder" tooltip="Write, generate, refine, and compile your full graduation thesis with chapter-by-chapter AI assistance." />
+            {t("header.title")}
+            <InfoTooltip label={t("header.tooltipLabel")} tooltip={t("header.tooltip")} />
           </h1>
           <p className="text-sm text-on-surface-variant max-w-[42rem] mt-1 leading-relaxed">
-            Generate and refine rich academic thesis chapters powered by your complete project methodology context.
+            {t("header.description")}
           </p>
         </div>
         
@@ -263,10 +274,10 @@ export default function ReportBuilder() {
         />
       </div>
 
-      {error && (
+      {displayError && (
         <div className="mb-6 p-4 rounded-xl bg-error-container text-on-error-container border border-error/20 flex items-center justify-between gap-3 shadow-2xs">
-          <p className="text-xs font-semibold">{error}</p>
-          <button onClick={dismissError} className="shrink-0 text-xs font-bold underline cursor-pointer">Dismiss</button>
+          <p className="text-xs font-semibold">{displayError}</p>
+          <button onClick={dismissError} className="shrink-0 text-xs font-bold underline cursor-pointer">{t("header.dismiss")}</button>
         </div>
       )}
 
@@ -275,9 +286,9 @@ export default function ReportBuilder() {
           <div className="w-16 h-16 rounded-2xl bg-surface-container flex items-center justify-center mx-auto mb-4 text-primary">
             <HugeiconsIcon icon="layers" size={32} strokeWidth={1.8} />
           </div>
-          <h2 className="text-lg font-bold text-on-surface mb-1">Report Structure Required</h2>
+          <h2 className="text-lg font-bold text-on-surface mb-1">{t("structureRequired.title")}</h2>
           <p className="text-xs text-on-surface-variant max-w-md mx-auto">
-            Create or generate your Report Structure first. The Studio drafts chapters based on that table of contents.
+            {t("structureRequired.description")}
           </p>
         </div>
       ) : (
@@ -297,14 +308,14 @@ export default function ReportBuilder() {
             )}>
               {!sidebarCollapsed && (
                 <div className="flex items-center justify-between flex-1 min-w-0 mr-1">
-                  <span className="text-xs font-bold uppercase tracking-wider text-on-surface truncate">Table of Contents</span>
+                  <span className="text-xs font-bold uppercase tracking-wider text-on-surface truncate">{t("navigation.tableOfContents")}</span>
                   <button
                     type="button"
                     onClick={hasAnyCollapsed ? expandAllSections : collapseAllSections}
                     className="text-[11px] text-primary hover:text-primary/80 font-bold px-1.5 py-0.5 rounded hover:bg-primary/10 transition-colors cursor-pointer shrink-0"
-                    title={hasAnyCollapsed ? "Expand all sections" : "Collapse all sections"}
+                    title={hasAnyCollapsed ? t("navigation.expandAllTitle") : t("navigation.collapseAllTitle")}
                   >
-                    {hasAnyCollapsed ? "Expand All" : "Collapse All"}
+                    {hasAnyCollapsed ? t("navigation.expandAll") : t("navigation.collapseAll")}
                   </button>
                 </div>
               )}
@@ -312,7 +323,8 @@ export default function ReportBuilder() {
                 type="button"
                 onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
                 className="w-8 h-8 rounded-lg flex items-center justify-center text-on-surface-variant hover:text-primary hover:bg-surface-container transition-colors cursor-pointer shrink-0"
-                title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+                title={sidebarCollapsed ? t("navigation.expandSidebar") : t("navigation.collapseSidebar")}
+                aria-label={sidebarCollapsed ? t("navigation.expandSidebar") : t("navigation.collapseSidebar")}
               >
                 <HugeiconsIcon icon={sidebarCollapsed ? "chevron-right" : "chevron-left"} size={16} strokeWidth={2} />
               </button>
@@ -332,7 +344,7 @@ export default function ReportBuilder() {
                 <HugeiconsIcon icon="dashboard" size={17} strokeWidth={1.8} className={activeSectionId === "overview" ? "text-on-primary" : "text-primary"} />
                 {!sidebarCollapsed && (
                   <>
-                    <span className="text-xs font-bold truncate flex-1">Overview Hub</span>
+                    <span className="text-xs font-bold truncate flex-1">{t("navigation.overview")}</span>
                     <span className={cn(
                       "px-2 py-0.5 rounded-md text-[10px] font-mono font-bold",
                       activeSectionId === "overview" ? "bg-on-primary/20 text-on-primary" : "bg-surface text-on-surface"
@@ -345,7 +357,7 @@ export default function ReportBuilder() {
 
               {!sidebarCollapsed && (
                 <div className="px-2 pt-2 pb-1 text-[10px] font-bold tracking-wider text-on-surface/80 uppercase">
-                  Chapters & Sections
+                  {t("navigation.chaptersSections")}
                 </div>
               )}
 
@@ -374,7 +386,7 @@ export default function ReportBuilder() {
                       <div
                         key={item.section.id}
                         className="w-full flex items-center justify-center py-2 text-primary my-1 cursor-pointer hover:bg-surface-container rounded-lg"
-                        title={`Chapter ${item.number}: ${item.section.title}`}
+                        title={t("navigation.chapterTitle", { number: item.number, title: item.section.title })}
                       >
                         <div className={cn(
                           "w-7 h-7 rounded-lg flex items-center justify-center border",
@@ -421,7 +433,7 @@ export default function ReportBuilder() {
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-1.5 mb-0.5">
                               <span className="text-[10px] font-bold font-mono tracking-wider uppercase text-primary">
-                                Chapter {item.number}
+                              {t("navigation.chapter", { number: item.number })}
                               </span>
                             </div>
                             <h4 className="text-xs font-bold truncate text-on-surface group-hover:text-primary transition-colors leading-tight">
@@ -511,17 +523,17 @@ export default function ReportBuilder() {
 
               {!sidebarCollapsed && flatSections.length > 0 && (
                 <div className="mt-4 pt-3 border-t border-outline-variant/60 px-2 flex items-center justify-between text-[10px] font-semibold text-on-surface-variant/80">
-                  <span className="flex items-center gap-1.5" title="Completed & Approved">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block shadow-2xs" /> Done
+                  <span className="flex items-center gap-1.5" title={t("navigation.legend.doneTitle")}>
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block shadow-2xs" /> {t("navigation.legend.done")}
                   </span>
-                  <span className="flex items-center gap-1.5" title="Draft in progress">
-                    <span className="w-2 h-2 rounded-full bg-blue-500 inline-block shadow-2xs" /> Drafted
+                  <span className="flex items-center gap-1.5" title={t("navigation.legend.draftedTitle")}>
+                    <span className="w-2 h-2 rounded-full bg-blue-500 inline-block shadow-2xs" /> {t("navigation.legend.drafted")}
                   </span>
-                  <span className="flex items-center gap-1.5" title="Not started yet">
-                    <span className="w-2 h-2 rounded-full bg-slate-400 inline-block shadow-2xs" /> Empty
+                  <span className="flex items-center gap-1.5" title={t("navigation.legend.emptyTitle")}>
+                    <span className="w-2 h-2 rounded-full bg-slate-400 inline-block shadow-2xs" /> {t("navigation.legend.empty")}
                   </span>
-                  <span className="flex items-center gap-1.5" title="Earlier context updated">
-                    <span className="w-2 h-2 rounded-full bg-amber-500 inline-block shadow-2xs" /> Outdated
+                  <span className="flex items-center gap-1.5" title={t("navigation.legend.outdatedTitle")}>
+                    <span className="w-2 h-2 rounded-full bg-amber-500 inline-block shadow-2xs" /> {t("navigation.legend.outdated")}
                   </span>
                 </div>
               )}
@@ -561,7 +573,7 @@ export default function ReportBuilder() {
                       <div className="flex items-center gap-2 text-xs font-bold text-on-surface mb-1">
                         <span className="font-mono text-primary">{activeFlatSection?.number}</span>
                         <span>•</span>
-                        <span>Editable Subsection</span>
+                        <span>{t("editor.editableSubsection")}</span>
                       </div>
                       <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-on-surface break-words">
                         {activeFlatSection?.section.title}
@@ -581,7 +593,7 @@ export default function ReportBuilder() {
                           )}
                         >
                           <HugeiconsIcon icon={activeChapter.status === "completed" ? "undo" : "checkmark-circle-02"} size={15} strokeWidth={2} />
-                          <span>{activeChapter.status === "completed" ? "Reopen Draft" : "Mark Complete"}</span>
+                          <span>{activeChapter.status === "completed" ? t("editor.reopenDraft") : t("editor.markComplete")}</span>
                         </button>
                       )}
                     </div>
@@ -598,15 +610,15 @@ export default function ReportBuilder() {
                       isBusy={!isAiIdle}
                       canGenerate={true}
                       canRefine={hasContent(activeChapter)}
-                      generateLabel={hasContent(activeChapter) ? "Regenerate with AI" : "Generate with AI"}
-                      refineLabel="Refine with AI"
-                      refinePlaceholder="Tell AI what to improve (e.g., expand technical methodologies, clarify phrasing)..."
+                      generateLabel={hasContent(activeChapter) ? t("editor.regenerate") : t("editor.generate")}
+                      refineLabel={t("editor.refine")}
+                      refinePlaceholder={t("editor.refinePlaceholder")}
                       showTranslate={shouldShowTranslate}
-                      translateLabel={`Translate to ${getLanguageLabel(projectLanguage)}`}
+                      translateLabel={t("editor.translate", { language: getReportLanguageLabel(projectLanguage, t) })}
                       className="mb-0 mt-2"
                       primaryAction={
                         <div className="flex bg-surface-container rounded-lg p-1 border border-outline-variant/80 w-fit">
-                          {(Object.keys(detailLabels) as DetailLevel[]).map((level) => (
+                          {(["summary", "standard", "detailed"] as DetailLevel[]).map((level) => (
                             <button
                               key={level}
                               onClick={() => setDetailLevel(level)}
@@ -615,7 +627,7 @@ export default function ReportBuilder() {
                                 detailLevel === level ? "bg-primary text-on-primary shadow-2xs" : "text-on-surface hover:text-primary hover:bg-surface"
                               )}
                             >
-                              {detailLabels[level]}
+                              {t(`editor.detailLevels.${level}`)}
                             </button>
                           ))}
                         </div>
@@ -628,10 +640,10 @@ export default function ReportBuilder() {
                       <div className="flex items-center justify-between gap-2 mb-2">
                         <span className="text-xs font-bold text-on-surface uppercase tracking-wider flex items-center gap-1.5">
                           <HugeiconsIcon icon="tune" size={14} strokeWidth={2} className="text-primary" />
-                          Quick Polish Actions
+                          {t("editor.quickPolish")}
                         </span>
                         <span className="text-xs text-on-surface-variant font-mono">
-                          {selectedText.trim() ? "Applies to highlighted selection" : "Applies to entire section"}
+                          {selectedText.trim() ? t("editor.appliesSelection") : t("editor.appliesSection")}
                         </span>
                       </div>
                       <div className="flex flex-wrap items-center gap-1.5">
@@ -641,10 +653,10 @@ export default function ReportBuilder() {
                             onClick={() => activeChapter && runChapterAction(activeChapter.sectionId, tool.id, activeChapter.contentHtml, selectedText)}
                             disabled={!activeChapter || !isAiIdle}
                             className="h-8 px-2.5 rounded-lg border border-outline-variant/70 bg-surface-container-lowest hover:bg-surface-container text-xs font-semibold text-on-surface hover:text-primary transition-all cursor-pointer disabled:opacity-40 shadow-2xs flex items-center gap-1.5 group"
-                            title={selectedText ? `Apply ${tool.label} to selected passage` : tool.desc}
+                            title={selectedText ? t("actions.applySelection", { action: t(`actions.${actionTranslationKeys[tool.id]}.label`) }) : t(`actions.${actionTranslationKeys[tool.id]}.description`)}
                           >
                             <HugeiconsIcon icon={tool.icon} size={14} strokeWidth={2} className={cn(tool.iconColor, "transition-transform group-hover:scale-110")} />
-                            <span>{tool.label}</span>
+                            <span>{t(`actions.${actionTranslationKeys[tool.id]}.label`)}</span>
                             {!selectedText.trim() && CONTEXTUAL_POLISH_ACTIONS.has(tool.id) && <CreditBadge actionKey="report_polish_contextual" />}
                           </button>
                         ))}
@@ -657,7 +669,7 @@ export default function ReportBuilder() {
                       {selectedText.trim() ? (
                         <div className="flex items-center gap-2 px-2.5 py-1 rounded-md bg-primary/10 text-primary border border-primary/20 font-bold text-xs">
                           <HugeiconsIcon icon="edit" size={14} strokeWidth={2} />
-                          <span>Selection active ({selectedText.trim().split(/\s+/).filter(Boolean).length} words): Quick actions will update only the selection.</span>
+                          <span>{t("editor.selectionActive", { count: selectedText.trim().split(/\s+/).filter(Boolean).length })}</span>
                           <button
                             type="button"
                             onClick={() => {
@@ -666,24 +678,20 @@ export default function ReportBuilder() {
                             }}
                             className="ml-1 underline font-bold cursor-pointer hover:opacity-80"
                           >
-                            Clear
+                            {t("editor.clearSelection")}
                           </button>
                         </div>
                       ) : (
-                        <span className="text-xs text-on-surface-variant font-medium">Highlight any passage in the editor to refine or expand only that specific selection.</span>
+                        <span className="text-xs text-on-surface-variant font-medium">{t("editor.selectionHelp")}</span>
                       )}
-                      <span className="text-xs font-mono font-bold text-on-surface ml-auto">{countWords(activeChapter?.contentHtml || "")} words</span>
+                      <span className="text-xs font-mono font-bold text-on-surface ml-auto">{countWords(activeChapter?.contentHtml || "")} {t(countWords(activeChapter?.contentHtml || "") === 1 ? "editor.word" : "editor.words")}</span>
                     </div>
                   )}
                 </div>
 
                 <div className="flex items-center justify-between gap-3 px-4 sm:px-5 border-b border-outline-variant/80 bg-surface">
                   <div className="flex gap-4 overflow-x-auto no-scrollbar">
-                    {([
-                      ["rich", "Rich Editor"],
-                      ["markdown", "Markdown Source"],
-                      ["latex", "LaTeX Source"],
-                    ] as [StudioTab, string][]).map(([key, label]) => (
+                    {(["rich", "markdown", "latex"] as StudioTab[]).map((key) => (
                       <button
                         key={key}
                         onClick={() => setActiveTab(key)}
@@ -692,7 +700,7 @@ export default function ReportBuilder() {
                           activeTab === key ? "border-primary text-primary" : "border-transparent text-on-surface-variant hover:text-on-surface"
                         )}
                       >
-                        {label}
+                        {t(`editor.tabs.${key}`)}
                       </button>
                     ))}
                   </div>
@@ -702,7 +710,7 @@ export default function ReportBuilder() {
                       className="h-7 px-2.5 rounded-md border border-outline-variant/80 bg-surface hover:bg-surface-container text-xs font-bold text-primary flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
                     >
                       <HugeiconsIcon icon={copied === activeTab ? "checkmark-circle-02" : "copy"} size={13} strokeWidth={2} />
-                      <span>{copied === activeTab ? "Copied" : "Copy Code"}</span>
+                      <span>{copied === activeTab ? t("editor.copied") : t("editor.copyCode")}</span>
                     </button>
                   )}
                 </div>
@@ -760,6 +768,7 @@ function SectionNavItem({
   isGenerating?: boolean;
   onClick: () => void;
 }) {
+  const { t } = useTranslation("report");
   const generated = hasContent(chapter);
   const isCompleted = chapter?.status === "completed";
   const wordCount = countWords(chapter?.contentHtml || "");
@@ -770,34 +779,34 @@ function SectionNavItem({
         icon: "sync-alt",
         iconClass: "text-primary animate-spin",
         badgeClass: "bg-primary/10 text-primary border-primary/25",
-        label: "Generating draft...",
+        label: t("status.generating"),
       }
     : outdated
       ? {
           icon: "alert-circle",
           iconClass: "text-amber-600 dark:text-amber-400",
           badgeClass: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30",
-          label: "Outdated",
+          label: t("status.outdated"),
         }
       : isCompleted
         ? {
             icon: "checkmark-circle-02",
             iconClass: "text-emerald-600 dark:text-emerald-400",
             badgeClass: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
-            label: "Completed",
+            label: t("status.completed"),
           }
         : generated
           ? {
               icon: "edit",
               iconClass: "text-blue-600 dark:text-blue-400",
               badgeClass: "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30",
-              label: "Drafted",
+              label: t("status.drafted"),
             }
           : {
               icon: "document-validation",
               iconClass: "text-on-surface-variant/70",
               badgeClass: "bg-surface-container text-on-surface-variant/70 border-outline-variant/60",
-              label: "Not started",
+              label: t("status.notStarted"),
             };
 
   if (collapsed) {
@@ -812,7 +821,7 @@ function SectionNavItem({
             ? "bg-primary text-on-primary border-primary shadow-xs"
             : "text-on-surface-variant border-transparent hover:bg-surface-container hover:text-on-surface"
         )}
-        title={`${item.number} ${item.section.title} (${statusConfig.label})`}
+        title={t("navigation.sectionTitle", { number: item.number, title: item.section.title, status: statusConfig.label })}
       >
         <div
           className={cn(
@@ -890,10 +899,10 @@ function SectionNavItem({
 
         {/* Word count or active ping */}
         {isGenerating ? (
-          <span className="w-2 h-2 rounded-full bg-primary animate-ping shrink-0 ml-1" title="Generating draft..." />
+          <span className="w-2 h-2 rounded-full bg-primary animate-ping shrink-0 ml-1" title={t("status.generatingTitle")} />
         ) : generated && !active ? (
           <span className="text-[10px] font-mono text-on-surface-variant/70 shrink-0 hidden sm:inline-block">
-            {wordCount}w
+            {wordCount}{t("editor.wordShort")}
           </span>
         ) : null}
       </button>
@@ -902,19 +911,20 @@ function SectionNavItem({
 }
 
 function ChapterStatusBadge({ chapter, outdated, isLeaf }: { chapter?: ReportChapter; outdated: boolean; isLeaf: boolean }) {
+  const { t } = useTranslation("report");
   if (!isLeaf) {
-    return <Badge icon="layers" label="Chapter Container" className="bg-primary/10 text-primary border-primary/25" />;
+    return <Badge icon="layers" label={t("status.chapterContainer")} className="bg-primary/10 text-primary border-primary/25" />;
   }
   if (outdated) {
-    return <Badge icon="alert-circle" label="Sync Outdated" className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30" />;
+    return <Badge icon="alert-circle" label={t("status.syncOutdated")} className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30" />;
   }
   if (chapter?.status === "completed") {
-    return <Badge icon="checkmark-circle-02" label="Completed" className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30" />;
+    return <Badge icon="checkmark-circle-02" label={t("status.completed")} className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30" />;
   }
   if (hasContent(chapter)) {
-    return <Badge icon="edit" label="Draft in Progress" className="bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30" />;
+    return <Badge icon="edit" label={t("status.draftInProgress")} className="bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30" />;
   }
-  return <Badge icon="document-validation" label="Not Drafted" className="bg-surface-container text-on-surface-variant/80 border-outline-variant/70" />;
+  return <Badge icon="document-validation" label={t("status.notDrafted")} className="bg-surface-container text-on-surface-variant/80 border-outline-variant/70" />;
 }
 
 function Badge({ icon, label, className }: { icon: string; label: string; className: string }) {
@@ -937,14 +947,15 @@ function EmptyChapter({
   loading: boolean;
   onGenerate: () => void;
 }) {
+  const { t } = useTranslation("report");
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-8 text-center min-h-[460px]">
       <div className="w-14 h-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-4 shadow-xs">
         <HugeiconsIcon icon="edit" size={28} strokeWidth={1.8} />
       </div>
-      <h3 className="text-lg font-bold text-on-surface mb-1">No draft generated for this section yet</h3>
+      <h3 className="text-lg font-bold text-on-surface mb-1">{t("emptyChapter.title")}</h3>
       <p className="text-xs text-on-surface-variant max-w-sm mb-6 leading-relaxed">
-        Generate your first academic draft with AI using the project context and all completed workflow steps.
+        {t("emptyChapter.description")}
       </p>
       <button
         onClick={onGenerate}
@@ -952,7 +963,7 @@ function EmptyChapter({
         className="h-10 px-5 bg-primary text-on-primary text-xs font-bold rounded-lg flex items-center gap-2 hover:bg-primary/90 transition-all shadow-2xs cursor-pointer disabled:opacity-50"
       >
         <HugeiconsIcon icon={loading ? "sync-alt" : "edit"} size={15} strokeWidth={2} className={loading ? "animate-spin" : undefined} />
-        <span>{loading ? "Generating Draft..." : `Generate ${detailLabels[detailLevel]} Draft`}</span>
+        <span>{loading ? t("emptyChapter.generating") : t("emptyChapter.generate", { detail: t(`editor.detailLevels.${detailLevel}`).toLowerCase() })}</span>
         <CreditBadge actionKey="report_section" />
       </button>
     </div>
@@ -974,6 +985,7 @@ function RichChapterEditor({
   onSelectionChange: (text: string) => void;
   onAiAction: (action: AiAction, instructions?: string) => Promise<void>;
 }) {
+  const { t } = useTranslation("report");
   const containerRef = useRef<HTMLDivElement | null>(null);
   const editorRef = useRef<HTMLDivElement | null>(null);
   const [floatingPos, setFloatingPos] = useState<{ top: number; left: number } | null>(null);
@@ -1087,16 +1099,16 @@ function RichChapterEditor({
             <span className="flex items-center gap-2">
               <span className="w-3.5 h-3.5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
               {aiState === "generating"
-                ? "AI is drafting chapter section..."
+                ? t("editor.background.generating")
                 : aiState === "refining"
-                  ? "AI is refining content..."
+                  ? t("editor.background.refining")
                   : aiState === "translating"
-                    ? "AI is translating chapter..."
-                    : "AI is rewriting selection..."}
+                    ? t("editor.background.translating")
+                    : t("editor.background.acting")}
             </span>
             <span className="text-[11px] font-normal text-on-surface-variant flex items-center gap-1">
               <HugeiconsIcon icon="info" size={13} strokeWidth={2} className="text-primary" />
-              Background Task Active
+              {t("editor.background.active")}
             </span>
           </div>
         </div>
@@ -1130,25 +1142,25 @@ function RichChapterEditor({
       )}
 
       <div className="flex flex-wrap gap-1 p-2 border-b border-outline-variant/80 bg-surface">
-        <ToolbarButton label="Bold" onClick={() => exec("bold")} disabled={disabled}>
+        <ToolbarButton label={t("editor.toolbar.bold")} onClick={() => exec("bold")} disabled={disabled}>
           <span className="font-bold text-xs">B</span>
         </ToolbarButton>
-        <ToolbarButton label="Italic" onClick={() => exec("italic")} disabled={disabled}>
+        <ToolbarButton label={t("editor.toolbar.italic")} onClick={() => exec("italic")} disabled={disabled}>
           <span className="italic text-xs font-serif">I</span>
         </ToolbarButton>
-        <ToolbarButton label="Heading 2" onClick={() => exec("formatBlock", "h2")} disabled={disabled}>
+        <ToolbarButton label={t("editor.toolbar.heading2")} onClick={() => exec("formatBlock", "h2")} disabled={disabled}>
           <span className="font-bold text-xs">H2</span>
         </ToolbarButton>
-        <ToolbarButton label="Heading 3" onClick={() => exec("formatBlock", "h3")} disabled={disabled}>
+        <ToolbarButton label={t("editor.toolbar.heading3")} onClick={() => exec("formatBlock", "h3")} disabled={disabled}>
           <span className="font-bold text-xs">H3</span>
         </ToolbarButton>
-        <ToolbarButton label="Bullet list" onClick={() => exec("insertUnorderedList")} disabled={disabled}>
+        <ToolbarButton label={t("editor.toolbar.bulletList")} onClick={() => exec("insertUnorderedList")} disabled={disabled}>
           <HugeiconsIcon icon="list-ordered" size={15} strokeWidth={2} />
         </ToolbarButton>
-        <ToolbarButton label="Code block" onClick={() => insertHtml("<pre><code>// Code snippet</code></pre>")} disabled={disabled}>
+        <ToolbarButton label={t("editor.toolbar.codeBlock")} onClick={() => insertHtml("<pre><code>// Code snippet</code></pre>")} disabled={disabled}>
           <HugeiconsIcon icon="code" size={15} strokeWidth={2} />
         </ToolbarButton>
-        <ToolbarButton label="Table" onClick={() => insertHtml("<table><caption>Table: Caption</caption><tbody><tr><th>Element</th><th>Description</th></tr><tr><td>...</td><td>...</td></tr></tbody></table>")} disabled={disabled}>
+        <ToolbarButton label={t("editor.toolbar.table")} onClick={() => insertHtml("<table><caption>Table: Caption</caption><tbody><tr><th>Element</th><th>Description</th></tr><tr><td>...</td><td>...</td></tr></tbody></table>")} disabled={disabled}>
           <HugeiconsIcon icon="layers" size={15} strokeWidth={2} />
         </ToolbarButton>
       </div>
@@ -1183,6 +1195,7 @@ function FloatingSelectionAiBar({
   onAction: (action: AiAction, instructions?: string) => void;
   onClose: () => void;
 }) {
+  const { t } = useTranslation("report");
   const [pinnedToolIds, setPinnedToolIds] = useState<AiAction[]>(() => {
     try {
       const saved = localStorage.getItem("report_studio_pinned_tools");
@@ -1260,7 +1273,7 @@ function FloatingSelectionAiBar({
         <div className="flex items-center gap-1 flex-wrap">
           {/* Clean word count badge */}
           <span className="px-2 py-1 text-[11px] font-mono font-semibold text-on-surface-variant bg-surface-container rounded-md shrink-0 select-none">
-            {wordCount} {wordCount === 1 ? "word" : "words"}
+            {wordCount} {t(wordCount === 1 ? "editor.word" : "editor.words")}
           </span>
 
           <div className="h-4 w-px bg-outline-variant mx-0.5 shrink-0" />
@@ -1273,10 +1286,10 @@ function FloatingSelectionAiBar({
               onClick={() => onAction(tool.id)}
               disabled={disabled}
               className="h-8 px-2.5 rounded-lg border border-outline-variant/70 bg-surface hover:bg-surface-container text-xs font-semibold text-on-surface hover:text-primary transition-all disabled:opacity-40 cursor-pointer shrink-0 flex items-center gap-1.5 shadow-2xs group"
-              title={tool.desc}
+              title={t(`actions.${actionTranslationKeys[tool.id]}.description`)}
             >
               <HugeiconsIcon icon={tool.icon} size={14} strokeWidth={2} className={cn(tool.iconColor, "transition-transform group-hover:scale-110")} />
-              <span>{tool.label}</span>
+              <span>{t(`actions.${actionTranslationKeys[tool.id]}.shortLabel`)}</span>
             </button>
           ))}
 
@@ -1292,7 +1305,8 @@ function FloatingSelectionAiBar({
               "h-8 px-2 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors disabled:opacity-40 cursor-pointer shrink-0",
               moreOpen ? "bg-primary/10 text-primary border border-primary/20" : "text-on-surface hover:text-primary hover:bg-surface-container border border-outline-variant/60"
             )}
-            title="More AI tools & customize toolbar"
+            title={t("selectionToolbar.moreTools")}
+            aria-label={t("selectionToolbar.moreTools")}
           >
             <HugeiconsIcon icon="plus" size={15} strokeWidth={2} />
           </button>
@@ -1309,10 +1323,10 @@ function FloatingSelectionAiBar({
               "h-8 px-2.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors disabled:opacity-40 cursor-pointer shrink-0",
               customOpen ? "bg-primary text-on-primary shadow-2xs" : "text-on-surface hover:text-primary hover:bg-surface-container border border-outline-variant/60"
             )}
-            title="Give specific custom instructions for this selection"
+            title={t("selectionToolbar.customInstructions")}
           >
             <HugeiconsIcon icon="edit" size={14} strokeWidth={2} />
-            <span>Instruct</span>
+            <span>{t("selectionToolbar.instruct")}</span>
           </button>
 
           {/* Dismiss button */}
@@ -1320,7 +1334,8 @@ function FloatingSelectionAiBar({
             type="button"
             onClick={onClose}
             className="w-7 h-7 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container flex items-center justify-center transition-colors ml-auto cursor-pointer shrink-0"
-            title="Dismiss selection"
+            title={t("selectionToolbar.dismiss")}
+            aria-label={t("selectionToolbar.dismiss")}
           >
             <HugeiconsIcon icon="close" size={14} strokeWidth={2} />
           </button>
@@ -1330,8 +1345,8 @@ function FloatingSelectionAiBar({
         {moreOpen && (
           <div className="mt-2 pt-2 border-t border-outline-variant max-h-56 overflow-y-auto divide-y divide-outline-variant/40 animate-in fade-in slide-in-from-top-1 duration-150">
             <div className="px-2 py-1 text-[11px] font-bold text-on-surface uppercase tracking-wider flex items-center justify-between">
-              <span>All AI Selection Tools</span>
-              <span className="text-[10px] lowercase font-normal text-on-surface-variant">Click tool to run • Pin to toolbar</span>
+              <span>{t("selectionToolbar.allTools")}</span>
+              <span className="text-[10px] lowercase font-normal text-on-surface-variant">{t("selectionToolbar.toolHelp")}</span>
             </div>
             {ALL_AI_TOOLS.map((tool) => {
               const isPinned = pinnedToolIds.includes(tool.id);
@@ -1349,8 +1364,8 @@ function FloatingSelectionAiBar({
                       <HugeiconsIcon icon={tool.icon} size={13} strokeWidth={2} className={tool.iconColor} />
                     </div>
                     <div className="min-w-0">
-                      <span className="text-xs font-bold text-on-surface block truncate group-hover:text-primary transition-colors">{tool.label}</span>
-                      <span className="text-[11px] text-on-surface-variant block truncate">{tool.desc}</span>
+                      <span className="text-xs font-bold text-on-surface block truncate group-hover:text-primary transition-colors">{t(`actions.${actionTranslationKeys[tool.id]}.label`)}</span>
+                      <span className="text-[11px] text-on-surface-variant block truncate">{t(`actions.${actionTranslationKeys[tool.id]}.description`)}</span>
                     </div>
                   </div>
                   <button
@@ -1362,7 +1377,8 @@ function FloatingSelectionAiBar({
                         ? "text-primary bg-primary/15 hover:bg-primary/25"
                         : "text-on-surface-variant opacity-40 group-hover:opacity-100 hover:text-primary hover:bg-surface-container"
                     )}
-                    title={isPinned ? "Unpin from toolbar" : "Pin to toolbar"}
+                    title={isPinned ? t("selectionToolbar.unpin") : t("selectionToolbar.pin")}
+                    aria-label={isPinned ? t("selectionToolbar.unpin") : t("selectionToolbar.pin")}
                   >
                     <HugeiconsIcon icon={isPinned ? "checkmark-circle-02" : "plus"} size={14} strokeWidth={2} />
                   </button>
@@ -1394,13 +1410,13 @@ function FloatingSelectionAiBar({
                   setCustomOpen(false);
                 }
               }}
-              placeholder="How should AI refine this selection? (e.g. simplify explanation, add technical detail...)"
+              placeholder={t("selectionToolbar.promptPlaceholder")}
               rows={3}
               className="w-full resize-none rounded-lg border border-outline-variant bg-surface px-3 py-2 text-xs text-on-surface outline-none transition-colors placeholder:text-on-surface-variant/60 focus:border-primary focus:ring-1 focus:ring-primary shadow-inner"
             />
             <div className="flex items-center justify-between gap-2">
               <span className="text-[11px] text-on-surface-variant/70 font-mono">
-                Ctrl+Enter to apply
+                {t("selectionToolbar.applyShortcut")}
               </span>
               <div className="flex items-center gap-2">
                 <button
@@ -1412,7 +1428,7 @@ function FloatingSelectionAiBar({
                   }}
                   className="px-3 py-1.5 rounded-lg border border-outline-variant bg-surface text-xs font-medium text-on-surface hover:bg-surface-container transition-colors cursor-pointer"
                 >
-                  Cancel
+                  {t("selectionToolbar.cancel")}
                 </button>
                 <button
                   type="button"
@@ -1423,7 +1439,7 @@ function FloatingSelectionAiBar({
                   disabled={!customPrompt.trim() || disabled}
                   className="px-4 py-1.5 rounded-lg bg-primary text-on-primary text-xs font-semibold hover:bg-primary/90 transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                 >
-                  Apply
+                  {t("selectionToolbar.apply")}
                 </button>
               </div>
             </div>
@@ -1440,6 +1456,7 @@ function ToolbarButton({ label, onClick, disabled, children }: { label: string; 
       type="button"
       onClick={onClick}
       disabled={disabled}
+      aria-label={label}
       title={label}
       className="h-8 min-w-[32px] px-2 rounded-lg flex items-center justify-center text-on-surface hover:text-primary hover:bg-surface-container transition-all disabled:opacity-40 cursor-pointer shadow-2xs border border-outline-variant/60 bg-surface"
     >
@@ -1449,10 +1466,11 @@ function ToolbarButton({ label, onClick, disabled, children }: { label: string; 
 }
 
 function SourcePreview({ value, dark = false }: { value: string; dark?: boolean }) {
+  const { t } = useTranslation("report");
   return (
     <div className={cn("rounded-2xl p-5 min-h-[520px] overflow-auto border shadow-2xs", dark ? "bg-[#1e293b] border-[#334155]" : "bg-surface border-outline-variant/80")}>
       <pre className={cn("font-mono text-xs leading-relaxed whitespace-pre-wrap", dark ? "text-[#f8fafc]" : "text-on-surface")}>
-        {value || "No source generated yet."}
+        {value || t("source.empty")}
       </pre>
     </div>
   );
@@ -1461,6 +1479,12 @@ function SourcePreview({ value, dark = false }: { value: string; dark?: boolean 
 function countWords(html = "") {
   const text = html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
   return text ? text.split(" ").length : 0;
+}
+
+function getReportLanguageLabel(language: string | undefined, t: (key: string) => string) {
+  const label = getLanguageLabel(language).toLowerCase();
+  const languageKeys: Record<string, string> = { english: "en", french: "fr", arabic: "ar" };
+  return languageKeys[label] ? t(`languages.${languageKeys[label]}`) : getLanguageLabel(language);
 }
 
 function hasContent(chapter?: ReportChapter) {
@@ -1510,6 +1534,7 @@ function ReportOverviewDashboard({
   onSelectSection: (sectionId: string) => void;
   sourceFingerprint: string;
 }) {
+  const { t } = useTranslation("report");
   const [collapsedOverviewChapters, setCollapsedOverviewChapters] = useState<Record<string, boolean>>({});
 
   const nextPendingSection =
@@ -1533,14 +1558,14 @@ function ReportOverviewDashboard({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1.5 flex-wrap">
             <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wider uppercase bg-primary/10 text-primary border border-primary/20">
-              Thesis Compilation Hub
+              {t("overview.hub")}
             </span>
             <span className="text-xs text-on-surface font-semibold">
-              {topLevelSections.length} Chapters • {leafSections.length} Subsections
+              {t("overview.chapterCounts", { chapters: topLevelSections.length, sections: leafSections.length })}
             </span>
           </div>
           <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-on-surface">
-            Academic Report Progress
+            {t("overview.progressTitle")}
           </h2>
         </div>
 
@@ -1552,7 +1577,7 @@ function ReportOverviewDashboard({
               className="h-9 px-3.5 rounded-lg bg-primary text-on-primary font-bold text-xs hover:bg-primary/90 transition-all shadow-2xs flex items-center gap-2 cursor-pointer whitespace-nowrap"
             >
               <HugeiconsIcon icon="edit" size={14} strokeWidth={2} />
-              <span>Resume Drafting ({nextPendingSection.number})</span>
+              <span>{t("overview.resumeDrafting", { number: nextPendingSection.number })}</span>
             </button>
           )}
           <button
@@ -1566,7 +1591,7 @@ function ReportOverviewDashboard({
             )}
           >
             <HugeiconsIcon icon={aiState === "finalizing" ? "sync-alt" : "book-open"} size={14} strokeWidth={2} className={aiState === "finalizing" ? "animate-spin" : undefined} />
-            <span>{aiState === "finalizing" ? "Compiling..." : "Compile Complete Report"}</span>
+            <span>{aiState === "finalizing" ? t("overview.compiling") : t("overview.compileComplete")}</span>
             {aiState !== "finalizing" && <CreditBadge actionKey="final_report_compile" showFree />}
           </button>
         </div>
@@ -1577,7 +1602,7 @@ function ReportOverviewDashboard({
         {/* Metric 1: Drafts */}
         <div className="p-4 rounded-2xl bg-surface border border-outline-variant/80 shadow-2xs flex flex-col justify-between">
           <div className="flex items-center justify-between text-on-surface/80 mb-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-on-surface/70">Drafted Sections</span>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-on-surface/70">{t("overview.draftedSections")}</span>
             <div className="w-7 h-7 rounded-lg bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-500/30">
               <HugeiconsIcon icon="document" size={15} strokeWidth={2} />
             </div>
@@ -1595,7 +1620,7 @@ function ReportOverviewDashboard({
         {/* Metric 2: Completed */}
         <div className="p-4 rounded-2xl bg-surface border border-outline-variant/80 shadow-2xs flex flex-col justify-between">
           <div className="flex items-center justify-between text-on-surface/80 mb-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-on-surface/70">Approved & Done</span>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-on-surface/70">{t("overview.approvedDone")}</span>
             <div className="w-7 h-7 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-500/30">
               <HugeiconsIcon icon="checkmark-circle-02" size={15} strokeWidth={2} />
             </div>
@@ -1618,7 +1643,7 @@ function ReportOverviewDashboard({
         {/* Metric 3: Outdated */}
         <div className="p-4 rounded-2xl bg-surface border border-outline-variant/80 shadow-2xs flex flex-col justify-between">
           <div className="flex items-center justify-between text-on-surface/80 mb-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-on-surface/70">Sync Health</span>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-on-surface/70">{t("overview.syncHealth")}</span>
             <div className={cn(
               "w-7 h-7 rounded-lg flex items-center justify-center border",
               outdatedCount > 0 ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30" : "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
@@ -1630,23 +1655,23 @@ function ReportOverviewDashboard({
             <span className={cn("text-2xl font-bold font-mono tracking-tight", outdatedCount > 0 ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400")}>
               {outdatedCount}
             </span>
-            <span className="text-xs text-on-surface-variant font-medium">outdated</span>
+            <span className="text-xs text-on-surface-variant font-medium">{t("overview.outdated")}</span>
             <span className={cn(
               "ml-auto text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border",
               outdatedCount > 0 ? "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30" : "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
             )}>
-              {outdatedCount > 0 ? "Re-sync" : "Synced"}
+              {outdatedCount > 0 ? t("overview.resync") : t("overview.synced")}
             </span>
           </div>
           <p className="text-[11px] text-on-surface-variant mt-3 truncate font-medium">
-            {outdatedCount > 0 ? "Earlier project data updated" : "All chapters up to date"}
+            {outdatedCount > 0 ? t("overview.earlierUpdated") : t("overview.allUpToDate")}
           </p>
         </div>
 
         {/* Metric 4: Total Volume */}
         <div className="p-4 rounded-2xl bg-surface border border-outline-variant/80 shadow-2xs flex flex-col justify-between">
           <div className="flex items-center justify-between text-on-surface/80 mb-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-on-surface/70">Total Volume</span>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-on-surface/70">{t("overview.totalVolume")}</span>
             <div className="w-7 h-7 rounded-lg bg-purple-500/15 text-purple-600 dark:text-purple-400 flex items-center justify-center border border-purple-500/30">
               <HugeiconsIcon icon="menu-book" size={15} strokeWidth={2} />
             </div>
@@ -1655,10 +1680,10 @@ function ReportOverviewDashboard({
             <span className="text-2xl font-bold font-mono tracking-tight text-purple-600 dark:text-purple-400">
               {totalWords.toLocaleString()}
             </span>
-            <span className="text-xs text-on-surface-variant font-medium">words</span>
+            <span className="text-xs text-on-surface-variant font-medium">{t("overview.words")}</span>
           </div>
           <p className="text-[11px] text-on-surface-variant mt-3 truncate font-medium">
-            ~{estimatedReadMinutes} min reading time
+            {t("overview.readingTime", { minutes: estimatedReadMinutes })}
           </p>
         </div>
       </div>
@@ -1670,10 +1695,10 @@ function ReportOverviewDashboard({
           <div className="flex items-center justify-between">
             <h3 className="text-xs font-bold uppercase tracking-wider text-on-surface/80 flex items-center gap-2">
               <HugeiconsIcon icon="list-ordered" size={15} strokeWidth={2} className="text-primary" />
-              <span>Chapter Breakdown & Matrix</span>
+              <span>{t("overview.breakdown")}</span>
             </h3>
             <span className="text-xs text-on-surface-variant font-medium">
-              Click any section to edit
+              {t("overview.clickSection")}
             </span>
           </div>
 
@@ -1707,15 +1732,15 @@ function ReportOverviewDashboard({
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-xs font-bold text-primary font-mono">
-                            Chapter {topItem.number}
+                            {t("navigation.chapter", { number: topItem.number })}
                           </span>
                           <span className="text-xs text-on-surface-variant">•</span>
                           <span className="text-xs text-on-surface font-semibold">
-                            {childGenerated}/{childLeaves.length} Drafted
+                            {t("overview.draftedCount", { count: `${childGenerated}/${childLeaves.length}` })}
                           </span>
                           {childCompleted === childLeaves.length && childLeaves.length > 0 && (
                             <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-secondary/10 text-secondary border border-secondary/20 uppercase">
-                              Complete
+                              {t("overview.complete")}
                             </span>
                           )}
                         </div>
@@ -1785,7 +1810,7 @@ function ReportOverviewDashboard({
                             <div className="flex items-center gap-3 shrink-0">
                               {isGen && (
                                 <span className="hidden md:inline-block text-[11px] text-on-surface-variant font-mono">
-                                  {wordCount} words
+                                  {t("overview.wordsCount", { count: wordCount })}
                                 </span>
                               )}
 
@@ -1801,7 +1826,7 @@ function ReportOverviewDashboard({
                                         : "bg-surface-container text-on-surface-variant/80 border-outline-variant/70"
                                 )}
                               >
-                                {isOut ? "Outdated" : isComp ? "Done" : isGen ? "Drafted" : "Empty"}
+                                {isOut ? t("status.outdated") : isComp ? t("navigation.legend.done") : isGen ? t("status.drafted") : t("navigation.legend.empty")}
                               </span>
 
                               <HugeiconsIcon icon="chevron-right" size={14} strokeWidth={2} className="text-on-surface-variant group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
@@ -1824,22 +1849,22 @@ function ReportOverviewDashboard({
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <HugeiconsIcon icon="checkmark-circle-02" size={18} strokeWidth={2} className="text-secondary" />
-                <h3 className="text-sm font-bold text-on-surface">Final Thesis Compilation</h3>
+                <h3 className="text-sm font-bold text-on-surface">{t("compilation.title")}</h3>
               </div>
               <p className="text-xs text-on-surface-variant leading-relaxed">
-                Assemble and export your full academic document with table of contents and LaTeX source.
+                {t("compilation.description")}
               </p>
             </div>
 
             <div className="p-3 rounded-xl border border-outline-variant/80 bg-surface-container-lowest flex items-center justify-between text-xs font-semibold">
-              <span className="text-on-surface">Thesis Status</span>
+              <span className="text-on-surface">{t("compilation.thesisStatus")}</span>
               <span
                 className={cn(
                   "px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase",
                   allGenerated ? "bg-secondary/10 text-secondary border border-secondary/20" : "bg-surface-container text-on-surface-variant"
                 )}
               >
-                {allGenerated ? "Ready to Compile" : `${generatedCount}/${leafSections.length} Drafted`}
+                {allGenerated ? t("compilation.ready") : t("compilation.drafted", { generated: generatedCount, total: leafSections.length })}
               </span>
             </div>
 
@@ -1854,7 +1879,7 @@ function ReportOverviewDashboard({
               )}
             >
               <HugeiconsIcon icon={aiState === "finalizing" ? "sync-alt" : "book-open"} size={15} strokeWidth={2} className={aiState === "finalizing" ? "animate-spin" : undefined} />
-              <span>{aiState === "finalizing" ? "Compiling..." : finalReport?.contentMarkdown ? "Recompile Full Report" : "Compile Full Report"}</span>
+              <span>{aiState === "finalizing" ? t("compilation.compiling") : finalReport?.contentMarkdown ? t("compilation.recompile") : t("compilation.compile")}</span>
               {aiState !== "finalizing" && <CreditBadge actionKey="final_report_compile" showFree />}
             </button>
 
@@ -1862,7 +1887,7 @@ function ReportOverviewDashboard({
               <div className="pt-3 border-t border-outline-variant/80 flex flex-col gap-2.5">
                 <span className="text-[11px] font-bold text-secondary uppercase tracking-wider flex items-center gap-1.5">
                   <HugeiconsIcon icon="checkmark-circle-02" size={14} strokeWidth={2} />
-                  Report Ready for Export
+                  {t("compilation.readyForExport")}
                 </span>
                 <div className="grid grid-cols-2 gap-2">
                   <button
@@ -1870,14 +1895,14 @@ function ReportOverviewDashboard({
                     className="py-2 px-3 rounded-lg border border-outline-variant/80 bg-surface hover:bg-surface-container text-xs font-bold text-on-surface flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
                   >
                     <HugeiconsIcon icon={copied === "final" ? "checkmark-circle-02" : "copy"} size={13} strokeWidth={2} className="text-primary" />
-                    <span>{copied === "final" ? "Copied" : "Markdown"}</span>
+                    <span>{copied === "final" ? t("editor.copied") : t("compilation.markdown")}</span>
                   </button>
                   <button
                     onClick={() => onCopy(finalReport.contentLatex || markdownToLatex(finalReport.contentMarkdown || ""), "final")}
                     className="py-2 px-3 rounded-lg border border-outline-variant/80 bg-surface hover:bg-surface-container text-xs font-bold text-on-surface flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
                   >
                     <HugeiconsIcon icon={copied === "final" ? "checkmark-circle-02" : "code"} size={13} strokeWidth={2} className="text-primary" />
-                    <span>{copied === "final" ? "Copied" : "LaTeX"}</span>
+                    <span>{copied === "final" ? t("editor.copied") : t("compilation.latex")}</span>
                   </button>
                 </div>
               </div>

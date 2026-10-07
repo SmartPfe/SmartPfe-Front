@@ -10,6 +10,7 @@ import InfoTooltip from "@/components/ui/InfoTooltip";
 import JuryQASession from "./JuryQA/JuryQASession";
 import type { JuryQASessionRecord } from "./JuryQA/types";
 import CreditBadge from "@/components/credits/CreditBadge";
+import { useTranslation } from "react-i18next";
 
 type JuryStage = "loading" | "prepare" | "presenting" | "analyzing" | "results" | "qa";
 type MicStatus = "unknown" | "checking" | "ready" | "denied" | "unavailable";
@@ -65,11 +66,11 @@ type JuryAttempt = {
 };
 
 const scoreCategories: Array<[keyof CategoryScores, string]> = [
-  ["delivery", "Delivery"],
-  ["content", "Content"],
-  ["clarity", "Clarity"],
-  ["timing", "Timing"],
-  ["structure", "Structure"],
+  ["delivery", "simulation.categories.delivery"],
+  ["content", "simulation.categories.content"],
+  ["clarity", "simulation.categories.clarity"],
+  ["timing", "simulation.categories.timing"],
+  ["structure", "simulation.categories.structure"],
 ];
 
 const normalizeSeconds = (value: number) => Math.max(0, Math.round(value));
@@ -99,8 +100,8 @@ const authHeaders = () => {
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
 
-const attemptVersionLabel = (attempt: JuryAttempt) =>
-  attempt.isCurrent ? "Current version" : "Based on an older version";
+const attemptVersionKey = (attempt: JuryAttempt) =>
+  attempt.isCurrent ? "simulation.results.currentVersion" : "simulation.results.olderVersion";
 
 const getPitchSpeech = (slide?: PitchSlide | null) => String(slide?.speech || "").trim();
 
@@ -110,6 +111,7 @@ const alignPitchToPresentation = (pitch: PitchDeck, slides: PresentationSlide[])
 };
 
 export default function JurySimulation() {
+  const { t } = useTranslation("jury");
   const { refreshWorkflow } = useWorkflow();
   const [stage, setStage] = useState<JuryStage>("loading");
   const [project, setProject] = useState<any>(null);
@@ -120,6 +122,7 @@ export default function JurySimulation() {
   const [currentAttempt, setCurrentAttempt] = useState<JuryAttempt | null>(null);
   const [micStatus, setMicStatus] = useState<MicStatus>("unknown");
   const [error, setError] = useState("");
+  const [errorKey, setErrorKey] = useState<string | null>(null);
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [startedAt, setStartedAt] = useState<number | null>(null);
@@ -162,9 +165,18 @@ export default function JurySimulation() {
     [attempts]
   );
 
+  const clearError = () => {
+    setError("");
+    setErrorKey(null);
+  };
+  const setStaticError = (key: string) => {
+    setError("");
+    setErrorKey(key);
+  };
+
   const loadSimulation = useCallback(async () => {
     setStage("loading");
-    setError("");
+    clearError();
     try {
       const projectData = await fetchApi("/projects/my-project");
       const [presentationData, pitchData, juryData] = await Promise.all([
@@ -182,7 +194,12 @@ export default function JurySimulation() {
       setActiveSlideIndex(0);
       setStage("prepare");
     } catch (err: any) {
-      setError(err.message || "Failed to load Jury Simulation. Please refresh the page.");
+      if (err.message) {
+        setError(err.message);
+        setErrorKey(null);
+      } else {
+        setStaticError("simulation.errors.load");
+      }
       setStage("prepare");
     }
   }, []);
@@ -250,12 +267,12 @@ export default function JurySimulation() {
   const startMicTest = async () => {
     if (!navigator.mediaDevices?.getUserMedia) {
       setMicStatus("unavailable");
-      setError("Microphone access is not supported in this browser.");
+      setStaticError("simulation.errors.microphoneUnsupported");
       return;
     }
 
     setMicStatus("checking");
-    setError("");
+    clearError();
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -296,11 +313,7 @@ export default function JurySimulation() {
       const denied = err?.name === "NotAllowedError" || err?.name === "PermissionDeniedError";
       setMicStatus(denied ? "denied" : "unavailable");
       setIsTestingMic(false);
-      setError(
-        denied
-          ? "Microphone access was denied. Please allow microphone permission in your browser settings."
-          : "Could not start microphone test. Please verify your microphone connection."
-      );
+      setStaticError(denied ? "simulation.errors.microphoneDenied" : "simulation.errors.microphoneTestFailed");
     }
   };
 
@@ -333,12 +346,12 @@ export default function JurySimulation() {
   const startCamTest = async () => {
     if (!navigator.mediaDevices?.getUserMedia) {
       setCamStatus("unavailable");
-      setError("Camera access is not supported in this browser.");
+      setStaticError("simulation.errors.cameraUnsupported");
       return;
     }
 
     setCamStatus("checking");
-    setError("");
+    clearError();
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -357,11 +370,7 @@ export default function JurySimulation() {
       const denied = err?.name === "NotAllowedError" || err?.name === "PermissionDeniedError";
       setCamStatus(denied ? "denied" : "unavailable");
       setIsTestingCam(false);
-      setError(
-        denied
-          ? "Camera access was denied. Please allow camera permission in your browser settings."
-          : "Could not start camera preview. Please check your camera connection."
-      );
+      setStaticError(denied ? "simulation.errors.cameraDenied" : "simulation.errors.cameraTestFailed");
     }
   };
 
@@ -388,12 +397,12 @@ export default function JurySimulation() {
   const requestMicrophone = async () => {
     if (!navigator.mediaDevices?.getUserMedia) {
       setMicStatus("unavailable");
-      setError("Your browser cannot access microphone recording. Try a modern browser such as Chrome or Edge.");
+      setStaticError("simulation.errors.recordingUnsupported");
       return null;
     }
 
     setMicStatus("checking");
-    setError("");
+    clearError();
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -408,11 +417,7 @@ export default function JurySimulation() {
     } catch (err: any) {
       const denied = err?.name === "NotAllowedError" || err?.name === "PermissionDeniedError";
       setMicStatus(denied ? "denied" : "unavailable");
-      setError(
-        denied
-          ? "Microphone permission was denied. Enable microphone access in your browser site settings, then try again."
-          : "Microphone recording could not start. Check that a microphone is connected and not used by another app."
-      );
+      setStaticError(denied ? "simulation.errors.recordingPermissionDenied" : "simulation.errors.recordingUnavailable");
       return null;
     }
   };
@@ -430,13 +435,13 @@ export default function JurySimulation() {
     setIsRecording(false);
     setCountdown(null);
     setCurrentAttempt(null);
-    setError("");
+    clearError();
     setStage("presenting");
   };
 
   // Step 2: Triggered by the student when ready to speak
   const beginDefenseRecording = async () => {
-    setError("");
+    clearError();
     setCountdown(3);
 
     const timer = setInterval(() => {
@@ -467,7 +472,7 @@ export default function JurySimulation() {
       recorder.ondataavailable = (event) => {
         if (event.data?.size) chunksRef.current.push(event.data);
       };
-      recorder.onerror = () => setError("Recording failed. Please stop and retry the simulation.");
+      recorder.onerror = () => setStaticError("simulation.errors.recordingFailed");
       recorder.start();
 
       // Start live audio visualizer for active recording feedback
@@ -506,7 +511,7 @@ export default function JurySimulation() {
       setMicStatus("unavailable");
       setIsRecording(false);
       setCountdown(null);
-      setError("Recording could not start in this browser. Please try again with Chrome or Edge.");
+      setStaticError("simulation.errors.recordingStartFailed");
     }
   };
 
@@ -524,7 +529,9 @@ export default function JurySimulation() {
       const recorder = recorderRef.current;
       const stream = streamRef.current;
       if (!recorder || recorder.state === "inactive") {
-        reject(new Error("Recording was not active."));
+        const error = new Error("Recording was not active.");
+        error.name = "RecordingNotActiveError";
+        reject(error);
         return;
       }
 
@@ -533,7 +540,11 @@ export default function JurySimulation() {
         streamRef.current = null;
         resolve(new Blob(chunksRef.current, { type: recorder.mimeType || supportedRecordingType() || "audio/webm" }));
       };
-      recorder.onerror = () => reject(new Error("Recording failed before it could be saved."));
+      recorder.onerror = () => {
+        const error = new Error("Recording failed before it could be saved.");
+        error.name = "RecordingSaveFailedError";
+        reject(error);
+      };
       recorder.stop();
     });
 
@@ -561,7 +572,7 @@ export default function JurySimulation() {
     setIsRecording(false);
     setCountdown(null);
     setMicVolume(0);
-    setError("");
+    clearError();
     setStage("prepare");
   };
 
@@ -593,13 +604,13 @@ export default function JurySimulation() {
       setIsRecording(false);
       setCountdown(null);
       setMicVolume(0);
-      setError("The defense rehearsal must be at least 2 minutes (120 seconds) for the AI jury to assess your presentation.");
+      setStaticError("simulation.errors.minimumDuration");
       setStage("prepare");
       return;
     }
 
     setStage("analyzing");
-    setError("");
+    clearError();
 
     try {
       const audioBlob = await stopRecording();
@@ -623,7 +634,16 @@ export default function JurySimulation() {
       setStage("results");
     } catch (err: any) {
       streamRef.current?.getTracks().forEach((track) => track.stop());
-      setError(err.message || "The attempt could not be analyzed. Please try again.");
+      if (err?.name === "RecordingNotActiveError") {
+        setStaticError("simulation.errors.recordingNotActive");
+      } else if (err?.name === "RecordingSaveFailedError") {
+        setStaticError("simulation.errors.recordingSaveFailed");
+      } else if (err.message) {
+        setError(err.message);
+        setErrorKey(null);
+      } else {
+        setStaticError("simulation.errors.analysisFailed");
+      }
       setStage("prepare");
     } finally {
       setStartedAt(null);
@@ -642,7 +662,7 @@ export default function JurySimulation() {
     setIsRecording(false);
     setCountdown(null);
     setMicVolume(0);
-    setError("");
+    clearError();
     setStage("prepare");
   };
 
@@ -665,7 +685,7 @@ export default function JurySimulation() {
     return (
       <div className="flex min-h-[50vh] flex-col items-center justify-center">
         <div className="mb-4 h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-        <p className="text-sm font-medium text-on-surface-variant">Loading Jury Simulation...</p>
+        <p className="text-sm font-medium text-on-surface-variant">{t("simulation.loading")}</p>
       </div>
     );
   }
@@ -695,9 +715,9 @@ export default function JurySimulation() {
     return (
       <div className="mx-auto flex max-w-xl min-h-[520px] flex-col items-center justify-center text-center p-8 rounded-2xl border border-outline-variant/80 bg-surface-container-lowest shadow-2xs">
         <div className="mb-5 h-12 w-12 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
-        <h1 className="text-2xl font-bold tracking-tight text-on-surface">Analyzing your defense speech...</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-on-surface">{t("simulation.analyzing")}</h1>
         <p className="mt-2 text-sm text-on-surface-variant max-w-md leading-relaxed">
-          Smart PFE AI is evaluating your verbal clarity, pacing, slide coverage, and vocal delivery confidence.
+          {t("simulation.analyzingDescription")}
         </p>
       </div>
     );
@@ -742,14 +762,14 @@ export default function JurySimulation() {
       <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-outline-variant/70">
         <div>
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-on-surface flex items-center">
-            Jury Simulation
+            {t("simulation.title")}
             <InfoTooltip
-              label="Defense Rehearsal"
-              tooltip="Rehearse your graduation defense with slide projection, teleprompter, and instant AI jury evaluation."
+              label={t("simulation.tooltipLabel")}
+              tooltip={t("simulation.tooltip")}
             />
           </h1>
           <p className="text-sm sm:text-base text-on-surface-variant font-medium mt-1">
-            Test your mic and camera framing, verify your speech scripts, and enter the defense podium.
+            {t("simulation.description")}
           </p>
         </div>
 
@@ -765,7 +785,7 @@ export default function JurySimulation() {
               className="h-11 sm:h-12 px-5 rounded-xl border border-outline-variant/80 bg-surface hover:bg-surface-container text-xs sm:text-sm font-bold text-on-surface flex items-center gap-2 transition-all shadow-2xs cursor-pointer"
             >
               <HugeiconsIcon icon="analytics" size={16} strokeWidth={2} className="text-primary" />
-              <span>Latest Score: {latestCurrentAttempt.analysis.overallScore}/100</span>
+              <span>{t("simulation.latestScore", { score: latestCurrentAttempt.analysis.overallScore })}</span>
             </button>
           )}
 
@@ -776,17 +796,17 @@ export default function JurySimulation() {
             className="h-11 sm:h-12 px-6 sm:px-7 rounded-xl bg-primary text-on-primary text-xs sm:text-sm font-bold shadow-md hover:bg-primary/90 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2.5"
           >
             <HugeiconsIcon icon="play-circle" size={20} strokeWidth={2} />
-            <span>Enter Defense Podium</span>
+            <span>{t("simulation.enterPodium")}</span>
             <CreditBadge actionKey="jury_simulation" />
           </button>
         </div>
       </div>
 
-      {error && (
+      {(error || errorKey) && (
         <div className="mb-6 p-4 rounded-xl bg-error-container text-on-error-container border border-error/20 flex items-center justify-between gap-3 shadow-2xs">
-          <p className="text-sm font-semibold">{error}</p>
-          <button onClick={() => setError("")} className="shrink-0 text-xs font-bold underline hover:no-underline cursor-pointer">
-            Dismiss
+          <p className="text-sm font-semibold">{errorKey ? t(errorKey) : error}</p>
+          <button onClick={clearError} className="shrink-0 text-xs font-bold underline hover:no-underline cursor-pointer">
+            {t("simulation.dismiss")}
           </button>
         </div>
       )}
@@ -794,7 +814,7 @@ export default function JurySimulation() {
       {olderAttemptsExist && (
         <div className="mb-6 p-4 rounded-xl border border-outline-variant/80 bg-surface-container-low text-xs sm:text-sm text-on-surface font-medium flex items-center gap-3">
           <HugeiconsIcon icon="clock" size={18} strokeWidth={2} className="text-primary shrink-0" />
-          <span>Past rehearsal attempts were recorded on an earlier version of this presentation.</span>
+          <span>{t("simulation.olderAttempts")}</span>
         </div>
       )}
 
@@ -812,8 +832,8 @@ export default function JurySimulation() {
                   <HugeiconsIcon icon="tune" size={16} strokeWidth={2} />
                 </div>
                 <div>
-                  <h2 className="text-sm font-bold text-on-surface">Hardware Pre-Flight Check</h2>
-                  <p className="text-xs text-on-surface-variant font-medium">Verify camera framing and microphone levels</p>
+                  <h2 className="text-sm font-bold text-on-surface">{t("simulation.hardwareTitle")}</h2>
+                  <p className="text-xs text-on-surface-variant font-medium">{t("simulation.hardwareDescription")}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -825,7 +845,7 @@ export default function JurySimulation() {
                       ? "bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/30"
                       : "bg-surface-container text-on-surface border-outline-variant/60"
                 )}>
-                  Mic: {micStatus === "ready" ? "Ready" : micStatus === "checking" ? "Checking" : micStatus === "denied" ? "Denied" : "Idle"}
+                  {t("simulation.mic")}: {t(`simulation.status.${micStatus === "ready" ? "ready" : micStatus === "checking" ? "checking" : micStatus === "denied" ? "denied" : "idle"}`)}
                 </span>
                 <span className={cn(
                   "px-2.5 py-0.5 rounded-md text-xs font-bold border",
@@ -835,7 +855,7 @@ export default function JurySimulation() {
                       ? "bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/30"
                       : "bg-surface-container text-on-surface border-outline-variant/60"
                 )}>
-                  Cam: {camStatus === "ready" ? "Live" : camStatus === "checking" ? "Starting" : "Off"}
+                  {t("simulation.camera")}: {t(`simulation.status.${camStatus === "ready" ? "live" : camStatus === "checking" ? "starting" : "off"}`)}
                 </span>
               </div>
             </div>
@@ -849,7 +869,7 @@ export default function JurySimulation() {
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-xs font-bold text-on-surface flex items-center gap-1.5">
                       <HugeiconsIcon icon="camera" size={15} strokeWidth={2} className="text-primary" />
-                      Camera Preview
+                      {t("simulation.cameraPreview")}
                     </span>
                     {isTestingCam && (
                       <button
@@ -857,7 +877,7 @@ export default function JurySimulation() {
                         onClick={() => setIsMirrored(!isMirrored)}
                         className="text-xs font-semibold text-primary hover:underline cursor-pointer"
                       >
-                        {isMirrored ? "Mirror: On" : "Mirror: Off"}
+                        {isMirrored ? t("simulation.mirrorOn") : t("simulation.mirrorOff")}
                       </button>
                     )}
                   </div>
@@ -879,7 +899,7 @@ export default function JurySimulation() {
                         <div className="absolute bottom-2.5 left-2.5 w-3 h-3 border-b-2 border-l-2 border-white pointer-events-none" />
                         <div className="absolute bottom-2.5 right-2.5 w-3 h-3 border-b-2 border-r-2 border-white pointer-events-none" />
                         <div className="absolute bottom-2 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-xs text-white text-[10px] font-mono">
-                          HD Stream Live
+                          {t("simulation.hdStreamLive")}
                         </div>
                       </>
                     ) : (
@@ -887,7 +907,7 @@ export default function JurySimulation() {
                         <div className="w-9 h-9 rounded-xl bg-neutral-900 border border-neutral-800 flex items-center justify-center mb-1.5 text-neutral-400">
                           <HugeiconsIcon icon="video" size={20} strokeWidth={1.8} />
                         </div>
-                        <p className="text-xs font-semibold text-neutral-200">Camera preview is off</p>
+                        <p className="text-xs font-semibold text-neutral-200">{t("simulation.cameraPreviewOff")}</p>
                       </div>
                     )}
                   </div>
@@ -895,7 +915,7 @@ export default function JurySimulation() {
 
                 <div className="mt-3 pt-2.5 border-t border-outline-variant/60 flex items-center justify-between gap-2">
                   <span className="text-xs font-medium text-on-surface">
-                    {isTestingCam ? "Camera is streaming" : "Ensure you are centered"}
+                    {isTestingCam ? t("simulation.cameraStreaming") : t("simulation.ensureCentered")}
                   </span>
                   <button
                     type="button"
@@ -908,7 +928,7 @@ export default function JurySimulation() {
                     )}
                   >
                     <HugeiconsIcon icon={isTestingCam ? "video-off" : "video"} size={13} strokeWidth={2} />
-                    <span>{isTestingCam ? "Turn Off" : "Test Camera"}</span>
+                    <span>{isTestingCam ? t("simulation.turnOff") : t("simulation.testCamera")}</span>
                   </button>
                 </div>
               </div>
@@ -919,13 +939,13 @@ export default function JurySimulation() {
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-xs font-bold text-on-surface flex items-center gap-1.5">
                       <HugeiconsIcon icon="mic" size={15} strokeWidth={2} className="text-primary" />
-                      Microphone Audio
+                      {t("simulation.microphoneAudio")}
                     </span>
                     <span className={cn(
                       "text-xs font-bold uppercase tracking-wider",
                       isTestingMic && micVolume > 15 ? "text-emerald-600 dark:text-emerald-400" : "text-on-surface-variant"
                     )}>
-                      {isTestingMic ? (micVolume > 65 ? "High Input" : micVolume > 15 ? "Optimal" : "Listening...") : "Idle"}
+                      {isTestingMic ? (micVolume > 65 ? t("simulation.inputHigh") : micVolume > 15 ? t("simulation.inputOptimal") : t("simulation.listening")) : t("simulation.status.idle")}
                     </span>
                   </div>
 
@@ -955,7 +975,7 @@ export default function JurySimulation() {
                         </div>
                         <div className="px-2.5 py-0.5 rounded-full bg-surface border border-outline-variant/70 shadow-2xs">
                           <p className="text-xs font-bold text-on-surface font-mono">
-                            Input Level: {micVolume}%
+                            {t("simulation.inputLevel", { level: micVolume })}
                           </p>
                         </div>
                       </div>
@@ -964,7 +984,7 @@ export default function JurySimulation() {
                         <div className="w-9 h-9 rounded-xl bg-surface border border-outline-variant/80 flex items-center justify-center mb-1.5 text-primary shadow-2xs">
                           <HugeiconsIcon icon="mic" size={20} strokeWidth={1.8} />
                         </div>
-                        <p className="text-xs font-semibold text-on-surface">Microphone is idle</p>
+                        <p className="text-xs font-semibold text-on-surface">{t("simulation.microphoneIdle")}</p>
                       </div>
                     )}
                   </div>
@@ -972,7 +992,7 @@ export default function JurySimulation() {
 
                 <div className="mt-3 pt-2.5 border-t border-outline-variant/60 flex items-center justify-between gap-2">
                   <span className="text-xs font-semibold text-on-surface">
-                    {isTestingMic ? "Speaking level active" : "Speak to test audio"}
+                    {isTestingMic ? t("simulation.speakingActive") : t("simulation.speakToTest")}
                   </span>
                   <button
                     type="button"
@@ -985,7 +1005,7 @@ export default function JurySimulation() {
                     )}
                   >
                     <HugeiconsIcon icon={isTestingMic ? "mic-off" : "mic"} size={13} strokeWidth={2} />
-                    <span>{isTestingMic ? "Stop Mic" : "Test Mic"}</span>
+                    <span>{isTestingMic ? t("simulation.stopMic") : t("simulation.testMic")}</span>
                   </button>
                 </div>
               </div>
@@ -999,7 +1019,7 @@ export default function JurySimulation() {
             {/* Card 1: Deck */}
             <div className="rounded-2xl border border-outline-variant/80 bg-surface p-5 sm:p-6 shadow-2xs flex flex-col justify-between">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-bold uppercase tracking-wider text-on-surface">Presentation Deck</span>
+                <span className="text-xs font-bold uppercase tracking-wider text-on-surface">{t("simulation.presentationDeck")}</span>
                 <div className={cn(
                   "w-7 h-7 rounded-lg flex items-center justify-center border",
                   hasPresentation ? "bg-emerald-500/15 text-emerald-600 border-emerald-500/30" : "bg-amber-500/15 text-amber-600 border-amber-500/30"
@@ -1008,11 +1028,11 @@ export default function JurySimulation() {
                 </div>
               </div>
               <h3 className="text-xl sm:text-2xl font-bold text-on-surface font-mono">
-                {hasPresentation ? `${slides.length} Slides Ready` : "No Slides"}
+                {hasPresentation ? t("simulation.slidesReady", { count: slides.length }) : t("simulation.noSlides")}
               </h3>
               <div className="mt-4 pt-3 border-t border-outline-variant/60 flex items-center justify-between">
                 <Link to="/workspace/presentation" className="text-xs font-bold text-primary hover:underline flex items-center gap-1.5">
-                  <span>{hasPresentation ? "Review Slides" : "Create Slides"}</span>
+                  <span>{hasPresentation ? t("simulation.reviewSlides") : t("simulation.createSlides")}</span>
                   <HugeiconsIcon icon="arrow-right" size={13} strokeWidth={2} />
                 </Link>
               </div>
@@ -1021,7 +1041,7 @@ export default function JurySimulation() {
             {/* Card 2: Pitch */}
             <div className="rounded-2xl border border-outline-variant/80 bg-surface p-5 sm:p-6 shadow-2xs flex flex-col justify-between">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-bold uppercase tracking-wider text-on-surface">Pitch Script</span>
+                <span className="text-xs font-bold uppercase tracking-wider text-on-surface">{t("simulation.pitchScript")}</span>
                 <div className={cn(
                   "w-7 h-7 rounded-lg flex items-center justify-center border",
                   hasPitch ? "bg-emerald-500/15 text-emerald-600 border-emerald-500/30" : "bg-amber-500/15 text-amber-600 border-amber-500/30"
@@ -1030,11 +1050,11 @@ export default function JurySimulation() {
                 </div>
               </div>
               <h3 className="text-xl sm:text-2xl font-bold text-on-surface font-mono">
-                {alignedPitchSlides.filter((s) => getPitchSpeech(s)).length} / {slides.length} Scripted
+                {t("simulation.scriptsReady", { ready: alignedPitchSlides.filter((s) => getPitchSpeech(s)).length, total: slides.length })}
               </h3>
               <div className="mt-4 pt-3 border-t border-outline-variant/60 flex items-center justify-between">
                 <Link to="/workspace/pitch" className="text-xs font-bold text-primary hover:underline flex items-center gap-1.5">
-                  <span>{hasPitch ? "Review Script" : "Draft Pitch"}</span>
+                  <span>{hasPitch ? t("simulation.reviewScript") : t("simulation.draftPitch")}</span>
                   <HugeiconsIcon icon="arrow-right" size={13} strokeWidth={2} />
                 </Link>
               </div>
@@ -1043,7 +1063,7 @@ export default function JurySimulation() {
             {/* Card 3: Target Timing & Minimum Window */}
             <div className="rounded-2xl border border-outline-variant/80 bg-surface p-5 sm:p-6 shadow-2xs flex flex-col justify-between">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-bold uppercase tracking-wider text-on-surface">Target Duration</span>
+                <span className="text-xs font-bold uppercase tracking-wider text-on-surface">{t("simulation.targetDuration")}</span>
                 <div className="w-7 h-7 rounded-lg bg-blue-500/15 text-blue-600 border border-blue-500/30 flex items-center justify-center">
                   <HugeiconsIcon icon="clock" size={16} strokeWidth={2} />
                 </div>
@@ -1052,8 +1072,8 @@ export default function JurySimulation() {
                 {formatDuration(targetSeconds)}
               </h3>
               <div className="mt-4 pt-3 border-t border-outline-variant/60 flex items-center justify-between">
-                <span className="text-xs font-semibold text-primary">Min 2m Rehearsal</span>
-                <span className="text-xs font-bold text-on-surface-variant font-mono">~{slides.length ? Math.round((targetSeconds / slides.length / 60) * 10) / 10 : 1.5}m/slide</span>
+                <span className="text-xs font-semibold text-primary">{t("simulation.minRehearsal")}</span>
+                <span className="text-xs font-bold text-on-surface-variant font-mono">{t("simulation.minutesPerSlide", { minutes: slides.length ? Math.round((targetSeconds / slides.length / 60) * 10) / 10 : 1.5 })}</span>
               </div>
             </div>
 
@@ -1074,21 +1094,21 @@ export default function JurySimulation() {
 
           {/* Jury Criteria Card */}
           <div className="rounded-2xl border border-outline-variant/80 bg-surface-container-lowest p-5 sm:p-6 shadow-2xs">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-on-surface mb-3.5">AI Evaluation Metrics</h3>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-on-surface mb-3.5">{t("simulation.evaluationMetrics")}</h3>
             <div className="space-y-2.5">
               {[
-                { label: "Delivery", desc: "Fluency, vocal confidence & minimal filler words" },
-                { label: "Content", desc: "Technical accuracy, depth & methodology" },
-                { label: "Clarity", desc: "Clear articulation of project concepts & results" },
-                { label: "Timing", desc: "Pacing aligned with allocated target duration" },
-                { label: "Structure", desc: "Logical narrative & smooth slide transitions" },
+                { labelKey: "delivery", descKey: "deliveryDescription" },
+                { labelKey: "content", descKey: "contentDescription" },
+                { labelKey: "clarity", descKey: "clarityDescription" },
+                { labelKey: "timing", descKey: "timingDescription" },
+                { labelKey: "structure", descKey: "structureDescription" },
               ].map((dim) => (
-                <div key={dim.label} className="p-3 rounded-xl border border-outline-variant/60 bg-surface">
+                <div key={dim.labelKey} className="p-3 rounded-xl border border-outline-variant/60 bg-surface">
                   <div className="flex items-center gap-2">
                     <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-                    <h4 className="text-xs font-bold text-on-surface">{dim.label}</h4>
+                    <h4 className="text-xs font-bold text-on-surface">{t(`simulation.metric.${dim.labelKey}`)}</h4>
                   </div>
-                  <p className="text-xs text-on-surface-variant mt-0.5 pl-3.5">{dim.desc}</p>
+                  <p className="text-xs text-on-surface-variant mt-0.5 pl-3.5">{t(`simulation.metric.${dim.descKey}`)}</p>
                 </div>
               ))}
             </div>
@@ -1132,6 +1152,7 @@ function SimulationMode({
   onCancel: () => void;
   onFinish: () => void;
 }) {
+  const { t } = useTranslation("jury");
   const MIN_REQUIRED_SECONDS = 120;
   const isMinMet = elapsedSeconds >= MIN_REQUIRED_SECONDS;
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -1189,8 +1210,8 @@ function SimulationMode({
             <span className="text-7xl sm:text-9xl font-black text-primary font-mono tracking-tighter leading-none select-none transition-all duration-300 transform scale-110">
               {countdown}
             </span>
-            <h2 className="text-xl sm:text-2xl font-bold text-on-surface mt-4">Take a deep breath...</h2>
-            <p className="text-sm text-on-surface-variant mt-1">Starting live recording in {countdown}s</p>
+            <h2 className="text-xl sm:text-2xl font-bold text-on-surface mt-4">{t("simulation.mode.takeBreath")}</h2>
+            <p className="text-sm text-on-surface-variant mt-1">{t("simulation.mode.startingIn", { count: countdown })}</p>
           </div>
         </div>
       )}
@@ -1210,9 +1231,9 @@ function SimulationMode({
                 "text-xs font-bold uppercase tracking-wider",
                 isRecording ? "text-error" : "text-primary"
               )}>
-                {isRecording ? "Recording In Progress" : "Defense Podium Standby"}
+                {isRecording ? t("simulation.mode.recording") : t("simulation.mode.standby")}
               </p>
-              <p className="text-xs font-semibold text-on-surface">Slide {slideIndex + 1} of {totalSlides}</p>
+              <p className="text-xs font-semibold text-on-surface">{t("simulation.mode.slideOf", { current: slideIndex + 1, total: totalSlides })}</p>
             </div>
           </div>
 
@@ -1248,8 +1269,8 @@ function SimulationMode({
                   <span className="text-[10px] font-mono font-bold text-on-surface">{liveVolume}%</span>
                 </div>
 
-                <TimerPill label="Elapsed" value={formatDuration(elapsedSeconds)} />
-                <TimerPill label="Target" value={formatDuration(targetSeconds)} />
+                <TimerPill label={t("simulation.mode.elapsed")} value={formatDuration(elapsedSeconds)} />
+                <TimerPill label={t("simulation.mode.target")} value={formatDuration(targetSeconds)} />
 
                 {/* 2-Minute Progress Pill */}
                 <div className={cn(
@@ -1259,7 +1280,7 @@ function SimulationMode({
                     : "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30"
                 )}>
                   <HugeiconsIcon icon={isMinMet ? "checkmark-circle-02" : "lock"} size={13} strokeWidth={2} />
-                  <span>{isMinMet ? "2m Met (Ready)" : `${formatDuration(elapsedSeconds)} / 2:00`}</span>
+                  <span>{isMinMet ? t("simulation.mode.minimumMet") : t("simulation.mode.elapsedMinimum", { elapsed: formatDuration(elapsedSeconds) })}</span>
                 </div>
 
                 {/* Fullscreen Toggle Button */}
@@ -1267,27 +1288,27 @@ function SimulationMode({
                   type="button"
                   onClick={toggleFullscreen}
                   className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-outline-variant/80 bg-surface px-3 text-xs font-bold text-on-surface shadow-2xs hover:bg-surface-container transition-all cursor-pointer"
-                  title={isFullscreen ? "Exit Fullscreen (F)" : "Enter Fullscreen (F)"}
+                  title={isFullscreen ? t("simulation.mode.exitFullscreenTitle") : t("simulation.mode.enterFullscreenTitle")}
                 >
                   <HugeiconsIcon icon={isFullscreen ? "fullscreen-exit" : "fullscreen"} size={14} strokeWidth={2} />
-                  <span className="hidden sm:inline">{isFullscreen ? "Exit Fullscreen" : "Fullscreen"}</span>
+                  <span className="hidden sm:inline">{isFullscreen ? t("simulation.mode.exitFullscreen") : t("simulation.mode.fullscreen")}</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={onCancel}
                   className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-outline-variant/80 bg-surface px-3.5 text-xs font-bold text-on-surface shadow-2xs hover:bg-surface-container transition-all cursor-pointer"
-                  title="Cancel rehearsal and return without evaluating"
+                  title={t("simulation.mode.cancelTitle")}
                 >
                   <HugeiconsIcon icon="close" size={14} strokeWidth={2} />
-                  <span>Cancel</span>
+                  <span>{t("simulation.mode.cancel")}</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={onFinish}
                   disabled={!isMinMet}
-                  title={isMinMet ? "Finish defense and get AI Jury Evaluation" : "Minimum 2 minutes required before finishing"}
+                  title={isMinMet ? t("simulation.mode.finishTitle") : t("simulation.mode.minimumTitle")}
                   className={cn(
                     "inline-flex h-9 items-center justify-center gap-2 rounded-lg px-4 text-xs font-bold transition-all shadow-2xs",
                     isMinMet
@@ -1296,14 +1317,14 @@ function SimulationMode({
                   )}
                 >
                   <HugeiconsIcon icon={isMinMet ? "stop-circle" : "lock"} size={15} strokeWidth={2} />
-                  <span>{isMinMet ? "Finish Defense" : "Min 2m Required"}</span>
+                  <span>{isMinMet ? t("simulation.mode.finishDefense") : t("simulation.mode.minimumRequired")}</span>
                 </button>
               </>
             ) : (
               <>
-                <TimerPill label="Target Time" value={formatDuration(targetSeconds)} />
+                <TimerPill label={t("simulation.mode.targetTime")} value={formatDuration(targetSeconds)} />
                 <div className="px-3 py-1.5 rounded-lg border border-outline-variant/80 bg-surface text-xs font-bold text-on-surface font-mono">
-                  Min. 2m Required
+                  {t("simulation.mode.minimumRequiredShort")}
                 </div>
 
                 {/* Fullscreen Toggle Button */}
@@ -1311,10 +1332,10 @@ function SimulationMode({
                   type="button"
                   onClick={toggleFullscreen}
                   className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-outline-variant/80 bg-surface px-3 text-xs font-bold text-on-surface shadow-2xs hover:bg-surface-container transition-all cursor-pointer"
-                  title={isFullscreen ? "Exit Fullscreen (F)" : "Enter Fullscreen (F)"}
+                  title={isFullscreen ? t("simulation.mode.exitFullscreenTitle") : t("simulation.mode.enterFullscreenTitle")}
                 >
                   <HugeiconsIcon icon={isFullscreen ? "fullscreen-exit" : "fullscreen"} size={14} strokeWidth={2} />
-                  <span className="hidden sm:inline">{isFullscreen ? "Exit Fullscreen" : "Fullscreen"}</span>
+                  <span className="hidden sm:inline">{isFullscreen ? t("simulation.mode.exitFullscreen") : t("simulation.mode.fullscreen")}</span>
                 </button>
 
                 <button
@@ -1323,7 +1344,7 @@ function SimulationMode({
                   className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-outline-variant/80 bg-surface px-3.5 text-xs font-bold text-on-surface shadow-2xs hover:bg-surface-container transition-all cursor-pointer"
                 >
                   <HugeiconsIcon icon="close" size={14} strokeWidth={2} />
-                  <span>Exit Podium</span>
+                  <span>{t("simulation.mode.exitPodium")}</span>
                 </button>
 
                 <button
@@ -1332,7 +1353,7 @@ function SimulationMode({
                   className="inline-flex h-9 sm:h-10 items-center justify-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white px-5 text-xs sm:text-sm font-bold shadow-md transition-all cursor-pointer"
                 >
                   <HugeiconsIcon icon="mic" size={16} strokeWidth={2} />
-                  <span>Begin Speaking & Record</span>
+                  <span>{t("simulation.mode.beginSpeaking")}</span>
                 </button>
               </>
             )}
@@ -1345,10 +1366,10 @@ function SimulationMode({
             <div className="flex items-center gap-2.5">
               <HugeiconsIcon icon="mic" size={17} strokeWidth={2} className="text-primary shrink-0" />
               <span>
-                <strong>Podium Ready:</strong> Take a breath and review your opening slide. When you are ready to speak, click <strong>Begin Speaking & Record</strong> (or press Space).
+                <strong>{t("simulation.mode.podiumReady")}</strong> {t("simulation.mode.podiumInstructions")}
               </span>
             </div>
-            <span className="text-xs font-bold text-primary shrink-0 hidden md:inline font-mono">2 min minimum rehearsal</span>
+            <span className="text-xs font-bold text-primary shrink-0 hidden md:inline font-mono">{t("simulation.mode.minimumRehearsal")}</span>
           </div>
         )}
 
@@ -1356,14 +1377,14 @@ function SimulationMode({
           <section className="flex min-h-[420px] flex-col rounded-2xl border border-outline-variant/80 bg-surface p-6 sm:p-8 shadow-2xs justify-between overflow-y-auto">
             <div>
               <div className="mb-4 flex items-center justify-between gap-3 pb-3 border-b border-outline-variant/60">
-                <span className="text-xs font-bold uppercase tracking-wider text-primary">Live Slide View</span>
+                <span className="text-xs font-bold uppercase tracking-wider text-primary">{t("simulation.mode.liveSlideView")}</span>
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={onPrevious}
                     disabled={slideIndex === 0}
                     className="w-8 h-8 rounded-lg border border-outline-variant/80 bg-surface flex items-center justify-center text-on-surface hover:bg-surface-container disabled:opacity-30 cursor-pointer"
-                    title="Previous slide (Left Arrow)"
+                    title={t("simulation.mode.previousSlide")}
                   >
                     <HugeiconsIcon icon="arrow-right" size={14} strokeWidth={2} className="rotate-180" />
                   </button>
@@ -1372,14 +1393,14 @@ function SimulationMode({
                     onClick={onNext}
                     disabled={slideIndex >= totalSlides - 1}
                     className="w-8 h-8 rounded-lg border border-outline-variant/80 bg-surface flex items-center justify-center text-on-surface hover:bg-surface-container disabled:opacity-30 cursor-pointer"
-                    title="Next slide (Right Arrow)"
+                    title={t("simulation.mode.nextSlide")}
                   >
                     <HugeiconsIcon icon="arrow-right" size={14} strokeWidth={2} />
                   </button>
                 </div>
               </div>
 
-              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-on-surface">{slide?.title || "Untitled slide"}</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-on-surface">{slide?.title || t("simulation.mode.untitledSlide")}</h1>
               <ul className="mt-6 space-y-3 text-sm sm:text-base text-on-surface">
                 {(slide?.bullets || []).map((bullet, index) => (
                   <li key={`${bullet}-${index}`} className="flex items-start gap-3">
@@ -1392,17 +1413,17 @@ function SimulationMode({
 
             {slide?.notes && (
               <div className="mt-8 rounded-xl border border-outline-variant/70 bg-surface-container-low/40 p-4 text-xs text-on-surface-variant leading-relaxed">
-                <span className="font-bold text-on-surface uppercase tracking-wider block mb-1">Speaker Notes:</span>
+                <span className="font-bold text-on-surface uppercase tracking-wider block mb-1">{t("simulation.mode.speakerNotes")}</span>
                 {slide.notes}
               </div>
             )}
           </section>
 
           <aside className="rounded-2xl border border-outline-variant/80 bg-surface p-6 shadow-2xs flex flex-col overflow-hidden">
-            <span className="text-xs font-bold uppercase tracking-wider text-primary mb-2">Speech Reference Script</span>
-            <h2 className="text-sm font-bold text-on-surface pb-3 border-b border-outline-variant/60">{pitch?.title || slide?.title || "Current slide"}</h2>
+            <span className="text-xs font-bold uppercase tracking-wider text-primary mb-2">{t("simulation.mode.speechReference")}</span>
+            <h2 className="text-sm font-bold text-on-surface pb-3 border-b border-outline-variant/60">{pitch?.title || slide?.title || t("simulation.mode.currentSlide")}</h2>
             <div className="mt-4 flex-1 overflow-y-auto pr-1 text-xs sm:text-sm leading-relaxed text-on-surface-variant font-sans">
-              {pitch?.speech || "No pitch script is available for this slide."}
+              {pitch?.speech || t("simulation.mode.noPitchScript")}
             </div>
           </aside>
         </main>
@@ -1441,6 +1462,18 @@ function ResultsView({
   onSelectAttempt: (attempt: JuryAttempt) => void;
   onContinueToQA: () => void;
 }) {
+  const { t } = useTranslation("jury");
+  const displayReadinessLevel = (value: string | null | undefined) => {
+    const keys: Record<string, string> = {
+      "Not Ready": "qa.readinessLevels.notReady",
+      "Needs More Practice": "qa.readinessLevels.needsMorePractice",
+      "Almost Ready": "qa.readinessLevels.almostReady",
+      Ready: "qa.readinessLevels.ready",
+      "Highly Ready": "qa.readinessLevels.highlyReady",
+    };
+    const key = value ? keys[value] : undefined;
+    return key ? t(key) : value || "";
+  };
   const analysis = attempt.analysis;
   const finalEvaluation = qaSession?.finalEvaluation;
 
@@ -1450,14 +1483,14 @@ function ResultsView({
         <main className="space-y-6">
           <section className="rounded-2xl border border-outline-variant/80 bg-surface-container-lowest p-6 sm:p-7 shadow-2xs">
             <div className="flex items-center gap-1.5 mb-1.5">
-              <span className="text-xs font-bold uppercase tracking-wider text-primary">AI Evaluation</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-primary">{t("simulation.results.title")}</span>
             </div>
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between pb-6 border-b border-outline-variant/60">
               <div>
                 <h1 className="text-3xl sm:text-4xl font-bold font-mono text-on-surface tracking-tight">{analysis.overallScore} / 100</h1>
                 <p className="mt-1 text-base font-bold text-primary">{analysis.overallLabel}</p>
                 <p className="mt-1 text-xs text-on-surface-variant">
-                  {attemptVersionLabel(attempt)} · Presentation v{attempt.presentationVersion}, Pitch v{attempt.pitchVersion}
+                  {t(attemptVersionKey(attempt))} · {t("simulation.results.presentationVersion", { version: attempt.presentationVersion })}, {t("simulation.results.pitchVersion", { version: attempt.pitchVersion })}
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-3">
@@ -1467,7 +1500,7 @@ function ResultsView({
                   className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-lg bg-primary text-on-primary text-xs font-bold shadow-2xs hover:bg-primary/90 transition-all cursor-pointer"
                 >
                   <HugeiconsIcon icon={qaSession?.status === "completed" ? "analytics" : "arrow-right"} size={15} strokeWidth={2} />
-                  <span>{qaSession?.status === "completed" ? "View Final Report" : qaSession ? "Resume Jury Questions" : "Continue to Jury Questions"}</span>
+                  <span>{qaSession?.status === "completed" ? t("simulation.results.viewFinalReport") : qaSession ? t("simulation.results.resumeQuestions") : t("simulation.results.continueQuestions")}</span>
                   {!qaSession && <CreditBadge actionKey="jury_qa_session" className="border-white/25 bg-white/15 text-white" />}
                 </button>
                 <button
@@ -1476,14 +1509,14 @@ function ResultsView({
                   className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-lg border border-outline-variant/80 bg-surface text-on-surface text-xs font-bold shadow-2xs hover:bg-surface-container transition-all cursor-pointer"
                 >
                   <HugeiconsIcon icon="refresh" size={15} strokeWidth={2} />
-                  <span>Practice Again</span>
+                  <span>{t("simulation.results.practiceAgain")}</span>
                 </button>
               </div>
             </div>
             <div className="mt-6 grid gap-3 grid-cols-2 sm:grid-cols-5">
               {scoreCategories.map(([key, label]) => (
                 <div key={key} className="rounded-xl border border-outline-variant/80 bg-surface p-3.5 text-center shadow-2xs">
-                  <p className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">{label}</p>
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">{t(label)}</p>
                   <p className="mt-1 text-xl font-bold font-mono text-on-surface">{analysis.categoryScores[key]}</p>
                 </div>
               ))}
@@ -1493,18 +1526,18 @@ function ResultsView({
           <section className="rounded-2xl border border-outline-variant/80 bg-surface-container-lowest p-5 sm:p-6 shadow-2xs">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h2 className="text-sm font-bold uppercase tracking-wider text-on-surface">Defense Completed - Jury Q&A - Final Report</h2>
+                <h2 className="text-sm font-bold uppercase tracking-wider text-on-surface">{t("simulation.results.reportTitle")}</h2>
                 <p className="mt-2 text-sm leading-relaxed text-on-surface-variant">
                   {qaSession?.status === "completed"
-                    ? `Final jury evaluation completed with readiness: ${finalEvaluation?.readinessLevel || "Ready"}.`
+                    ? t("simulation.results.finalEvaluationComplete", { readiness: displayReadinessLevel(finalEvaluation?.readinessLevel || "Ready") })
                     : qaSession
-                      ? "Your jury question session is in progress. Resume it to preserve your completed answers."
-                      : "The AI evaluation is ready. Continue to personalized jury questions before generating the final report."}
+                      ? t("simulation.results.qaInProgress")
+                      : t("simulation.results.evaluationReady")}
                 </p>
               </div>
               {qaSession?.status === "completed" && (
                 <div className="rounded-xl border border-primary/25 bg-primary/10 px-4 py-3 text-right">
-                  <p className="text-[11px] font-bold uppercase tracking-wider text-primary">Final Score</p>
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-primary">{t("simulation.results.finalScore")}</p>
                   <p className="font-mono text-2xl font-bold text-on-surface">{finalEvaluation?.overallScore || 0}/100</p>
                 </div>
               )}
@@ -1512,8 +1545,8 @@ function ResultsView({
           </section>
 
           <section className="grid gap-5 md:grid-cols-2">
-            <FeedbackBlock title="Key Strengths" icon="check-circle" tone="good" items={analysis.strengths} />
-            <FeedbackBlock title="Areas For Improvement" icon="trending-up" tone="warn" items={analysis.improvements} />
+            <FeedbackBlock title={t("simulation.results.keyStrengths")} icon="check-circle" tone="good" items={analysis.strengths} />
+            <FeedbackBlock title={t("simulation.results.improvements")} icon="trending-up" tone="warn" items={analysis.improvements} />
           </section>
 
           <section className="rounded-2xl border border-outline-variant/80 bg-surface-container-lowest p-6 shadow-2xs">
@@ -1522,17 +1555,17 @@ function ResultsView({
                 <HugeiconsIcon icon="clock" size={18} strokeWidth={1.8} />
               </div>
               <div>
-                <h2 className="text-sm font-bold text-on-surface tracking-tight">Speech Timing Breakdown</h2>
+                <h2 className="text-sm font-bold text-on-surface tracking-tight">{t("simulation.results.speechTiming")}</h2>
                 <p className="text-xs text-on-surface-variant mt-0.5">{analysis.timing.assessment}</p>
                 <p className="text-xs font-semibold text-primary mt-1 font-mono">
-                  Actual {formatDuration(analysis.timing.actualSeconds)} / Target {formatDuration(analysis.timing.targetSeconds)}
+                  {t("simulation.results.actualTarget", { actual: formatDuration(analysis.timing.actualSeconds), target: formatDuration(analysis.timing.targetSeconds) })}
                 </p>
               </div>
             </div>
           </section>
 
           <section className="rounded-2xl border border-outline-variant/80 bg-surface-container-lowest p-6 shadow-2xs">
-            <h2 className="text-sm font-bold uppercase tracking-wider text-outline-variant mb-4">Recommended Action Plan</h2>
+            <h2 className="text-sm font-bold uppercase tracking-wider text-outline-variant mb-4">{t("simulation.results.actionPlan")}</h2>
             <ol className="space-y-3">
               {analysis.actionPlan.map((item, index) => (
                 <li key={`${item}-${index}`} className="flex gap-3 text-xs sm:text-sm text-on-surface">
@@ -1544,21 +1577,21 @@ function ResultsView({
           </section>
 
           <section className="rounded-2xl border border-outline-variant/80 bg-surface-container-lowest p-6 shadow-2xs">
-            <h2 className="text-sm font-bold uppercase tracking-wider text-outline-variant mb-4">Slide-by-Slide Analysis</h2>
+            <h2 className="text-sm font-bold uppercase tracking-wider text-outline-variant mb-4">{t("simulation.results.slideAnalysis")}</h2>
             <div className="space-y-3">
               {analysis.sectionFeedback.length ? analysis.sectionFeedback.map((section) => (
                 <details key={`${section.slideNumber}-${section.slideTitle}`} className="rounded-xl border border-outline-variant/80 bg-surface p-4 shadow-2xs group">
                   <summary className="cursor-pointer text-xs sm:text-sm font-bold text-on-surface flex items-center justify-between">
-                    <span>Slide {section.slideNumber} — {section.slideTitle}</span>
+                    <span>{t("simulation.results.slide", { number: section.slideNumber })} — {section.slideTitle}</span>
                     <HugeiconsIcon icon="chevron-down" size={16} strokeWidth={1.8} className="text-on-surface-variant group-open:rotate-180 transition-transform" />
                   </summary>
                   <div className="mt-4 grid gap-4 md:grid-cols-2 pt-3 border-t border-outline-variant/60">
-                    <MiniList title="Positive Observations" items={section.strengths} />
-                    <MiniList title="Recommendations" items={section.improvements} />
+                    <MiniList title={t("simulation.results.positiveObservations")} items={section.strengths} />
+                    <MiniList title={t("simulation.results.recommendations")} items={section.improvements} />
                   </div>
                 </details>
               )) : (
-                <p className="text-xs text-on-surface-variant">No slide-specific feedback was recorded for this attempt.</p>
+                <p className="text-xs text-on-surface-variant">{t("simulation.results.noSlideFeedback")}</p>
               )}
             </div>
           </section>
@@ -1571,6 +1604,7 @@ function ResultsView({
 }
 
 function FeedbackBlock({ title, icon, tone, items }: { title: string; icon: string; tone: "good" | "warn"; items: string[] }) {
+  const { t } = useTranslation("jury");
   const toneClass = tone === "good"
     ? "border-secondary/30 bg-secondary/5 text-secondary"
     : "border-amber-500/30 bg-amber-500/5 text-amber-600";
@@ -1588,7 +1622,7 @@ function FeedbackBlock({ title, icon, tone, items }: { title: string; icon: stri
             <span className="leading-relaxed">{item}</span>
           </li>
         )) : (
-          <li className="text-on-surface-variant">No feedback returned for this category.</li>
+          <li className="text-on-surface-variant">{t("simulation.results.noFeedback")}</li>
         )}
       </ul>
     </section>
@@ -1596,6 +1630,7 @@ function FeedbackBlock({ title, icon, tone, items }: { title: string; icon: stri
 }
 
 function MiniList({ title, items }: { title: string; items: string[] }) {
+  const { t } = useTranslation("jury");
   return (
     <div>
       <h3 className="text-xs font-bold text-on-surface mb-2">{title}</h3>
@@ -1606,7 +1641,7 @@ function MiniList({ title, items }: { title: string; items: string[] }) {
             <span>{item}</span>
           </li>
         )) : (
-          <li className="text-on-surface-variant/60">No items in this section.</li>
+          <li className="text-on-surface-variant/60">{t("simulation.results.noItems")}</li>
         )}
       </ul>
     </div>
@@ -1624,13 +1659,25 @@ function AttemptHistory({
   onSelectAttempt: (attempt: JuryAttempt) => void;
   selectedId?: string;
 }) {
+  const { t } = useTranslation("jury");
+  const displayReadinessLevel = (value: string | null | undefined) => {
+    const keys: Record<string, string> = {
+      "Not Ready": "qa.readinessLevels.notReady",
+      "Needs More Practice": "qa.readinessLevels.needsMorePractice",
+      "Almost Ready": "qa.readinessLevels.almostReady",
+      Ready: "qa.readinessLevels.ready",
+      "Highly Ready": "qa.readinessLevels.highlyReady",
+    };
+    const key = value ? keys[value] : undefined;
+    return key ? t(key) : value || "";
+  };
   const safeQASessions = Array.isArray(qaSessions) ? qaSessions : [];
   const sessionForAttempt = (attempt: JuryAttempt) =>
     safeQASessions.find((session) => String(session.juryAttemptId) === String(attempt._id));
 
   return (
     <aside className="rounded-2xl border border-outline-variant/80 bg-surface-container-lowest p-4 sm:p-5 shadow-2xs h-fit">
-      <h2 className="text-xs font-bold uppercase tracking-wider text-on-surface mb-3">Attempt History</h2>
+      <h2 className="text-xs font-bold uppercase tracking-wider text-on-surface mb-3">{t("simulation.results.attemptHistory")}</h2>
       <div className="space-y-2">
         {attempts.length ? attempts.map((attempt) => {
           const qaSession = sessionForAttempt(attempt);
@@ -1650,19 +1697,23 @@ function AttemptHistory({
               )}
             >
               <div className="flex items-center justify-between gap-3">
-                <span className="text-xs font-bold text-on-surface">Attempt #{attempt.attemptNumber}</span>
+                <span className="text-xs font-bold text-on-surface">{t("simulation.results.attempt", { number: attempt.attemptNumber })}</span>
                 <span className="text-sm font-bold font-mono text-primary">{finalScore ?? attempt.analysis?.overallScore ?? 0}</span>
               </div>
               <div className="mt-2 grid grid-cols-3 gap-1.5">
-                <HistoryMetric label="Defense" value={`${attempt.analysis?.overallScore ?? 0}`} />
-                <HistoryMetric label="Q&A" value={qaScore === null ? "-" : `${qaScore}`} />
-                <HistoryMetric label="Final" value={finalScore === undefined ? "-" : `${finalScore}`} />
+                <HistoryMetric label={t("simulation.results.defense")} value={`${attempt.analysis?.overallScore ?? 0}`} />
+                <HistoryMetric label={t("simulation.results.qa")} value={qaScore === null ? "-" : `${qaScore}`} />
+                <HistoryMetric label={t("simulation.results.final")} value={finalScore === undefined ? "-" : `${finalScore}`} />
               </div>
               <p className={cn("mt-2 text-xs font-semibold", attempt.isCurrent ? "text-secondary" : "text-on-surface-variant")}>
-                {attemptVersionLabel(attempt)}
+                {t(attemptVersionKey(attempt))}
               </p>
               <p className="mt-0.5 text-xs text-on-surface-variant">
-                {qaSession?.finalEvaluation?.readinessLevel || (qaSession ? "Q&A in progress" : "Q&A not started")}
+                {qaSession?.finalEvaluation?.readinessLevel
+                  ? displayReadinessLevel(qaSession.finalEvaluation.readinessLevel)
+                  : qaSession
+                    ? t("simulation.results.qaInProgressShort")
+                    : t("simulation.results.qaNotStarted")}
               </p>
               <p className="mt-0.5 text-xs text-on-surface font-mono">
                 {attempt.createdAt ? new Date(attempt.createdAt).toLocaleDateString() : formatDuration(attempt.actualSeconds)}
@@ -1671,7 +1722,7 @@ function AttemptHistory({
           );
         }) : (
           <p className="rounded-xl border border-dashed border-outline-variant/80 p-4 text-xs text-on-surface-variant text-center font-medium">
-            No previous attempts recorded.
+            {t("simulation.results.noPreviousAttempts")}
           </p>
         )}
       </div>

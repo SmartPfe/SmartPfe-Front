@@ -11,6 +11,7 @@ export type ReportSection = {
 
 export type AiState = "idle" | "generating" | "refining" | "translating" | "suggestion_ready";
 export type SaveStatus = "unsaved" | "saving" | "saved";
+export type ReportStructureError = { translationKey: string } | { message: string };
 
 const LANGUAGE_CODES: Record<string, string> = {
   english: "en",
@@ -71,7 +72,7 @@ export function useReportStructure() {
   const [loading, setLoading] = useState(true);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
   const [localAiState, setLocalAiState] = useState<AiState>("idle");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ReportStructureError | null>(null);
   const autosaveTimerRef = useRef<number | null>(null);
   const structureRef = useRef<ReportSection[]>([]);
   const handledTaskIdRef = useRef<string | null>(null);
@@ -90,7 +91,7 @@ export function useReportStructure() {
       structureRef.current = normalized;
       return { projectData, reportStructure: normalized };
     } catch (err: any) {
-      setError(err.message || "Failed to load report structure. Please refresh the page.");
+      setError(err.message ? { message: err.message } : { translationKey: "errorsLoad" });
       return null;
     } finally {
       setLoading(false);
@@ -128,7 +129,7 @@ export function useReportStructure() {
     } else if (task.status === "error") {
       setLocalAiState("idle");
       if (task.error && !task.error.includes("Limit reached")) {
-        setError(task.error);
+        setError({ message: task.error });
       }
     }
   }, [fetchReportStructure, localAiState, tasks]);
@@ -137,13 +138,13 @@ export function useReportStructure() {
 
   const saveReportStructure = useCallback(async (nextStructure = reportStructure, showValidation = false, language?: string) => {
     if (!project?._id) {
-      setError("Project is not ready yet. Please refresh the page.");
+      setError({ translationKey: "errorsNotReady" });
       return;
     }
 
     const normalized = normalizeReportStructure(nextStructure);
     if (normalized.length === 0) {
-      if (showValidation) setError("Please add at least one report section before saving.");
+      if (showValidation) setError({ translationKey: "errorsEmptySave" });
       setSaveStatus("unsaved");
       return;
     }
@@ -172,7 +173,7 @@ export function useReportStructure() {
         setSaveStatus("unsaved");
       }
     } catch (err: any) {
-      setError(err.message || "Failed to save report structure. Please try again.");
+      setError(err.message ? { message: err.message } : { translationKey: "errorsSave" });
       setSaveStatus("unsaved");
     }
   }, [project?._id, reportStructure]);
@@ -210,7 +211,9 @@ export function useReportStructure() {
         id: TASK_ID,
         scope: SCOPE,
         title: "Report Structure",
+        uiTitleKey: "outline:title",
         subTitle: "Generating report structure with AI...",
+        uiSubTitleKey: "outline:tasksGenerate",
         pageRoute: PAGE_ROUTE,
         status: "generating",
         runner: async (signal) => {
@@ -231,7 +234,7 @@ export function useReportStructure() {
       }
     } catch (err: any) {
       if (err?.name !== "AbortError") {
-        setError(err.message || "AI generation failed. Please try again.");
+        setError(err.message ? { message: err.message } : { translationKey: "errorsGenerate" });
       }
       setLocalAiState("idle");
     }
@@ -239,7 +242,7 @@ export function useReportStructure() {
 
   const refineWithAi = async (instructions = "") => {
     if (reportStructure.length === 0) {
-      setError("Add or generate a report structure before asking AI to refine it.");
+      setError({ translationKey: "errorsEmptyRefine" });
       return;
     }
 
@@ -256,7 +259,9 @@ export function useReportStructure() {
         id: TASK_ID,
         scope: SCOPE,
         title: "Report Structure",
+        uiTitleKey: "outline:title",
         subTitle: "Refining report structure with AI...",
+        uiSubTitleKey: "outline:tasksRefine",
         pageRoute: PAGE_ROUTE,
         status: "refining",
         runner: async (signal) => {
@@ -278,7 +283,7 @@ export function useReportStructure() {
       }
     } catch (err: any) {
       if (err?.name !== "AbortError") {
-        setError(err.message || "AI refinement failed. Please try again.");
+        setError(err.message ? { message: err.message } : { translationKey: "errorsRefine" });
       }
       setLocalAiState("idle");
     }
@@ -286,7 +291,7 @@ export function useReportStructure() {
 
   const translateWithAi = async () => {
     if (reportStructure.length === 0) {
-      setError("Add or generate a report structure before asking AI to translate it.");
+      setError({ translationKey: "errorsEmptyTranslate" });
       return;
     }
 
@@ -298,7 +303,13 @@ export function useReportStructure() {
         id: TASK_ID,
         scope: SCOPE,
         title: "Report Structure",
+        uiTitleKey: "outline:title",
         subTitle: `Translating report structure to ${getLanguageLabel(projectLanguage)}...`,
+        uiSubTitleKey: "outline:tasksTranslate",
+        uiSubTitleValues: { language: getLanguageLabel(projectLanguage) },
+        uiSubTitleValueKeys: ["en", "fr", "ar"].includes(projectLanguage)
+          ? { language: `outline:${({ en: "languageEn", fr: "languageFr", ar: "languageAr" } as Record<string, string>)[projectLanguage]}` }
+          : undefined,
         pageRoute: PAGE_ROUTE,
         status: "translating",
         runner: async (signal) => {
@@ -334,7 +345,7 @@ export function useReportStructure() {
       }
     } catch (err: any) {
       if (err?.name !== "AbortError") {
-        setError(err.message || "AI report structure translation failed. Please try again.");
+        setError(err.message ? { message: err.message } : { translationKey: "errorsTranslate" });
       }
       setLocalAiState("idle");
     }

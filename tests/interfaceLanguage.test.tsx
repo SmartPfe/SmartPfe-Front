@@ -24,6 +24,12 @@ import ProductBacklog from '../src/pages/workspace/ProductBacklog/index';
 import Actors from '../src/pages/workspace/Actors';
 import ExistingSolutions from '../src/pages/workspace/ExistingSolutions/index';
 import { CreditProvider } from '../src/context/CreditContext';
+import ReportStructure from '../src/pages/workspace/ReportStructure/index';
+import ReportBuilder from '../src/pages/workspace/ReportBuilder/index';
+import Presentation from '../src/pages/workspace/Presentation/index';
+import Pitch, { getPitchExportCopy } from '../src/pages/workspace/Pitch/index';
+import { OnboardingProvider } from '../src/context/OnboardingContext';
+import JuryQASession from '../src/pages/workspace/JuryQA/JuryQASession';
 
 test('Google SDK bootstrap follows account/device UI preference and ignores content language', () => {
   const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
@@ -51,7 +57,7 @@ test('Google SDK bootstrap follows account/device UI preference and ignores cont
 type FetchResponse = { ok: boolean; json: () => Promise<unknown> };
 type FetchMock = (input: RequestInfo | URL, init?: RequestInit) => Promise<FetchResponse>;
 
-const globalNames = ['window', 'document', 'navigator', 'localStorage', 'fetch', 'Event', 'StorageEvent', 'IS_REACT_ACT_ENVIRONMENT', 'HTMLElement', 'Element', 'Node', 'MutationObserver', 'DOMParser', 'getComputedStyle', 'ShadowRoot'];
+const globalNames = ['window', 'document', 'navigator', 'localStorage', 'fetch', 'Event', 'StorageEvent', 'IS_REACT_ACT_ENVIRONMENT', 'HTMLElement', 'Element', 'Node', 'MutationObserver', 'DOMParser', 'getComputedStyle', 'ShadowRoot', 'MediaRecorder'];
 const originalGlobals = new Map(globalNames.map((name) => [name, Object.getOwnPropertyDescriptor(globalThis, name)]));
 
 function setGlobal(name: string, value: unknown) {
@@ -537,6 +543,10 @@ test('planning and analysis pages render French and change locale without starti
     { Page: FunctionalRequirements, ns: 'planning', key: 'functional.title', path: '/workspace/functional-requirements' },
     { Page: NonFunctionalRequirements, ns: 'planning', key: 'nonFunctional.title', path: '/workspace/non-functional-requirements' },
     { Page: ProductBacklog, ns: 'planning', key: 'backlog.title', path: '/workspace/backlog' },
+    { Page: ReportStructure, ns: 'outline', key: 'title', path: '/workspace/report-structure' },
+    { Page: ReportBuilder, ns: 'report', key: 'header.title', path: '/workspace/report-builder' },
+    { Page: Presentation, ns: 'delivery', key: 'presentation.title', path: '/workspace/presentation' },
+    { Page: Pitch, ns: 'delivery', key: 'pitch.title', path: '/workspace/pitch' },
   ];
   for (const { Page, ns, key, path } of pages) {
     await t.test(path, async child => {
@@ -549,7 +559,7 @@ test('planning and analysis pages render French and change locale without starti
       });
       await act(async () => {
         await i18n.changeLanguage('fr');
-        env.root.render(<MemoryRouter initialEntries={[path]}><CreditProvider><AiGenerationProvider><Page /></AiGenerationProvider></CreditProvider></MemoryRouter>);
+        env.root.render(<MemoryRouter initialEntries={[path]}><CreditProvider><AiGenerationProvider><OnboardingProvider><Page /></OnboardingProvider></AiGenerationProvider></CreditProvider></MemoryRouter>);
       });
       assert.ok(env.container.querySelector('h1')?.textContent?.trim().startsWith(i18n.t(key, { ns, lng: 'fr' })));
       const initialRequests = requests.length;
@@ -582,4 +592,150 @@ test('Actors local validation is visible and updates language without a save req
   await act(async () => { await i18n.changeLanguage('en'); });
   assert.ok(env.container.textContent?.includes(i18n.t('actors.errors.projectNotReady', { ns: 'analysis', lng: 'en' })));
   assert.equal(requests.length, initialRequests);
+});
+
+test('report outline UI switching preserves chapter text and all existing content-language choices', async (t) => {
+  for (const language of ['English', 'French', 'Arabic']) {
+    await t.test(language, async child => {
+      const structure = [{ id: 'c-a', title: 'My existing English chapter', collapsed: false,
+        children: [{ id: 's-a', title: 'عنوان محفوظ بالعربية', collapsed: false, children: [] }] }];
+      const requests: string[] = [];
+      const env = installBrowser(child, async (input, options) => {
+        assert.equal(options?.method || 'GET', 'GET');
+        requests.push(String(input));
+        const body = String(input).endsWith('/my-project') ? { _id: 'p', basics: { language }, reportStructureLanguage: language }
+          : { reportStructure: structure };
+        return { ...jsonResponse(body), headers: new Headers({ 'content-type': 'application/json' }) };
+      });
+      await act(async () => {
+        await i18n.changeLanguage('en');
+        env.root.render(<MemoryRouter initialEntries={['/workspace/report-structure']}><CreditProvider><AiGenerationProvider><ReportStructure /></AiGenerationProvider></CreditProvider></MemoryRouter>);
+      });
+      const initialRequests = requests.length;
+      const chapterBefore = [...env.container.querySelectorAll('button')].find(button => button.textContent?.trim() === structure[0].title);
+      assert.ok(chapterBefore);
+      await act(async () => { await i18n.changeLanguage('fr'); });
+      assert.ok(env.container.textContent?.includes(structure[0].title));
+      assert.ok(env.container.textContent?.includes(structure[0].children[0].title));
+      assert.equal([...env.container.querySelectorAll('button')].find(button => button.textContent?.trim() === structure[0].title), chapterBefore);
+      assert.equal(requests.length, initialRequests);
+      assert.ok(env.container.textContent?.includes(i18n.t('title', { ns: 'outline', lng: 'fr' })));
+    });
+  }
+});
+
+test('Pitch PDF scaffold follows content language independently of interface locale', async () => {
+  const english = getPitchExportCopy('English');
+  const french = getPitchExportCopy('French');
+  const arabic = getPitchExportCopy('Arabic');
+  assert.notDeepEqual(english, french);
+  assert.notDeepEqual(english, arabic);
+  await i18n.changeLanguage('fr');
+  assert.deepEqual(getPitchExportCopy('English'), english);
+  assert.deepEqual(getPitchExportCopy('Arabic'), arabic);
+  await i18n.changeLanguage('en');
+  assert.deepEqual(getPitchExportCopy('French'), french);
+  assert.deepEqual(getPitchExportCopy('unknown-language'), english);
+});
+
+test('a Jury Q&A answer keeps its question and microphone recording active during a UI switch', async (t) => {
+  let requests = 0;
+  const env = installBrowser(t, async () => { requests++; throw new Error('No session request expected'); });
+  let microphoneStarts = 0;
+  let recorderStarts = 0;
+  let trackStops = 0;
+  let sessionChanges = 0;
+  Object.defineProperty(env.browser.navigator, 'mediaDevices', { configurable: true, value: {
+    getUserMedia: async () => { microphoneStarts++; return { getTracks: () => [{ stop: () => { trackStops++; } }] }; },
+  } });
+  class TestRecorder {
+    static isTypeSupported() { return true; }
+    mimeType = 'audio/webm';
+    ondataavailable: unknown;
+    onstop: unknown;
+    start() { recorderStarts++; }
+    stop() { throw new Error('Recording must not stop on locale switch'); }
+  }
+  setGlobal('MediaRecorder', TestRecorder);
+  let countdownTick!: () => void;
+  const originalInterval = env.browser.setInterval.bind(env.browser);
+  env.browser.setInterval = ((callback: () => void, delay: number) => {
+    if (delay === 1000) { countdownTick = callback; return 123456; }
+    return originalInterval(callback, delay);
+  }) as typeof env.browser.setInterval;
+  const initialSession = { _id: 'qa-a', juryAttemptId: 'attempt-a', presentationVersion: 1, pitchVersion: 1,
+    status: 'in-progress' as const, questions: [{ id: 'question-a', question: 'Keep this English jury question.',
+      category: 'My custom category', difficulty: 'hard' as const, source: 'report' as const }] };
+  await act(async () => {
+    await i18n.changeLanguage('en');
+    env.root.render(<JuryQASession projectId="project-a" attempt={{ _id: 'attempt-a', attemptNumber: 1 }} initialSession={initialSession}
+      onSessionChange={() => { sessionChanges++; }} onBackToResults={() => undefined} onCompleted={() => undefined} />);
+  });
+  const startLabel = i18n.t('qa.startAnswer', { ns: 'jury', lng: 'en' });
+  const startButton = [...env.container.querySelectorAll('button')].find(button => button.textContent?.trim() === startLabel);
+  assert.ok(startButton);
+  await act(async () => { startButton.dispatchEvent(new env.browser.MouseEvent('click', { bubbles: true })); });
+  assert.equal(microphoneStarts, 1);
+  await act(async () => { countdownTick(); countdownTick(); countdownTick(); });
+  assert.equal(recorderStarts, 1);
+  await act(async () => { await i18n.changeLanguage('fr'); });
+  assert.ok(env.container.textContent?.includes(initialSession.questions[0].question));
+  assert.ok(env.container.textContent?.includes(initialSession.questions[0].category));
+  assert.ok(env.container.textContent?.includes(i18n.t('qa.finishAnswer', { ns: 'jury', lng: 'fr' })));
+  assert.equal(microphoneStarts, 1);
+  assert.equal(recorderStarts, 1);
+  assert.equal(trackStops, 0);
+  assert.equal(requests, 0);
+  assert.equal(sessionChanges, 0);
+});
+
+test('report, presentation and speech editors retain loaded document content across UI language changes', async (t) => {
+  const structure = [{ id: 'c-a', title: 'Existing English chapter', collapsed: false,
+    children: [{ id: 's-a', title: 'Existing English section', collapsed: false, children: [] }] }];
+  const chapter = { sectionId: 's-a', title: 'Existing English section', contentHtml: '<p>Keep this English report paragraph.</p>',
+    contentMarkdown: 'Keep this English report paragraph.', contentLatex: 'Keep this English report paragraph.',
+    status: 'in-progress', generatedFrom: [], sourceFingerprint: '', language: 'en' };
+  const slide = { id: 'slide-a', title: 'Existing English slide', bullets: ['Keep this English bullet'], notes: 'Keep these English notes', language: 'en' };
+  const speech = { slideId: 'slide-a', title: 'Existing English slide', speech: 'Keep this English speech.', tips: ['Keep this speaker tip'], estimatedSeconds: 60, language: 'en' };
+  for (const { Page, path, expected } of [
+    { Page: ReportBuilder, path: '/workspace/report-builder', expected: 'Keep this English report paragraph.' },
+    { Page: Presentation, path: '/workspace/presentation', expected: 'Keep this English bullet' },
+    { Page: Pitch, path: '/workspace/pitch', expected: speech.speech },
+  ]) {
+    await t.test(path, async child => {
+      const requests: string[] = [];
+      const env = installBrowser(child, async (input, options) => {
+        assert.equal(options?.method || 'GET', 'GET');
+        requests.push(String(input));
+        let body: unknown = {};
+        if (String(input).endsWith('/my-project')) body = { _id: 'p', basics: { language: 'English' } };
+        if (String(input).endsWith('/report-structure')) body = { reportStructure: structure };
+        if (String(input).endsWith('/report-chapters')) body = { reportChapters: [chapter] };
+        if (String(input).endsWith('/presentation')) body = { presentation: { durationMinutes: 10, slides: [slide] } };
+        if (String(input).endsWith('/pitch')) body = { pitch: { durationMinutes: 10, slides: [speech] } };
+        return { ...jsonResponse(body), headers: new Headers({ 'content-type': 'application/json' }) };
+      });
+      await act(async () => {
+        await i18n.changeLanguage('en');
+        env.root.render(<MemoryRouter initialEntries={[path]}><CreditProvider><AiGenerationProvider><OnboardingProvider><Page /></OnboardingProvider></AiGenerationProvider></CreditProvider></MemoryRouter>);
+      });
+      const editableValues = () => [...env.container.querySelectorAll('input, textarea')].map(element => (element as HTMLInputElement).value);
+      if (path === '/workspace/report-builder') {
+        const sectionButton = [...env.container.querySelectorAll('button')].find(button => button.textContent?.includes('Existing English section'));
+        assert.ok(sectionButton);
+        await act(async () => { sectionButton.dispatchEvent(new env.browser.MouseEvent('click', { bubbles: true })); });
+      }
+      const beforeValues = editableValues();
+      const editor = env.container.querySelector('[contenteditable="true"]');
+      const beforeHtml = editor?.innerHTML;
+      assert.ok(env.container.textContent?.includes(expected) || beforeValues.some(value => value.includes(expected)));
+      const initialRequests = requests.length;
+      await act(async () => { await i18n.changeLanguage('fr'); });
+      assert.deepEqual(editableValues(), beforeValues);
+      assert.equal(env.container.querySelector('[contenteditable="true"]'), editor);
+      assert.equal(editor?.innerHTML, beforeHtml);
+      assert.ok(env.container.textContent?.includes(expected) || editableValues().some(value => value.includes(expected)));
+      assert.equal(requests.length, initialRequests);
+    });
+  }
 });
