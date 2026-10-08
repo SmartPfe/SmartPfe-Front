@@ -2,11 +2,13 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import InfoTooltip from "@/components/ui/InfoTooltip";
 import { cn } from "@/lib/utils";
+import { displayApiMessage } from "@/lib/apiMessage";
 import {
   createEmptySlide,
   getLanguageLabel,
   normalizeLanguage,
   PresentationDuration,
+  PresentationError,
   PresentationSlide,
   usePresentation,
 } from "./hooks/usePresentation";
@@ -395,7 +397,8 @@ function getDeliveryLanguageLabel(language: string, t: (key: string) => string) 
   return getLanguageLabel(language);
 }
 
-function resolveDeliveryError(error: { translationKey: string } | { message: string } | null, t: (key: string) => string) {
+function resolveDeliveryError(error: PresentationError | null, t: (key: string) => string) {
   if (!error) return "";
-  return "translationKey" in error ? t(error.translationKey) : error.message;
+  if (typeof error === "string") return error;
+  return "translationKey" in error ? t(error.translationKey) : displayApiMessage(error);
 }

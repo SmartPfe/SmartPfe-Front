@@ -1,3 +1,4 @@
+import './notificationDisplay.test';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
@@ -845,4 +846,77 @@ test('an unsaved credit-policy timezone choice survives interface switching with
   await act(async () => { await i18n.changeLanguage('en'); });
   assert.equal(select.value, 'Europe/Paris');
   assert.equal(calls, count);
+});
+
+import { apiMessage, displayApiMessage } from '../src/lib/apiMessage';
+import { fetchApi } from '../src/lib/api';
+import Login from '../src/pages/auth/Login';
+import { NotificationProvider } from '../src/context/NotificationContext';
+import NotificationBell from '../src/components/layout/NotificationBell';
+
+test('known API error metadata follows interface language, preserving arbitrary errors and request content', async t => {
+  const payload = { language: 'Arabic', content: 'Original English paragraph', action: 'Translate' };
+  const calls: { headers: Headers; body: unknown }[] = [];
+  const env = installBrowser(t, async (_input, options) => {
+    calls.push({ headers: options?.headers as Headers, body: options?.body });
+    return { ok: false, json: async () => ({ message: 'Invalid email or password', messageKey: 'auth.invalidCredentials', code: 'TEST_CODE', extra: 'Keep server details' }), headers: new Headers({ 'content-type': 'application/json' }) };
+  });
+  await i18n.changeLanguage('fr');
+  let error: any;
+  try { await fetchApi('/auth/login', { method: 'POST', body: JSON.stringify(payload) }); } catch (caught) { error = caught; }
+  assert.ok(error instanceof Error);
+  assert.equal(error.message, 'Invalid email or password');
+  assert.equal(displayApiMessage(apiMessage(error)), i18n.t('auth.invalidCredentials', { ns: 'server', lng: 'fr' }));
+  assert.equal(error.code, 'TEST_CODE'); assert.equal(error.extra, 'Keep server details');
+  assert.deepEqual(JSON.parse(String(calls[0].body)), payload);
+  assert.equal(calls[0].headers.get('X-UI-Language'), 'fr');
+  const descriptor = apiMessage(error);
+  await i18n.changeLanguage('en');
+  assert.equal(displayApiMessage(descriptor), 'Invalid email or password');
+  assert.equal(error.message, 'Invalid email or password');
+  assert.equal(displayApiMessage(apiMessage({ message: 'Custom English server detail', messageKey: 'unknown.notShipped' })), 'Custom English server detail');
+  assert.equal(displayApiMessage(apiMessage(new Error('Custom English server detail'))), 'Custom English server detail');
+  assert.equal(calls.length, 1);
+});
+
+test('a visible login API failure switches language without another authentication request', async t => {
+  let calls = 0;
+  const env = installBrowser(t, async (_input, options) => {
+    assert.equal(options?.method, 'POST'); calls++;
+    return { ok: false, json: async () => ({ message: 'Invalid email or password', messageKey: 'auth.invalidCredentials' }), headers: new Headers({ 'content-type': 'application/json' }) };
+  });
+  await act(async () => { await i18n.changeLanguage('en'); env.root.render(<MemoryRouter><Login /></MemoryRouter>); });
+  const form = env.container.querySelector('form')!;
+  await act(async () => { form.dispatchEvent(new env.browser.Event('submit', { bubbles: true, cancelable: true })); });
+  assert.ok(env.container.textContent?.includes('Invalid email or password'));
+  await act(async () => { await i18n.changeLanguage('fr'); });
+  assert.ok(env.container.textContent?.includes(i18n.t('auth.invalidCredentials', { ns: 'server', lng: 'fr' })));
+  assert.equal(calls, 1);
+});
+
+test('notification history and SSE toasts switch language without reconnecting or changing read state', async t => {
+  const requests: string[] = [];
+  const saved = { _id: 'n-history', title: 'Actors section is ready', message: 'The Actors section has been generated successfully.', type: 'generation_complete', feature: 'actors', read: false, createdAt: '2026-10-08T12:00:00Z' };
+  const custom = { _id: 'n-custom', title: 'Existing English custom title', message: 'Existing English custom content', type: 'info', read: false, createdAt: '2026-10-08T11:00:00Z' };
+  const env = installBrowser(t, async (input, options) => {
+    assert.equal(options?.method || 'GET', 'GET'); requests.push(String(input));
+    return { ...jsonResponse([saved, custom]), headers: new Headers({ 'content-type': 'application/json' }) };
+  });
+  env.browser.localStorage.setItem('token', 'test-placeholder');
+  const previous = Object.getOwnPropertyDescriptor(globalThis, 'EventSource');
+  let opens = 0; let closes = 0;
+  const listeners = new Map<string, (event: { data: string }) => void>();
+  class TestEventSource { onerror: unknown; constructor() { opens++; } addEventListener(name: string, callback: (event: { data: string }) => void) { listeners.set(name, callback); } close() { closes++; } }
+  setGlobal('EventSource', TestEventSource);
+  t.after(() => { if (previous) Object.defineProperty(globalThis, 'EventSource', previous); else delete (globalThis as any).EventSource; });
+  await act(async () => { await i18n.changeLanguage('en'); env.root.render(<MemoryRouter><NotificationProvider><NotificationBell /></NotificationProvider></MemoryRouter>); });
+  const bell = env.container.querySelector('button')!;
+  await act(async () => { bell.dispatchEvent(new env.browser.MouseEvent('click', { bubbles: true })); });
+  await act(async () => { listeners.get('notification')!({ data: JSON.stringify({ ...saved, _id: 'n-stream' }) }); });
+  const count = requests.length;
+  await act(async () => { await i18n.changeLanguage('fr'); });
+  assert.ok(env.container.textContent?.includes(i18n.t('generation.actors.title', { ns: 'notifications', lng: 'fr' })));
+  assert.ok(env.container.textContent?.includes(custom.message));
+  assert.ok(env.container.querySelector('[role="status"]')?.textContent?.includes(i18n.t('generation.actors.message', { ns: 'notifications', lng: 'fr' })));
+  assert.equal(opens, 1); assert.equal(closes, 0); assert.equal(requests.length, count);
 });

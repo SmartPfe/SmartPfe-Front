@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchApi } from "@/lib/api";
+import { apiMessage, type ApiMessage } from "@/lib/apiMessage";
 import { useAiGeneration } from "@/context/AiGenerationContext";
 
 export type BacklogPriority = "High" | "Medium" | "Low";
@@ -19,7 +20,7 @@ export type ProductBacklogItem = {
 
 export type AiState = "idle" | "generating" | "refining" | "translating" | "suggestion_ready";
 export type SaveStatus = "unsaved" | "saving" | "saved";
-export type ProductBacklogError = { translationKey: string } | { message: string };
+export type ProductBacklogError = { translationKey: string } | ApiMessage;
 
 const LANGUAGE_CODES: Record<string, string> = {
   english: "en",
@@ -163,7 +164,7 @@ export function useProductBacklog() {
       backlogRef.current = normalized;
       return { projectData, backlog: normalized };
     } catch (err: any) {
-      setError(err.message ? { message: err.message } : { translationKey: "errors.loadBacklog" });
+      setError(err.message ? apiMessage(err) : { translationKey: "errors.loadBacklog" });
       return null;
     } finally {
       setLoading(false);
@@ -201,7 +202,7 @@ export function useProductBacklog() {
     } else if (task.status === "error") {
       setLocalAiState("idle");
       if (task.error && !task.error.includes("Limit reached")) {
-        setError({ message: task.error });
+        setError(task.errorMessage || task.error);
       }
     }
   }, [fetchBacklogData, localAiState, tasks]);
@@ -257,7 +258,7 @@ export function useProductBacklog() {
           setSaveStatus("unsaved");
         }
       } catch (err: any) {
-        setError(err.message ? { message: err.message } : { translationKey: "errors.saveBacklog" });
+        setError(err.message ? apiMessage(err) : { translationKey: "errors.saveBacklog" });
         setSaveStatus("unsaved");
       }
     },
@@ -324,7 +325,7 @@ export function useProductBacklog() {
       }
     } catch (err: any) {
       if (err?.name !== "AbortError") {
-        setError(err.message ? { message: err.message } : { translationKey: "errors.aiGeneration" });
+        setError(err.message ? apiMessage(err) : { translationKey: "errors.aiGeneration" });
       }
       setLocalAiState("idle");
     }
@@ -373,7 +374,7 @@ export function useProductBacklog() {
       }
     } catch (err: any) {
       if (err?.name !== "AbortError") {
-        setError(err.message ? { message: err.message } : { translationKey: "errors.aiRefinement" });
+        setError(err.message ? apiMessage(err) : { translationKey: "errors.aiRefinement" });
       }
       setLocalAiState("idle");
     }
@@ -437,7 +438,7 @@ export function useProductBacklog() {
       }
     } catch (err: any) {
       if (err?.name !== "AbortError") {
-        setError(err.message ? { message: err.message } : { translationKey: "errors.translateBacklog" });
+        setError(err.message ? apiMessage(err) : { translationKey: "errors.translateBacklog" });
       }
       setLocalAiState("idle");
     }

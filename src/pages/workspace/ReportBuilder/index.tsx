@@ -3,6 +3,7 @@ import { useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import InfoTooltip from "@/components/ui/InfoTooltip";
 import { cn } from "@/lib/utils";
+import { displayApiMessage } from "@/lib/apiMessage";
 import { useAiGeneration } from "@/context/AiGenerationContext";
 import {
   AI_ACTIONS,
@@ -103,7 +104,7 @@ export default function ReportBuilder() {
     generateCompleteReport,
     dismissError,
   } = useReportStudio();
-  const displayError = error ? ("translationKey" in error ? t(error.translationKey) : error.message) : "";
+  const displayError = !error ? "" : typeof error === "string" ? error : "translationKey" in error ? t(error.translationKey) : displayApiMessage(error);
 
   const location = useLocation();
   const { setActiveRouteState } = useAiGeneration();

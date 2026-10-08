@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchApi } from "@/lib/api";
+import { apiMessage, type ApiMessage } from "@/lib/apiMessage";
 import { useAiGeneration } from "@/context/AiGenerationContext";
 
 export type ReportSection = {
@@ -11,7 +12,7 @@ export type ReportSection = {
 
 export type AiState = "idle" | "generating" | "refining" | "translating" | "suggestion_ready";
 export type SaveStatus = "unsaved" | "saving" | "saved";
-export type ReportStructureError = { translationKey: string } | { message: string };
+export type ReportStructureError = { translationKey: string } | ApiMessage;
 
 const LANGUAGE_CODES: Record<string, string> = {
   english: "en",
@@ -91,7 +92,7 @@ export function useReportStructure() {
       structureRef.current = normalized;
       return { projectData, reportStructure: normalized };
     } catch (err: any) {
-      setError(err.message ? { message: err.message } : { translationKey: "errorsLoad" });
+      setError(err.message ? apiMessage(err) : { translationKey: "errorsLoad" });
       return null;
     } finally {
       setLoading(false);
@@ -129,7 +130,7 @@ export function useReportStructure() {
     } else if (task.status === "error") {
       setLocalAiState("idle");
       if (task.error && !task.error.includes("Limit reached")) {
-        setError({ message: task.error });
+        setError(task.errorMessage || task.error);
       }
     }
   }, [fetchReportStructure, localAiState, tasks]);
@@ -173,7 +174,7 @@ export function useReportStructure() {
         setSaveStatus("unsaved");
       }
     } catch (err: any) {
-      setError(err.message ? { message: err.message } : { translationKey: "errorsSave" });
+      setError(err.message ? apiMessage(err) : { translationKey: "errorsSave" });
       setSaveStatus("unsaved");
     }
   }, [project?._id, reportStructure]);
@@ -234,7 +235,7 @@ export function useReportStructure() {
       }
     } catch (err: any) {
       if (err?.name !== "AbortError") {
-        setError(err.message ? { message: err.message } : { translationKey: "errorsGenerate" });
+        setError(err.message ? apiMessage(err) : { translationKey: "errorsGenerate" });
       }
       setLocalAiState("idle");
     }
@@ -283,7 +284,7 @@ export function useReportStructure() {
       }
     } catch (err: any) {
       if (err?.name !== "AbortError") {
-        setError(err.message ? { message: err.message } : { translationKey: "errorsRefine" });
+        setError(err.message ? apiMessage(err) : { translationKey: "errorsRefine" });
       }
       setLocalAiState("idle");
     }
@@ -345,7 +346,7 @@ export function useReportStructure() {
       }
     } catch (err: any) {
       if (err?.name !== "AbortError") {
-        setError(err.message ? { message: err.message } : { translationKey: "errorsTranslate" });
+        setError(err.message ? apiMessage(err) : { translationKey: "errorsTranslate" });
       }
       setLocalAiState("idle");
     }

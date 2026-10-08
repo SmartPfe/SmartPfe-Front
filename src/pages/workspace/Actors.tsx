@@ -7,6 +7,7 @@ import HugeiconsIcon from "@/components/ui/HugeiconsIcon";
 import SaveStatusHeader from "@/components/ui/SaveStatusHeader";
 import AiActionToolbar from "@/components/ai/AiActionToolbar";
 import { useTranslation } from "react-i18next";
+import { displayApiMessage } from "@/lib/apiMessage";
 
 const actorTypeOptions: { value: ActorType; labelKey: string }[] = [
   { value: "primary", labelKey: "actors.typePrimary" },
@@ -179,7 +180,7 @@ export default function Actors() {
 
       {(error || errorKey) && (
         <div className="mb-6 p-3.5 rounded-xl bg-error-container text-on-error-container border border-error/20 flex items-center justify-between gap-3 shadow-2xs">
-          <p className="text-sm font-medium">{errorKey ? t(errorKey) : error}</p>
+          <p className="text-sm font-medium">{errorKey ? t(errorKey) : error ? displayApiMessage(error) : ""}</p>
           <button onClick={dismissError} className="shrink-0 text-xs font-semibold underline hover:no-underline" aria-label={t("common.dismiss")}>
             {t("common.dismiss")}
           </button>

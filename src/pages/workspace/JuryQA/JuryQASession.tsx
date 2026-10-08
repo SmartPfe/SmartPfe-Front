@@ -5,6 +5,7 @@ import HugeiconsIcon from "@/components/ui/HugeiconsIcon";
 import { formatDuration } from "../Pitch/hooks/usePitch";
 import type { FinalJuryEvaluation, JuryQASessionRecord, JuryQuestion } from "./types";
 import { useTranslation } from "react-i18next";
+import { apiMessage, displayApiMessage, type ApiMessage } from "@/lib/apiMessage";
 
 type RecorderState = "idle" | "countdown" | "recording" | "recorded" | "processing" | "saved";
 
@@ -57,7 +58,7 @@ export default function JuryQASession({
   const [session, setSession] = useState<JuryQASessionRecord | null>(initialSession || null);
   const [loading, setLoading] = useState(!initialSession);
   const [finalizing, setFinalizing] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState<ApiMessage | "">("");
   const [errorKey, setErrorKey] = useState<string | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [recorderState, setRecorderState] = useState<RecorderState>("idle");
@@ -120,7 +121,7 @@ export default function JuryQASession({
       setSessionAndNotify(data.session);
     } catch (err: any) {
       if (err.message) {
-        setError(err.message);
+        setError(apiMessage(err));
         setErrorKey(null);
       } else {
         setError("");
@@ -239,7 +240,7 @@ export default function JuryQASession({
       setRecorderState("saved");
     } catch (err: any) {
       if (err.message) {
-        setError(err.message);
+        setError(apiMessage(err));
         setErrorKey(null);
       } else {
         setError("");
@@ -275,7 +276,7 @@ export default function JuryQASession({
       onCompleted(data.session);
     } catch (err: any) {
       if (err.message) {
-        setError(err.message);
+        setError(apiMessage(err));
         setErrorKey(null);
       } else {
         setError("");
@@ -311,7 +312,7 @@ export default function JuryQASession({
   if (!session) {
     return (
       <SessionShell onBack={onBackToResults}>
-        <ErrorPanel error={errorKey ? t(errorKey) : error || t("qa.errors.unavailable")} onRetry={loadOrGenerateSession} />
+        <ErrorPanel error={errorKey ? t(errorKey) : error ? displayApiMessage(error) : t("qa.errors.unavailable")} onRetry={loadOrGenerateSession} />
       </SessionShell>
     );
   }
@@ -328,7 +329,7 @@ export default function JuryQASession({
     <SessionShell onBack={onBackToResults}>
       {(error || errorKey) && (
         <div className="mb-5 rounded-xl border border-error/20 bg-error-container p-4 text-sm font-semibold text-on-error-container">
-          {errorKey ? t(errorKey) : error}
+          {errorKey ? t(errorKey) : error ? displayApiMessage(error) : ""}
         </div>
       )}
 

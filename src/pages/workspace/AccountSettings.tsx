@@ -1,3 +1,4 @@
+import { apiMessage, displayApiMessage, type ApiMessage } from "@/lib/apiMessage";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -36,7 +37,7 @@ export default function AccountSettings({
   });
   const [saved, setSaved] = useState(false);
   const [successMessageKey, setSuccessMessageKey] = useState("");
-  const [error, setError] = useState("");
+  const [error, setError] = useState<ApiMessage>("");
   const [errorKey, setErrorKey] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -166,7 +167,7 @@ export default function AccountSettings({
       );
       window.setTimeout(() => setSaved(false), 2400);
     } catch (err) {
-      if (err instanceof Error) setError(err.message);
+      if (err instanceof Error) setError(apiMessage(err));
       else setErrorKey("account.updateFailed");
     } finally {
       setLoading(false);
@@ -224,7 +225,7 @@ export default function AccountSettings({
       {(errorKey || error) && (
         <div className="mb-6 flex items-center gap-2.5 rounded-xl border border-error/30 bg-error/10 px-4 py-3 text-error text-xs font-semibold shadow-2xs animate-in fade-in duration-200">
           <HugeiconsIcon icon="cancel-circle" size={18} strokeWidth={2} className="shrink-0" />
-          <span>{errorKey ? t(errorKey) : error}</span>
+          <span>{errorKey ? t(errorKey) : displayApiMessage(error)}</span>
         </div>
       )}
 

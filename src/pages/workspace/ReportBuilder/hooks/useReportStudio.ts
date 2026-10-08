@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { fetchApi } from "@/lib/api";
+import { apiMessage, type ApiMessage } from "@/lib/apiMessage";
 import { normalizeReportStructure, ReportSection } from "../../ReportStructure/hooks/useReportStructure";
 import { useAiGeneration } from "@/context/AiGenerationContext";
 
@@ -8,7 +9,7 @@ export type ChapterStatus = "not-started" | "in-progress" | "completed";
 export type DetailLevel = "summary" | "standard" | "detailed";
 export type SaveStatus = "unsaved" | "saving" | "saved";
 export type AiState = "idle" | "generating" | "refining" | "acting" | "translating" | "finalizing";
-export type ReportStudioError = { translationKey: string } | { message: string };
+export type ReportStudioError = { translationKey: string } | ApiMessage;
 
 export type ReportChapter = {
   _id?: string;
@@ -223,7 +224,7 @@ export function useReportStudio() {
         setSourceFingerprint(chapterData.sourceFingerprint || "");
         setFinalReport(chapterData.finalReport || null);
       } catch (err: any) {
-        setError(err.message ? { message: err.message } : { translationKey: "errors.load" });
+        setError(err.message ? apiMessage(err) : { translationKey: "errors.load" });
       } finally {
         setLoading(false);
       }
@@ -297,7 +298,7 @@ export function useReportStudio() {
         setSaveStatus("unsaved");
       }
     } catch (err: any) {
-      setError(err.message ? { message: err.message } : { translationKey: "errors.save" });
+      setError(err.message ? apiMessage(err) : { translationKey: "errors.save" });
       setSaveStatus("unsaved");
     }
   }, [project?._id, reportChapters, sourceFingerprint]);
@@ -399,7 +400,7 @@ export function useReportStudio() {
         },
       });
     } catch (err: any) {
-      setError(err.message ? { message: err.message } : { translationKey: "errors.generate" });
+      setError(err.message ? apiMessage(err) : { translationKey: "errors.generate" });
     } finally {
       setLocalAiState("idle");
     }
@@ -478,7 +479,7 @@ export function useReportStudio() {
         },
       });
     } catch (err: any) {
-      setError(err.message ? { message: err.message } : { translationKey: "errors.action" });
+      setError(err.message ? apiMessage(err) : { translationKey: "errors.action" });
     } finally {
       setLocalAiState("idle");
     }
@@ -515,7 +516,7 @@ export function useReportStudio() {
         },
       });
     } catch (err: any) {
-      setError(err.message ? { message: err.message } : { translationKey: "errors.compile" });
+      setError(err.message ? apiMessage(err) : { translationKey: "errors.compile" });
     } finally {
       setLocalAiState("idle");
     }

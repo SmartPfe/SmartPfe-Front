@@ -8,6 +8,7 @@ import AiSuggestionPanel from "./components/AiSuggestionPanel";
 import AiBackgroundBanner from "@/components/ai/AiBackgroundBanner";
 import SaveStatusHeader from "@/components/ui/SaveStatusHeader";
 import AiActionToolbar from "@/components/ai/AiActionToolbar";
+import { displayApiMessage } from "@/lib/apiMessage";
 
 export default function ProblemStatement() {
   const { t } = useTranslation("design");
@@ -189,7 +190,7 @@ export default function ProblemStatement() {
       {/* Error Banner */}
       {(error || errorKey) && (
         <div className="mb-6 p-3.5 rounded-xl bg-error-container text-on-error-container border border-error/20 flex items-center justify-between gap-3 shadow-2xs">
-          <p className="text-sm font-medium">{errorKey ? t(errorKey) : error}</p>
+          <p className="text-sm font-medium">{errorKey ? t(errorKey) : error ? displayApiMessage(error) : ""}</p>
           <button onClick={dismissError} className="shrink-0 text-xs font-semibold underline hover:no-underline">
             {t("problem.dismiss")}
           </button>

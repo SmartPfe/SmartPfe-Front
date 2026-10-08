@@ -4,6 +4,7 @@ import { useAiGeneration } from "@/context/AiGenerationContext";
 import { cn } from "@/lib/utils";
 import HugeiconsIcon from "@/components/ui/HugeiconsIcon";
 import { useTranslation } from "react-i18next";
+import { displayApiMessage } from "@/lib/apiMessage";
 
 export default function FloatingAiDock() {
   const { t } = useTranslation("controls");
@@ -43,12 +44,16 @@ export default function FloatingAiDock() {
   };
   const getTaskMessage = (task: (typeof allTasks)[number], isCompleted: boolean, isError: boolean) => {
     if (task.scope === "system" && task.id.startsWith("system:concurrency-limit-")) {
+      const rawError = task.error || "";
       const limit = task.subTitle?.match(/up to (\d+) sections in parallel/)?.[1]
-        || task.error?.match(/Limit reached: (\d+) tasks running/)?.[1]
+        || rawError.match(/Limit reached: (\d+) tasks running/)?.[1]
         || "2";
       return t("aiDock.concurrentDescription", { count: Number(limit) });
     }
     if (isCompleted) return t("aiDock.readyToView");
+    if (isError && task.errorMessage && typeof task.errorMessage !== "string") {
+      return displayApiMessage(task.errorMessage);
+    }
     if (task.subTitle === "Ready") return t("aiDock.ready");
     if (task.subTitle === "Failed") return t("aiDock.failed");
     if (!isError && task.uiSubTitleKey) {
@@ -59,7 +64,8 @@ export default function FloatingAiDock() {
     if (task.subTitle === "Generating content with AI...") return t("aiDock.generatingInBackground");
     if (task.subTitle) return task.subTitle;
     if (isError) {
-      return task.error === "Generation failed" ? t("aiDock.generationFailed") : task.error || t("aiDock.generationFailed");
+      const rawError = task.error || "";
+      return rawError === "Generation failed" ? t("aiDock.generationFailed") : task.errorMessage ? displayApiMessage(task.errorMessage) : rawError || t("aiDock.generationFailed");
     }
     return t("aiDock.generatingInBackground");
   };

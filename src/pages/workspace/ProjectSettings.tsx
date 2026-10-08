@@ -1,3 +1,4 @@
+import { apiMessage, displayApiMessage, type ApiMessage } from "@/lib/apiMessage";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { MultiSelectChips, SelectField, TextAreaField, TextField } from "@/components/onboarding/FormControls";
@@ -95,7 +96,7 @@ export default function ProjectSettings() {
   const { t } = useTranslation("onboarding");
   const { data, updateSection, resetOnboarding } = useOnboarding();
   const [saved, setSaved] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState<ApiMessage>("");
   const [errorIsFallback, setErrorIsFallback] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [problemStatementTouched, setProblemStatementTouched] = useState(false);
@@ -133,7 +134,7 @@ export default function ProjectSettings() {
       setProblemStatementTouched(false);
       markSaved();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "");
+      setError(err instanceof Error ? apiMessage(err) : "");
       setErrorIsFallback(!(err instanceof Error));
     } finally {
       setIsSaving(false);
@@ -187,7 +188,7 @@ export default function ProjectSettings() {
       {(error || errorIsFallback) && (
         <div className="mb-6 flex items-center gap-2.5 rounded-xl border border-error/30 bg-error/10 px-4 py-3 text-error text-xs font-semibold shadow-2xs animate-in fade-in duration-200">
           <HugeiconsIcon icon="cancel-circle" size={18} strokeWidth={2} className="shrink-0" />
-          <span>{errorIsFallback ? t("projectSettings.saveError") : error}</span>
+          <span>{errorIsFallback ? t("projectSettings.saveError") : displayApiMessage(error)}</span>
         </div>
       )}
 

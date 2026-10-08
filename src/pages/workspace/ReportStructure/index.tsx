@@ -1,6 +1,7 @@
 import { DragEvent, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
+import { displayApiMessage } from "@/lib/apiMessage";
 import InfoTooltip from "@/components/ui/InfoTooltip";
 import {
   ReportSection,
@@ -180,7 +181,7 @@ export default function ReportStructure() {
 
       {error && (
         <div className="mb-6 p-3.5 rounded-xl bg-error-container text-on-error-container border border-error/20 flex items-center justify-between gap-3 shadow-2xs">
-          <p className="text-sm font-medium">{error && ("translationKey" in error ? t(error.translationKey) : error.message)}</p>
+          <p className="text-sm font-medium">{error && (typeof error === "string" ? error : "translationKey" in error ? t(error.translationKey) : displayApiMessage(error))}</p>
           <button onClick={dismissError} className="shrink-0 text-xs font-semibold underline hover:no-underline">
             {t("dismiss")}
           </button>

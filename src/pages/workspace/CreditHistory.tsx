@@ -1,3 +1,4 @@
+import { apiMessage, displayApiMessage, type ApiMessage } from "@/lib/apiMessage";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router-dom";
@@ -79,12 +80,12 @@ export default function CreditHistory() {
   const [page, setPage] = useState(1);
   const [history, setHistory] = useState<HistoryPage | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [error, setError] = useState<ApiMessage>("");
   const [errorKey, setErrorKey] = useState<string | null>(null);
   const [revision, setRevision] = useState(0);
   const [selectedRequest, setSelectedRequest] = useState<CreditRequest | null>(null);
   const [selectedTransaction, setSelectedTransaction] = useState<CreditTransaction | null>(null);
-  const [requestError, setRequestError] = useState("");
+  const [requestError, setRequestError] = useState<ApiMessage>("");
   const [requestErrorKey, setRequestErrorKey] = useState<string | null>(null);
   const [requestLoading, setRequestLoading] = useState(false);
 
@@ -109,7 +110,7 @@ export default function CreditHistory() {
     }).catch((err) => {
       if (active) {
         setHistory(null);
-        if (err instanceof Error) { setError(err.message); setErrorKey(null); }
+        if (err instanceof Error) { setError(apiMessage(err)); setErrorKey(null); }
         else { setError(""); setErrorKey("errors.historyLoad"); }
       }
     }).finally(() => { if (active) setLoading(false); });
@@ -130,7 +131,7 @@ export default function CreditHistory() {
       if (active) setSelectedRequest(data.request);
     }).catch((err) => {
       if (active) {
-        if (err instanceof Error) { setRequestError(err.message); setRequestErrorKey(null); }
+        if (err instanceof Error) { setRequestError(apiMessage(err)); setRequestErrorKey(null); }
         else { setRequestError(""); setRequestErrorKey("errors.requestLoad"); }
       }
     })
@@ -188,7 +189,7 @@ export default function CreditHistory() {
           </div>
         </div>
         <div id="credit-history-panel" role="tabpanel" aria-labelledby={`credit-tab-${section}`} aria-busy={loading}>
-          {error || errorKey ? <div role="alert" className="p-8 text-center"><p className="text-sm text-error">{error || t(errorKey || "errors.historyLoad")}</p><button className={cn(buttonClass, "mt-4")} onClick={() => setRevision((value) => value + 1)}>{t("list.tryAgain")}</button></div>
+          {error || errorKey ? <div role="alert" className="p-8 text-center"><p className="text-sm text-error">{displayApiMessage(error) || t(errorKey || "errors.historyLoad")}</p><button className={cn(buttonClass, "mt-4")} onClick={() => setRevision((value) => value + 1)}>{t("list.tryAgain")}</button></div>
             : loading ? <div role="status" className="p-12 text-center text-sm text-on-surface-variant">{t("list.loading")}</div>
             : !history?.items.length ? <div className="p-10 text-center"><HugeiconsIcon icon={hasFilters ? "search" : "wallet-02"} size={30} className="mx-auto mb-3 text-on-surface-variant" /><p className="text-sm font-bold text-on-surface">{hasFilters ? t("list.noMatches") : section === "requests" ? t("list.noRequests") : t("list.noActivity")}</p><p className="mt-2 text-xs text-on-surface-variant">{hasFilters ? t("list.tryDifferentFilters") : section === "requests" ? t("list.requestEmptyHelp") : t("list.activityEmptyHelp")}</p>{hasFilters && <button className={cn(buttonClass, "mt-4")} onClick={resetFilters}>{t("filters.clear")}</button>}</div>
             : <>
@@ -212,7 +213,7 @@ export default function CreditHistory() {
       {requestId && <CreditDialog titleId="credit-request-detail-title" onClose={closeRequest}>
         <div className="flex items-center justify-between border-b border-outline-variant/60 p-5"><h2 id="credit-request-detail-title" className="text-lg font-extrabold text-on-surface">{t("requestDetails.title")}</h2><button className="rounded-lg p-2 text-on-surface-variant hover:bg-surface-container" onClick={closeRequest} aria-label={t("requestDetails.closeAria")}><HugeiconsIcon icon="close" size={18} /></button></div>
         <div className="overflow-y-auto p-5">
-          {requestLoading ? <p role="status" className="text-sm text-on-surface-variant">{t("requestDetails.loading")}</p> : requestError || requestErrorKey ? <p role="alert" className="text-sm text-error">{requestError || t(requestErrorKey || "errors.requestLoad")}</p> : selectedRequest && <RequestDetails request={selectedRequest} locale={locale} />}
+          {requestLoading ? <p role="status" className="text-sm text-on-surface-variant">{t("requestDetails.loading")}</p> : requestError || requestErrorKey ? <p role="alert" className="text-sm text-error">{displayApiMessage(requestError) || t(requestErrorKey || "errors.requestLoad")}</p> : selectedRequest && <RequestDetails request={selectedRequest} locale={locale} />}
         </div>
       </CreditDialog>}
       {selectedTransaction && <CreditDialog titleId="credit-activity-title" onClose={() => setSelectedTransaction(null)}>

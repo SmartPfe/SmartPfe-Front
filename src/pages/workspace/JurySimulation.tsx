@@ -11,6 +11,7 @@ import JuryQASession from "./JuryQA/JuryQASession";
 import type { JuryQASessionRecord } from "./JuryQA/types";
 import CreditBadge from "@/components/credits/CreditBadge";
 import { useTranslation } from "react-i18next";
+import { apiMessage, displayApiMessage, type ApiMessage } from "@/lib/apiMessage";
 
 type JuryStage = "loading" | "prepare" | "presenting" | "analyzing" | "results" | "qa";
 type MicStatus = "unknown" | "checking" | "ready" | "denied" | "unavailable";
@@ -121,7 +122,7 @@ export default function JurySimulation() {
   const [qaSessions, setQaSessions] = useState<JuryQASessionRecord[]>([]);
   const [currentAttempt, setCurrentAttempt] = useState<JuryAttempt | null>(null);
   const [micStatus, setMicStatus] = useState<MicStatus>("unknown");
-  const [error, setError] = useState("");
+  const [error, setError] = useState<ApiMessage | "">("");
   const [errorKey, setErrorKey] = useState<string | null>(null);
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -195,7 +196,7 @@ export default function JurySimulation() {
       setStage("prepare");
     } catch (err: any) {
       if (err.message) {
-        setError(err.message);
+        setError(apiMessage(err));
         setErrorKey(null);
       } else {
         setStaticError("simulation.errors.load");
@@ -639,7 +640,7 @@ export default function JurySimulation() {
       } else if (err?.name === "RecordingSaveFailedError") {
         setStaticError("simulation.errors.recordingSaveFailed");
       } else if (err.message) {
-        setError(err.message);
+        setError(apiMessage(err));
         setErrorKey(null);
       } else {
         setStaticError("simulation.errors.analysisFailed");
@@ -804,7 +805,7 @@ export default function JurySimulation() {
 
       {(error || errorKey) && (
         <div className="mb-6 p-4 rounded-xl bg-error-container text-on-error-container border border-error/20 flex items-center justify-between gap-3 shadow-2xs">
-          <p className="text-sm font-semibold">{errorKey ? t(errorKey) : error}</p>
+          <p className="text-sm font-semibold">{errorKey ? t(errorKey) : error ? displayApiMessage(error) : ""}</p>
           <button onClick={clearError} className="shrink-0 text-xs font-bold underline hover:no-underline cursor-pointer">
             {t("simulation.dismiss")}
           </button>

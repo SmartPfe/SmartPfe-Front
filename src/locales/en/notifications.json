@@ -1,0 +1,124 @@
+{
+  "dismiss": "Dismiss notification",
+  "generatedFallback": "Generated successfully.",
+  "events": {
+    "projectCreated": {
+      "title": "Project created",
+      "message": "Your PFE workspace has been created successfully."
+    },
+    "projectSettingsUpdated": {
+      "title": "Project settings updated",
+      "message": "Your onboarding information has been saved."
+    },
+    "userRegistered": {
+      "title": "New user registered",
+      "message": "{{name}} registered as {{role}}."
+    },
+    "googleUserRegistered": {
+      "title": "New Google user registered",
+      "message": "{{name}} joined the platform with Gmail."
+    },
+    "newProjectCreated": {
+      "title": "New project created",
+      "message": "{{name}} created \"{{title}}\"."
+    },
+    "passwordUpdated": {
+      "title": "Password updated",
+      "message": "Your password was changed successfully."
+    },
+    "profileUpdated": {
+      "title": "Profile updated",
+      "message": "Your profile information has been saved."
+    },
+    "roles": {
+      "student": "Student",
+      "admin": "Administrator"
+    },
+    "studentFallback": "A student",
+    "untitledProject": "Untitled Project"
+  },
+  "credits": {
+    "submitted": {
+      "title": "Credit request submitted",
+      "message": "Your request for {{credits}} credits is saved. A team member will contact you as soon as possible with the payment steps."
+    },
+    "confirmed": {
+      "title": "Credit request confirmed",
+      "message": "Your request for {{credits}} credits has been confirmed. Your credits will appear when the administrator completes the deposit."
+    },
+    "cancelled": {
+      "title": "Credit request cancelled",
+      "message": "Your request for {{credits}} credits was cancelled. View your credit history for details."
+    },
+    "cancelledWithReason": {
+      "title": "Credit request cancelled",
+      "message": "Your request for {{credits}} credits was cancelled. Reason: {{reason}}"
+    },
+    "added": {
+      "title": "Credits added to your wallet",
+      "message": "{{credits}} purchased credits have been added. Your request is complete."
+    }
+  },
+  "generation": {
+    "problemStatement": {
+      "title": "Problem Statement is ready",
+      "message": "The Problem Statement has been generated successfully."
+    },
+    "actors": {
+      "title": "Actors section is ready",
+      "message": "The Actors section has been generated successfully."
+    },
+    "userStories": {
+      "title": "User Stories are ready",
+      "message": "The user stories have been generated successfully."
+    },
+    "existingSolutions": {
+      "title": "Existing Solutions are ready",
+      "message": "The Existing Solutions section has been generated successfully."
+    },
+    "functionalRequirements": {
+      "title": "Functional Requirements are ready",
+      "message": "The Functional Requirements section has been generated successfully."
+    },
+    "nonFunctionalRequirements": {
+      "title": "Non-Functional Requirements are ready",
+      "message": "The Non-Functional Requirements section has been generated successfully."
+    },
+    "productBacklog": {
+      "title": "Product Backlog is ready",
+      "message": "The Product Backlog has been generated successfully."
+    },
+    "reportStructure": {
+      "title": "Report Structure is ready",
+      "message": "The Report Structure has been generated successfully."
+    },
+    "reportBuilder": {
+      "title": "Report Builder is ready",
+      "message": "The generated report content has been saved successfully."
+    },
+    "completeReport": {
+      "title": "Complete Report is ready",
+      "message": "The complete report has been generated successfully."
+    },
+    "umlPreparation": {
+      "title": "UML diagram is ready",
+      "message": "The UML preparation has been generated successfully."
+    },
+    "presentation": {
+      "title": "Your presentation is ready",
+      "message": "Your presentation has been generated successfully."
+    },
+    "pitch": {
+      "title": "Your pitch is ready",
+      "message": "Your pitch has been generated successfully."
+    },
+    "pitchSlide": {
+      "title": "Slide speech is ready",
+      "message": "The slide speech has been generated successfully."
+    },
+    "jurySimulation": {
+      "title": "Your jury simulation is ready",
+      "message": "Your jury simulation analysis has been generated successfully."
+    }
+  }
+}

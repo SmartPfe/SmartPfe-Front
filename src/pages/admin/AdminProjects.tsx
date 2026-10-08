@@ -1,3 +1,4 @@
+import { apiMessage, displayApiMessage, type ApiMessage } from "@/lib/apiMessage";
 import { useEffect, useState } from "react";
 import { fetchApi } from "@/lib/api";
 import HugeiconsIcon from "@/components/ui/HugeiconsIcon";
@@ -38,7 +39,7 @@ export default function AdminProjects() {
   const tOnboarding = i18n.getFixedT(i18n.resolvedLanguage || i18n.language, "onboarding");
   const [projects, setProjects] = useState<AdminProject[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [error, setError] = useState<ApiMessage>("");
   const [errorKey, setErrorKey] = useState<string | null>(null);
   const [query, setQuery] = useState("");
 
@@ -52,7 +53,7 @@ export default function AdminProjects() {
         const data = await fetchApi("/admin/projects");
         setProjects(data);
       } catch (err) {
-        if (err instanceof Error) setError(err.message);
+        if (err instanceof Error) setError(apiMessage(err));
         else { setError(""); setErrorKey("projectsPage.error"); }
       } finally {
         setIsLoading(false);
@@ -87,7 +88,7 @@ export default function AdminProjects() {
 
       {(error || errorKey) && (
         <div className="rounded-lg border border-error bg-error-container px-md py-sm text-on-error-container font-body-md text-body-md">
-          {errorKey ? t(errorKey) : error}
+          {errorKey ? t(errorKey) : displayApiMessage(error)}
         </div>
       )}
 

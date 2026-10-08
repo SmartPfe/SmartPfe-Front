@@ -5,6 +5,7 @@ import HugeiconsIcon from "@/components/ui/HugeiconsIcon";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
 import { formatInterfaceDate, formatInterfaceNumber } from "@/lib/localeFormat";
+import { getNotificationDisplayText } from "@/lib/notificationDisplay";
 
 function formatNotificationTime(createdAt: string, language: "en" | "fr", t: (key: string, options?: Record<string, unknown>) => string) {
   const diff = Date.now() - new Date(createdAt).getTime();
@@ -21,6 +22,7 @@ function formatNotificationTime(createdAt: string, language: "en" | "fr", t: (ke
 
 export default function NotificationBell({ label }: { label?: string }) {
   const { t, i18n } = useTranslation("controls");
+  const { t: tNotification, i18n: notificationI18n } = useTranslation("notifications");
   const language = i18n.resolvedLanguage === "fr" ? "fr" : "en";
   const labelText = label ?? t("notifications.liveUpdates");
   const navigate = useNavigate();
@@ -152,8 +154,13 @@ export default function NotificationBell({ label }: { label?: string }) {
                 <span>{t("notifications.empty")}</span>
               </div>
             ) : (
-              notifications.map((notification) => (
-                <button
+              notifications.map((notification) => {
+                const displayText = getNotificationDisplayText(
+                  notification,
+                  tNotification,
+                  (key, options) => notificationI18n.exists(key, options)
+                );
+                return <button
                   key={notification._id}
                   type="button"
                   onClick={() => handleNotificationClick(notification)}
@@ -171,15 +178,15 @@ export default function NotificationBell({ label }: { label?: string }) {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
                       {!notification.read && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />}
-                      <p className="text-xs font-semibold text-on-surface truncate">{notification.title}</p>
+                      <p className="text-xs font-semibold text-on-surface truncate">{displayText.title}</p>
                     </div>
-                    <p className="text-xs text-on-surface-variant line-clamp-2 mt-0.5">{notification.message}</p>
+                    <p className="text-xs text-on-surface-variant line-clamp-2 mt-0.5">{displayText.message}</p>
                     <p className="text-[10px] text-outline-variant mt-1 font-mono">
                       {formatNotificationTime(notification.createdAt, language, t)}
                     </p>
                   </div>
-                </button>
-              ))
+                </button>;
+              })
             )}
           </div>
         </div>

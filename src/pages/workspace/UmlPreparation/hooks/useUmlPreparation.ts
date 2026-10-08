@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { fetchApi } from "@/lib/api";
+import { apiMessage, type ApiMessage } from "@/lib/apiMessage";
 import i18n from "@/lib/i18n";
 import { useAiGeneration } from "@/context/AiGenerationContext";
 
@@ -469,7 +470,7 @@ export function useUmlPreparation() {
   const [loading, setLoading] = useState(true);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
   const [localAiState, setLocalAiState] = useState<AiState>("idle");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ApiMessage | null>(null);
   const [errorKey, setErrorKey] = useState<string | null>(null);
   const autosaveTimerRef = useRef<number | null>(null);
   const umlRef = useRef<UmlPreparation>(emptyUmlPreparation);
@@ -490,7 +491,7 @@ export function useUmlPreparation() {
       umlRef.current = normalized;
       return { projectData, umlPreparation: normalized };
     } catch (err: any) {
-      setError(err.message || null);
+      setError(err.message ? apiMessage(err) : null);
       setErrorKey(err.message ? null : "uml.errors.load");
       return null;
     } finally {
@@ -529,7 +530,7 @@ export function useUmlPreparation() {
     } else if (task.status === "error") {
       setLocalAiState("idle");
       if (task.error && !task.error.includes("Limit reached")) {
-        setError(task.error);
+        setError(task.errorMessage || task.error);
         setErrorKey(null);
       }
     }
@@ -597,7 +598,7 @@ export function useUmlPreparation() {
         setSaveStatus("unsaved");
       }
     } catch (err: any) {
-      setError(err.message || null);
+      setError(err.message ? apiMessage(err) : null);
       setErrorKey(err.message ? null : "uml.errors.save");
       setSaveStatus("unsaved");
     }
@@ -659,7 +660,7 @@ export function useUmlPreparation() {
       }
     } catch (err: any) {
       if (err?.name !== "AbortError") {
-        setError(err.message || null);
+        setError(err.message ? apiMessage(err) : null);
         setErrorKey(err.message ? null : "uml.errors.generate");
       }
       setLocalAiState("idle");
@@ -710,7 +711,7 @@ export function useUmlPreparation() {
       }
     } catch (err: any) {
       if (err?.name !== "AbortError") {
-        setError(err.message || null);
+        setError(err.message ? apiMessage(err) : null);
         setErrorKey(err.message ? null : "uml.errors.refine");
       }
       setLocalAiState("idle");
@@ -775,7 +776,7 @@ export function useUmlPreparation() {
       }
     } catch (err: any) {
       if (err?.name !== "AbortError") {
-        setError(err.message || null);
+        setError(err.message ? apiMessage(err) : null);
         setErrorKey(err.message ? null : "uml.errors.translate");
       }
       setLocalAiState("idle");

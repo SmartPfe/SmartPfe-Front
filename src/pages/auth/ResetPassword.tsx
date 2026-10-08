@@ -1,3 +1,4 @@
+import { apiMessage, displayApiMessage, type ApiMessage } from "@/lib/apiMessage";
 import React, { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -10,7 +11,7 @@ export default function ResetPassword() {
   const navigate = useNavigate();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [error, setError] = useState("");
+  const [error, setError] = useState<ApiMessage>("");
   const [errorKey, setErrorKey] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -40,7 +41,7 @@ export default function ResetPassword() {
       });
       navigate("/login", { state: { message: t("reset.successNotice") } });
     } catch (err: unknown) {
-      if (err instanceof Error) setError(err.message);
+      if (err instanceof Error) setError(apiMessage(err));
       else setErrorKey("reset.failed");
     } finally {
       setLoading(false);
@@ -85,7 +86,7 @@ export default function ResetPassword() {
       {(errorKey || error) && (
         <div className="p-3 mb-4 rounded-xl bg-error/10 text-error border border-error/20 text-xs font-medium flex items-center gap-2">
           <HugeiconsIcon icon="alert-circle" size={16} strokeWidth={2} className="shrink-0" />
-          <span>{errorKey ? t(errorKey) : error}</span>
+          <span>{errorKey ? t(errorKey) : displayApiMessage(error)}</span>
         </div>
       )}
 

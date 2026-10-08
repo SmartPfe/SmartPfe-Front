@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { fetchApi } from "@/lib/api";
+import { apiMessage, type ApiMessage } from "@/lib/apiMessage";
 import { useAiGeneration } from "@/context/AiGenerationContext";
 import { PresentationDuration } from "../../Presentation/hooks/usePresentation";
 
 export type SaveStatus = "unsaved" | "saving" | "saved";
-export type PitchError = { translationKey: string } | { message: string };
+export type PitchError = { translationKey: string } | ApiMessage;
 export type AiState = "idle" | "generating" | "refining" | "translating";
 
 export type PitchSlide = {
@@ -148,7 +149,7 @@ export function usePitch() {
       pitchRef.current = normalized;
       return { projectData, pitch: normalized };
     } catch (err: any) {
-      setError(err.message ? { message: err.message } : { translationKey: "pitch.errors.load" });
+      setError(err.message ? apiMessage(err) : { translationKey: "pitch.errors.load" });
       return null;
     } finally {
       setLoading(false);
@@ -183,7 +184,7 @@ export function usePitch() {
     } else if (task.status === "error") {
       setLocalAiState("idle");
       if (task.error && !task.error.includes("Limit reached")) {
-        setError({ message: task.error });
+        setError(task.errorMessage || task.error);
       }
     }
   }, [fetchPitch, localAiState, tasks]);
@@ -253,7 +254,7 @@ export function usePitch() {
         setSaveStatus("unsaved");
       }
     } catch (err: any) {
-      setError(err.message ? { message: err.message } : { translationKey: "pitch.errors.save" });
+      setError(err.message ? apiMessage(err) : { translationKey: "pitch.errors.save" });
       setSaveStatus("unsaved");
     }
   }, [pitch, project?._id]);
@@ -337,7 +338,7 @@ export function usePitch() {
       }
     } catch (err: any) {
       if (err?.name !== "AbortError") {
-        setError(err.message ? { message: err.message } : { translationKey: errorMessageKey });
+        setError(err.message ? apiMessage(err) : { translationKey: errorMessageKey });
       }
       setLocalAiState("idle");
     }

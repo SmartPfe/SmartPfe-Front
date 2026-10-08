@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { apiMessage, type ApiMessage } from "@/lib/apiMessage";
 
 export type AiTaskStatus = "pending" | "generating" | "refining" | "acting" | "translating" | "finalizing" | "completed" | "error";
 
@@ -20,6 +21,9 @@ export interface AiTask {
   startedAt: number;
   completedAt?: number;
   error?: string;
+  // Carries a trusted server descriptor for live UI translation. `error`
+  // remains the legacy raw string for task consumers outside localized pages.
+  errorMessage?: ApiMessage;
   result?: any;
 }
 
@@ -216,11 +220,12 @@ export function AiGenerationProvider({ children }: { children: React.ReactNode }
           // If aborted, task was cancelled
           return undefined as any;
         }
-        const errorMessage = err?.message || "Generation failed";
+        const rawError = err?.message || "Generation failed";
         updateTask(id, {
           status: "error",
           completedAt: Date.now(),
-          error: errorMessage,
+          error: rawError,
+          errorMessage: apiMessage(err?.message ? err : "Generation failed"),
           subTitle: "Failed",
         });
         throw err;

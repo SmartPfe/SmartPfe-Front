@@ -1,3 +1,4 @@
+import { apiMessage, displayApiMessage, type ApiMessage } from "@/lib/apiMessage";
 import React, { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -13,7 +14,7 @@ export default function Login() {
     email: "",
     password: "",
   });
-  const [error, setError] = useState("");
+  const [error, setError] = useState<ApiMessage>("");
   const [errorKey, setErrorKey] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -68,13 +69,13 @@ export default function Login() {
           state: {
             email,
             devVerificationCode: err.devVerificationCode,
-            message: err.message,
+            message: apiMessage(err),
           },
         });
         return;
       }
 
-      if (err.message) setError(err.message);
+      if (err.message) setError(apiMessage(err));
       else setErrorKey("login.failed");
     } finally {
       setLoading(false);
@@ -87,13 +88,14 @@ export default function Login() {
     t("google.noCredential", { lng: "en" }),
     t("google.noCredential", { lng: "fr" }),
   ];
+  const errorText = displayApiMessage(error);
   const displayError = errorKey
     ? t(errorKey)
-    : knownGoogleErrors.includes(error)
-      ? error === t("google.noCredential", { lng: "en" }) || error === t("google.noCredential", { lng: "fr" })
+    : knownGoogleErrors.includes(errorText)
+      ? errorText === t("google.noCredential", { lng: "en" }) || errorText === t("google.noCredential", { lng: "fr" })
         ? t("google.noCredential")
         : t("google.failed")
-      : error;
+      : errorText;
   const resetSuccessEn = t("reset.successNotice", { lng: "en" });
   const resetSuccessFr = t("reset.successNotice", { lng: "fr" });
   const displayLocationMessage = locationMessage === resetSuccessEn || locationMessage === resetSuccessFr

@@ -2,12 +2,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useOnboarding } from "@/context/OnboardingContext";
 import { fetchApi } from "@/lib/api";
+import { apiMessage, type ApiMessage } from "@/lib/apiMessage";
 import { useAiGeneration } from "@/context/AiGenerationContext";
 
 export type PresentationDuration = 5 | 10 | 15 | 20;
 export type AiState = "idle" | "generating" | "refining" | "translating";
 export type SaveStatus = "unsaved" | "saving" | "saved";
-export type PresentationError = { translationKey: string } | { message: string };
+export type PresentationError = { translationKey: string } | ApiMessage;
 
 export type PresentationSlide = {
   id: string;
@@ -139,7 +140,7 @@ export function usePresentation() {
       presentationRef.current = normalized;
       return { projectData, presentation: normalized };
     } catch (err: any) {
-      setError(err.message ? { message: err.message } : { translationKey: "presentation.errors.load" });
+      setError(err.message ? apiMessage(err) : { translationKey: "presentation.errors.load" });
       return null;
     } finally {
       setLoading(false);
@@ -174,7 +175,7 @@ export function usePresentation() {
     } else if (task.status === "error") {
       setLocalAiState("idle");
       if (task.error && !task.error.includes("Limit reached")) {
-        setError({ message: task.error });
+        setError(task.errorMessage || task.error);
       }
     }
   }, [fetchPresentation, localAiState, tasks]);
@@ -239,7 +240,7 @@ export function usePresentation() {
         setSaveStatus("unsaved");
       }
     } catch (err: any) {
-      setError(err.message ? { message: err.message } : { translationKey: "presentation.errors.save" });
+      setError(err.message ? apiMessage(err) : { translationKey: "presentation.errors.save" });
       setSaveStatus("unsaved");
     }
   }, [presentation, project?._id]);
@@ -313,7 +314,7 @@ export function usePresentation() {
       }
     } catch (err: any) {
       if (err?.name !== "AbortError") {
-        setError(err.message ? { message: err.message } : { translationKey: "presentation.errors.generate" });
+        setError(err.message ? apiMessage(err) : { translationKey: "presentation.errors.generate" });
       }
       setLocalAiState("idle");
     }
@@ -382,7 +383,7 @@ export function usePresentation() {
       }
     } catch (err: any) {
       if (err?.name !== "AbortError") {
-        setError(err.message ? { message: err.message } : { translationKey: "presentation.errors.refine" });
+        setError(err.message ? apiMessage(err) : { translationKey: "presentation.errors.refine" });
       }
       setLocalAiState("idle");
     }
@@ -445,7 +446,7 @@ export function usePresentation() {
       }
     } catch (err: any) {
       if (err?.name !== "AbortError") {
-        setError(err.message ? { message: err.message } : { translationKey: "presentation.errors.translate" });
+        setError(err.message ? apiMessage(err) : { translationKey: "presentation.errors.translate" });
       }
       setLocalAiState("idle");
     }

@@ -1,3 +1,4 @@
+import { apiMessage, displayApiMessage, type ApiMessage } from "@/lib/apiMessage";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { fetchApi } from "@/lib/api";
@@ -131,7 +132,7 @@ export default function AdminCredits() {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string>("");
-  const [message, setMessage] = useState<{ tone: "success" | "error"; text?: string; key?: string; values?: Record<string, string | number> } | null>(null);
+  const [message, setMessage] = useState<{ tone: "success" | "error"; text?: ApiMessage; key?: string; values?: Record<string, string | number> } | null>(null);
 
   // Search & Filter controls
   const [searchQuery, setSearchQuery] = useState("");
@@ -161,7 +162,7 @@ export default function AdminCredits() {
       setDrafts(Object.fromEntries((data.policies || []).map((item: Policy) => [item.key, { ...item }])));
       setHistory(data.history || []);
     } catch (error) {
-      setMessage(error instanceof Error ? { tone: "error", text: error.message } : { tone: "error", key: "economy.errorLoad" });
+      setMessage(error instanceof Error ? { tone: "error", text: apiMessage(error) } : { tone: "error", key: "economy.errorLoad" });
     } finally {
       setLoading(false);
     }
@@ -323,7 +324,7 @@ export default function AdminCredits() {
       const freshData = await fetchApi("/admin/credits/economy");
       if (freshData.history) setHistory(freshData.history);
     } catch (error) {
-      setMessage(error instanceof Error ? { tone: "error", text: error.message } : { tone: "error", key: "economy.errorSavePolicies" });
+      setMessage(error instanceof Error ? { tone: "error", text: apiMessage(error) } : { tone: "error", key: "economy.errorSavePolicies" });
     } finally {
       setSaving("");
     }
@@ -362,7 +363,7 @@ export default function AdminCredits() {
       const freshData = await fetchApi("/admin/credits/economy");
       if (freshData.history) setHistory(freshData.history);
     } catch (error) {
-      setMessage(error instanceof Error ? { tone: "error", text: error.message } : { tone: "error", key: "economy.errorSavePolicy" });
+      setMessage(error instanceof Error ? { tone: "error", text: apiMessage(error) } : { tone: "error", key: "economy.errorSavePolicy" });
     } finally {
       setSaving("");
     }
@@ -401,7 +402,7 @@ export default function AdminCredits() {
       const freshData = await fetchApi("/admin/credits/economy");
       if (freshData.history) setHistory(freshData.history);
     } catch (error) {
-      setMessage(error instanceof Error ? { tone: "error", text: error.message } : { tone: "error", key: "economy.errorSaveSettings" });
+      setMessage(error instanceof Error ? { tone: "error", text: apiMessage(error) } : { tone: "error", key: "economy.errorSaveSettings" });
     } finally {
       setSaving("");
     }
@@ -511,7 +512,7 @@ export default function AdminCredits() {
             >
               <HugeiconsIcon icon={message.tone === "success" ? "check" : "alert-circle"} size={14} strokeWidth={2.2} />
             </div>
-            <span className="font-medium text-on-surface">{message.key ? t(message.key, message.values?.policyKey ? { ...message.values, label: t(`economy.policyLabels.${message.values.policyKey}`, String(message.values.label)) } : message.values) : message.text}</span>
+            <span className="font-medium text-on-surface">{message.key ? t(message.key, message.values?.policyKey ? { ...message.values, label: t(`economy.policyLabels.${message.values.policyKey}`, String(message.values.label)) } : message.values) : displayApiMessage(message.text || "")}</span>
           </div>
           <button
             type="button"

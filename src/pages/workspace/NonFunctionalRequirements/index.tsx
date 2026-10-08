@@ -1,9 +1,11 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
+import { displayApiMessage } from "@/lib/apiMessage";
 import InfoTooltip from "@/components/ui/InfoTooltip";
 import {
   NonFunctionalRequirement,
+  NonFunctionalRequirementError,
   RequirementPriority,
   RequirementStatus,
   getLanguageLabel,
@@ -503,8 +505,9 @@ function getPlanningLanguageLabel(language: string, t: (key: string) => string) 
   return getLanguageLabel(language);
 }
 
-function resolveNonFunctionalError(error: { translationKey: string } | { message: string } | null, t: (key: string) => string) {
+function resolveNonFunctionalError(error: NonFunctionalRequirementError | null, t: (key: string) => string) {
   if (!error) return "";
-  return "translationKey" in error ? t(error.translationKey) : error.message;
+  if (typeof error === "string") return error;
+  return "translationKey" in error ? t(error.translationKey) : displayApiMessage(error);
 }
 

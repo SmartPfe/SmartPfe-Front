@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchApi } from "@/lib/api";
+import { apiMessage, type ApiMessage } from "@/lib/apiMessage";
 import { useAiGeneration } from "@/context/AiGenerationContext";
 
 export type RequirementPriority = "Must Have" | "Should Have" | "Could Have" | "Won't Have";
@@ -18,7 +19,7 @@ export type NonFunctionalRequirement = {
 
 export type AiState = "idle" | "generating" | "refining" | "translating" | "suggestion_ready";
 export type SaveStatus = "unsaved" | "saving" | "saved";
-export type NonFunctionalRequirementError = { translationKey: string } | { message: string };
+export type NonFunctionalRequirementError = { translationKey: string } | ApiMessage;
 
 const LANGUAGE_CODES: Record<string, string> = {
   english: "en",
@@ -111,7 +112,7 @@ export function useNonFunctionalRequirements() {
       requirementsRef.current = normalized;
       return { projectData, requirements: normalized };
     } catch (err: any) {
-      setError(err.message ? { message: err.message } : { translationKey: "errors.loadNonFunctional" });
+      setError(err.message ? apiMessage(err) : { translationKey: "errors.loadNonFunctional" });
       return null;
     } finally {
       setLoading(false);
@@ -149,7 +150,7 @@ export function useNonFunctionalRequirements() {
     } else if (task.status === "error") {
       setLocalAiState("idle");
       if (task.error && !task.error.includes("Limit reached")) {
-        setError({ message: task.error });
+        setError(task.errorMessage || task.error);
       }
     }
   }, [fetchRequirementsData, localAiState, tasks]);
@@ -206,7 +207,7 @@ export function useNonFunctionalRequirements() {
           setSaveStatus("unsaved");
         }
       } catch (err: any) {
-        setError(err.message ? { message: err.message } : { translationKey: "errors.saveNonFunctional" });
+        setError(err.message ? apiMessage(err) : { translationKey: "errors.saveNonFunctional" });
         setSaveStatus("unsaved");
       }
     },
@@ -279,7 +280,7 @@ export function useNonFunctionalRequirements() {
       }
     } catch (err: any) {
       if (err?.name !== "AbortError") {
-        setError(err.message ? { message: err.message } : { translationKey: "errors.aiGeneration" });
+        setError(err.message ? apiMessage(err) : { translationKey: "errors.aiGeneration" });
       }
       setLocalAiState("idle");
     }
@@ -328,7 +329,7 @@ export function useNonFunctionalRequirements() {
       }
     } catch (err: any) {
       if (err?.name !== "AbortError") {
-        setError(err.message ? { message: err.message } : { translationKey: "errors.aiRefinement" });
+        setError(err.message ? apiMessage(err) : { translationKey: "errors.aiRefinement" });
       }
       setLocalAiState("idle");
     }
@@ -392,7 +393,7 @@ export function useNonFunctionalRequirements() {
       }
     } catch (err: any) {
       if (err?.name !== "AbortError") {
-        setError(err.message ? { message: err.message } : { translationKey: "errors.translateNonFunctional" });
+        setError(err.message ? apiMessage(err) : { translationKey: "errors.translateNonFunctional" });
       }
       setLocalAiState("idle");
     }

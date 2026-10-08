@@ -1,3 +1,4 @@
+import { apiMessage, displayApiMessage, type ApiMessage } from "@/lib/apiMessage";
 import { useState, type ChangeEvent, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import LanguageSelector from "@/components/LanguageSelector";
@@ -58,8 +59,8 @@ export default function Landing() {
     subject: "",
     message: "",
   });
-  const [contactStatus, setContactStatus] = useState("");
-  const [contactError, setContactError] = useState("");
+  const [contactStatus, setContactStatus] = useState<ApiMessage>("");
+  const [contactError, setContactError] = useState<ApiMessage>("");
   const [contactStatusIsFallback, setContactStatusIsFallback] = useState(false);
   const [contactErrorIsFallback, setContactErrorIsFallback] = useState(false);
   const [isContactSubmitting, setIsContactSubmitting] = useState(false);
@@ -92,7 +93,7 @@ export default function Landing() {
         body: JSON.stringify(contactForm),
       });
 
-      setContactStatus(response.message || "");
+      setContactStatus(apiMessage(response));
       setContactStatusIsFallback(!response.message);
       setContactForm({
         name: "",
@@ -101,7 +102,7 @@ export default function Landing() {
         message: "",
       });
     } catch (error) {
-      setContactError(error instanceof Error ? error.message : "");
+      setContactError(error instanceof Error ? apiMessage(error) : "");
       setContactErrorIsFallback(!(error instanceof Error));
     } finally {
       setIsContactSubmitting(false);
@@ -393,12 +394,12 @@ export default function Landing() {
                 <div aria-live="polite" className="grid gap-3">
                   {(contactStatus || contactStatusIsFallback) && (
                     <p className="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700">
-                      {contactStatusIsFallback ? t("contact.success") : contactStatus}
+                      {contactStatusIsFallback ? t("contact.success") : displayApiMessage(contactStatus)}
                     </p>
                   )}
                   {(contactError || contactErrorIsFallback) && (
                     <p className="rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">
-                      {contactErrorIsFallback ? t("contact.error") : contactError}
+                      {contactErrorIsFallback ? t("contact.error") : displayApiMessage(contactError)}
                     </p>
                   )}
                 </div>

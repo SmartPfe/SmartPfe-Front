@@ -1,3 +1,5 @@
+import i18n from './i18n';
+
 const getDefaultApiBaseUrl = () => {
   if (typeof window === "undefined") return "http://localhost:5000/api";
   return `${window.location.protocol}//${window.location.hostname}:5000/api`;
@@ -97,6 +99,7 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
     headers.set("Content-Type", "application/json");
   }
   if (token && !headers.has("Authorization")) headers.set("Authorization", `Bearer ${token}`);
+  if (!headers.has("X-UI-Language")) headers.set("X-UI-Language", i18n.resolvedLanguage === "fr" ? "fr" : "en");
   const actionKey = creditActionForRequest(endpoint, options);
   if (endpoint.startsWith("/ai/") && getRequestMethod(options) === "POST") {
     if (!headers.has("X-Idempotency-Key")) headers.set("X-Idempotency-Key", createIdempotencyKey());
@@ -117,18 +120,19 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
     try {
       data = await response.json();
     } catch {
-      data = { message: "Failed to parse server response as JSON." };
+      data = { message: "Failed to parse server response as JSON.", messageKey: "client.invalidJson" };
     }
   } else {
     const rawText = await response.text();
-    data = { message: rawText.slice(0, 300) || `Server error (status ${response.status})` };
+    data = rawText ? { message: rawText.slice(0, 300) } : { message: `Server error (status ${response.status})`, messageKey: "client.serverError", messageParams: { status: response.status } };
   }
 
   if (!response.ok) {
     if (data?.code?.startsWith?.("CREDIT_") || data?.code === "INSUFFICIENT_CREDITS") {
       window.dispatchEvent(new CustomEvent(CREDIT_ERROR_EVENT, { detail: data }));
     }
-    throw Object.assign(new Error(data.message || "Something went wrong"), data);
+    const body = data?.message ? data : { ...data, message: "Something went wrong", messageKey: "client.unexpectedError" };
+    throw Object.assign(new Error(body.message), body);
   }
 
   if (data?.creditUsage) {

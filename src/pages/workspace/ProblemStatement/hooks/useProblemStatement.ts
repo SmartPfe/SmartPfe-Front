@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { fetchApi } from "@/lib/api";
+import { apiMessage, type ApiMessage } from "@/lib/apiMessage";
 import i18n from "@/lib/i18n";
 import { useAiGeneration } from "@/context/AiGenerationContext";
 
@@ -39,7 +40,7 @@ export function useProblemStatement() {
   const [localAiState, setLocalAiState] = useState<AiState>("idle");
   const [suggestion, setSuggestion] = useState<string | null>(null);
   const [snapshotHtml, setSnapshotHtml] = useState<string>("");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ApiMessage | null>(null);
   const [errorKey, setErrorKey] = useState<string | null>(null);
   const handledTaskIdRef = useRef<string | null>(null);
 
@@ -50,8 +51,13 @@ export function useProblemStatement() {
       setProject(data);
       return data;
     } catch (err: any) {
-      setError(null);
-      setErrorKey("problem.errors.load");
+      if (err?.message) {
+        setError(apiMessage(err));
+        setErrorKey(null);
+      } else {
+        setError(null);
+        setErrorKey("problem.errors.load");
+      }
       return null;
     } finally {
       setLoading(false);
@@ -92,7 +98,7 @@ export function useProblemStatement() {
     } else if (task.status === "error") {
       setLocalAiState("idle");
       if (task.error && !task.error.includes("Limit reached")) {
-        setError(task.error);
+        setError(task.errorMessage || task.error);
         setErrorKey(null);
       }
     }
@@ -126,7 +132,7 @@ export function useProblemStatement() {
       setSaveStatus("saved");
       return res;
     } catch (err: any) {
-      setError(err.message || null);
+      setError(err.message ? apiMessage(err) : null);
       setErrorKey(err.message ? null : "problem.errors.save");
       setSaveStatus("unsaved");
       throw err;
@@ -208,7 +214,7 @@ export function useProblemStatement() {
       return null;
     } catch (err: any) {
       if (err?.name !== "AbortError") {
-        setError(err.message || null);
+        setError(err.message ? apiMessage(err) : null);
         setErrorKey(err.message ? null : "problem.errors.generate");
       }
       setLocalAiState("idle");
@@ -261,7 +267,7 @@ export function useProblemStatement() {
       }
     } catch (err: any) {
       if (err?.name !== "AbortError") {
-        setError(err.message || null);
+        setError(err.message ? apiMessage(err) : null);
         setErrorKey(err.message ? null : "problem.errors.refine");
       }
       setLocalAiState("idle");
@@ -335,7 +341,7 @@ export function useProblemStatement() {
       return null;
     } catch (err: any) {
       if (err?.name !== "AbortError") {
-        setError(err.message || null);
+        setError(err.message ? apiMessage(err) : null);
         setErrorKey(err.message ? null : "problem.errors.translate");
       }
       setLocalAiState("idle");

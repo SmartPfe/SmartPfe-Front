@@ -1,10 +1,15 @@
 import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { API_BASE_URL, fetchApi } from "@/lib/api";
+import { useTranslation } from "react-i18next";
+import { getNotificationDisplayText } from "@/lib/notificationDisplay";
 
 export type NotificationItem = {
   _id: string;
   projectId?: string;
   feature?: string;
+  titleKey?: string;
+  messageKey?: string;
+  messageParams?: Record<string, string | number | boolean>;
   title: string;
   message: string;
   type: "success" | "info" | "warning" | "error" | "generation_complete";
@@ -40,6 +45,7 @@ const isGenerationComplete = (notification: NotificationItem) =>
   notification.type === "generation_complete" || Boolean(notification.feature && notification.type === "success");
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
+  const { t, i18n } = useTranslation("notifications");
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [toasts, setToasts] = useState<NotificationItem[]>([]);
   const [isConnected, setIsConnected] = useState(false);
@@ -170,8 +176,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     <NotificationContext.Provider value={value}>
       {children}
       <div className="pointer-events-none fixed bottom-4 right-4 z-[120] flex w-[min(24rem,calc(100vw-2rem))] flex-col gap-3 sm:bottom-6 sm:right-6">
-        {toasts.map((toast) => (
-          <div
+        {toasts.map((toast) => {
+          const displayText = getNotificationDisplayText(toast, t, (key, options) => i18n.exists(key, options));
+          return <div
             key={toast._id}
             className="pointer-events-auto flex items-start gap-3 rounded-lg border border-primary/15 bg-white p-4 text-[#172033] shadow-xl shadow-black/10"
             role="status"
@@ -179,19 +186,19 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
           >
             <span className="material-symbols-outlined mt-0.5 text-[22px] text-primary">check_circle</span>
             <div className="min-w-0 flex-1">
-              <p className="text-label-md font-semibold text-[#172033]">{toast.title}</p>
-              <p className="mt-1 text-body-sm text-on-surface-variant">{toast.message || "Generated successfully."}</p>
+              <p className="text-label-md font-semibold text-[#172033]">{displayText.title}</p>
+              <p className="mt-1 text-body-sm text-on-surface-variant">{displayText.message || t("generatedFallback")}</p>
             </div>
             <button
               type="button"
               onClick={() => dismissToast(toast._id)}
               className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-on-surface-variant transition-colors hover:bg-surface-container hover:text-on-surface"
-              aria-label="Dismiss notification"
+              aria-label={t("dismiss")}
             >
               <span className="material-symbols-outlined text-[18px]">close</span>
             </button>
-          </div>
-        ))}
+          </div>;
+        })}
       </div>
     </NotificationContext.Provider>
   );

@@ -1,3 +1,4 @@
+import { apiMessage, displayApiMessage, type ApiMessage } from "@/lib/apiMessage";
 import React, { useMemo, useState, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -7,7 +8,7 @@ import HugeiconsIcon from "../../components/ui/HugeiconsIcon";
 type VerifyEmailLocationState = {
   email?: string;
   devVerificationCode?: string;
-  message?: string;
+  message?: ApiMessage;
 };
 
 function persistSession(data: any) {
@@ -37,9 +38,9 @@ export default function VerifyEmail() {
 
   const [email, setEmail] = useState(initialEmail);
   const [digits, setDigits] = useState<string[]>(["", "", "", "", "", ""]);
-  const [error, setError] = useState("");
+  const [error, setError] = useState<ApiMessage>("");
   const [errorKey, setErrorKey] = useState("");
-  const [message, setMessage] = useState(state.message || "");
+  const [message, setMessage] = useState<ApiMessage>(state.message || "");
   const [messageKey, setMessageKey] = useState("");
   const [devCode, setDevCode] = useState(state.devVerificationCode || "");
   const [loading, setLoading] = useState(false);
@@ -139,7 +140,7 @@ export default function VerifyEmail() {
 
       navigate(data.hasCompletedOnboarding ? "/workspace/overview" : "/onboarding/1");
     } catch (err: any) {
-      if (err.message) setError(err.message);
+      if (err.message) setError(apiMessage(err));
       else setErrorKey("verify.verificationFailed");
     } finally {
       setLoading(false);
@@ -164,7 +165,7 @@ export default function VerifyEmail() {
 
       if (data.alreadyVerified) {
         if (data.message) {
-          setMessage(data.message);
+          setMessage(apiMessage(data));
           setMessageKey("");
         }
         else {
@@ -176,7 +177,7 @@ export default function VerifyEmail() {
 
       sessionStorage.setItem("pendingVerificationEmail", data.email || email);
       if (data.message) {
-        setMessage(data.message);
+        setMessage(apiMessage(data));
         setMessageKey("");
       } else {
         setMessage("");
@@ -186,7 +187,7 @@ export default function VerifyEmail() {
       setDigits(["", "", "", "", "", ""]);
       inputRefs.current[0]?.focus();
     } catch (err: any) {
-      if (err.message) setError(err.message);
+      if (err.message) setError(apiMessage(err));
       else setErrorKey("verify.resendFailed");
     } finally {
       setResending(false);
@@ -234,14 +235,14 @@ export default function VerifyEmail() {
       {(messageKey || message) && !error && !errorKey && (
         <div className="p-3 mb-4 rounded-xl bg-secondary/10 text-secondary border border-secondary/20 text-xs font-medium flex items-center gap-2">
           <HugeiconsIcon icon="checkmark-circle-02" size={16} strokeWidth={2} className="shrink-0" />
-          <span>{messageKey ? t(messageKey) : message}</span>
+          <span>{messageKey ? t(messageKey) : displayApiMessage(message)}</span>
         </div>
       )}
 
       {(errorKey || error) && (
         <div className="p-3 mb-4 rounded-xl bg-error/10 text-error border border-error/20 text-xs font-medium flex items-center gap-2">
           <HugeiconsIcon icon="alert-circle" size={16} strokeWidth={2} className="shrink-0" />
-          <span>{errorKey ? t(errorKey) : error}</span>
+          <span>{errorKey ? t(errorKey) : displayApiMessage(error)}</span>
         </div>
       )}
 

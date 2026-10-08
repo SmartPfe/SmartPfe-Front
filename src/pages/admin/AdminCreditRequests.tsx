@@ -1,3 +1,4 @@
+import { apiMessage, displayApiMessage, type ApiMessage } from "@/lib/apiMessage";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { fetchApi } from "@/lib/api";
@@ -64,7 +65,7 @@ export default function AdminCreditRequests() {
   const [dateTo, setDateTo] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState("");
-  const [message, setMessage] = useState<{ tone: "success" | "error"; text?: string; key?: string } | null>(null);
+  const [message, setMessage] = useState<{ tone: "success" | "error"; text?: ApiMessage; key?: string } | null>(null);
   const [pendingAction, setPendingAction] = useState<PendingAdminAction | null>(null);
 
   const query = useMemo(() => {
@@ -82,7 +83,7 @@ export default function AdminCreditRequests() {
       const data = await fetchApi(`/admin/credit-requests${query ? `?${query}` : ""}`);
       setRequests(data.requests || []);
     } catch (err) {
-      setMessage(err instanceof Error ? { tone: "error", text: err.message } : { tone: "error", key: "requests.errorLoad" });
+      setMessage(err instanceof Error ? { tone: "error", text: apiMessage(err) } : { tone: "error", key: "requests.errorLoad" });
     } finally {
       setLoading(false);
     }
@@ -122,7 +123,7 @@ export default function AdminCreditRequests() {
       setPendingAction(null);
       setMessage({ tone: "success", key: nextStatus === "CONFIRMED" ? "requests.requestConfirmed" : "requests.requestCancelled" });
     } catch (err) {
-      setMessage(err instanceof Error ? { tone: "error", text: err.message } : { tone: "error", key: "requests.errorUpdate" });
+      setMessage(err instanceof Error ? { tone: "error", text: apiMessage(err) } : { tone: "error", key: "requests.errorUpdate" });
     } finally {
       setSaving("");
     }
@@ -140,7 +141,7 @@ export default function AdminCreditRequests() {
         key: data.emailSent ? "requests.creditsEmailSent" : "requests.creditsSmtpMissing",
       });
     } catch (err) {
-      setMessage(err instanceof Error ? { tone: "error", text: err.message } : { tone: "error", key: "requests.errorAddCredits" });
+      setMessage(err instanceof Error ? { tone: "error", text: apiMessage(err) } : { tone: "error", key: "requests.errorAddCredits" });
     } finally {
       setSaving("");
     }
@@ -204,7 +205,7 @@ export default function AdminCreditRequests() {
       {message && (
         <div className={cn("flex items-center gap-2 rounded-xl border px-4 py-3 text-xs font-semibold", message.tone === "success" ? "border-secondary/30 bg-secondary/10 text-secondary" : "border-error/30 bg-error/10 text-error")}>
           <HugeiconsIcon icon={message.tone === "success" ? "checkmark-circle-02" : "alert-circle"} size={16} />
-          <span>{message.key ? t(message.key) : message.text}</span>
+          <span>{message.key ? t(message.key) : displayApiMessage(message.text || "")}</span>
         </div>
       )}
 

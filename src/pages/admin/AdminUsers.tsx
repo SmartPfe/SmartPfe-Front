@@ -1,3 +1,4 @@
+import { apiMessage, displayApiMessage, type ApiMessage } from "@/lib/apiMessage";
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import { createIdempotencyKey, fetchApi } from "@/lib/api";
 import HugeiconsIcon from "@/components/ui/HugeiconsIcon";
@@ -51,7 +52,7 @@ export default function AdminUsers() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState<ApiMessage>("");
   const [notice, setNotice] = useState<{ amount: number; bucket: "promotional" | "purchased"; added: boolean; deliveryKey?: string } | null>(null);
   const [errorKey, setErrorKey] = useState<string | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -66,7 +67,7 @@ export default function AdminUsers() {
       const data = await fetchApi("/admin/users");
       setUsers(data);
     } catch (err) {
-      if (err instanceof Error) setError(err.message);
+      if (err instanceof Error) setError(apiMessage(err));
       else { setError(""); setErrorKey("users.errors.load"); }
     } finally {
       setIsLoading(false);
@@ -112,7 +113,7 @@ export default function AdminUsers() {
       setHistory(data.items || []);
       setUsers((items) => items.map((item) => (item._id === user._id ? { ...item, credits: data.wallet } : item)));
     } catch (err) {
-      if (err instanceof Error) setError(err.message);
+      if (err instanceof Error) setError(apiMessage(err));
       else { setError(""); setErrorKey("users.errors.wallet"); }
     }
   };
@@ -146,7 +147,7 @@ export default function AdminUsers() {
       setReference("");
       setAmount(10);
     } catch (err) {
-      if (err instanceof Error) setError(err.message);
+      if (err instanceof Error) setError(apiMessage(err));
       else { setError(""); setErrorKey("users.errors.adjust"); }
     } finally {
       setSaving(false);
@@ -460,7 +461,7 @@ export default function AdminUsers() {
         {(error || errorKey) && !selected && (
           <div className="m-4 flex items-center gap-2 rounded-xl border border-error/30 bg-error/10 px-4 py-3 text-xs font-semibold text-error">
             <HugeiconsIcon icon="alert-circle" size={16} strokeWidth={1.8} />
-            <span>{errorKey ? t(errorKey) : error}</span>
+            <span>{errorKey ? t(errorKey) : displayApiMessage(error)}</span>
           </div>
         )}
 
@@ -776,7 +777,7 @@ function WalletDrawer(props: any) {
           {(error || errorKey) && (
             <div className="flex items-center gap-2 rounded-xl border border-error/30 bg-error/10 px-3.5 py-2.5 text-xs font-semibold text-error">
               <HugeiconsIcon icon="alert-circle" size={15} strokeWidth={2} />
-              <span>{errorKey ? t(errorKey) : error}</span>
+              <span>{errorKey ? t(errorKey) : displayApiMessage(error)}</span>
             </div>
           )}
           {notice && (

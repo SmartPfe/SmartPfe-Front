@@ -1,3 +1,4 @@
+import { apiMessage, displayApiMessage, type ApiMessage } from "@/lib/apiMessage";
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -13,7 +14,7 @@ export default function Signup() {
     email: "",
     password: "",
   });
-  const [error, setError] = useState("");
+  const [error, setError] = useState<ApiMessage>("");
   const [errorKey, setErrorKey] = useState("");
   const [loading, setLoading] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0); // 0 to 4
@@ -61,7 +62,7 @@ export default function Signup() {
         },
       });
     } catch (err: any) {
-      if (err.message) setError(err.message);
+      if (err.message) setError(apiMessage(err));
       else setErrorKey("signup.failed");
     } finally {
       setLoading(false);
@@ -88,13 +89,14 @@ export default function Signup() {
     t("google.noCredential", { lng: "en" }),
     t("google.noCredential", { lng: "fr" }),
   ];
+  const errorText = displayApiMessage(error);
   const displayError = errorKey
     ? t(errorKey)
-    : knownGoogleErrors.includes(error)
-      ? error === t("google.noCredential", { lng: "en" }) || error === t("google.noCredential", { lng: "fr" })
+    : knownGoogleErrors.includes(errorText)
+      ? errorText === t("google.noCredential", { lng: "en" }) || errorText === t("google.noCredential", { lng: "fr" })
         ? t("google.noCredential")
         : t("google.failed")
-      : error;
+      : errorText;
 
   return (
     <div className="w-full bg-surface-container-lowest border border-outline-variant/80 rounded-2xl p-6 sm:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.3)]">

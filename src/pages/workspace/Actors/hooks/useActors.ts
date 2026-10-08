@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchApi } from "@/lib/api";
+import { apiMessage, type ApiMessage } from "@/lib/apiMessage";
 import { useAiGeneration } from "@/context/AiGenerationContext";
 import { useTranslation } from "react-i18next";
 
@@ -72,7 +73,7 @@ export function useActors() {
   const [loading, setLoading] = useState(true);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
   const [localAiState, setLocalAiState] = useState<AiState>("idle");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ApiMessage | null>(null);
   const [errorKey, setErrorKey] = useState<string | null>(null);
   const autosaveTimerRef = useRef<number | null>(null);
   const actorsRef = useRef<Actor[]>([]);
@@ -94,7 +95,7 @@ export function useActors() {
       return { projectData, actors: normalized };
     } catch (err: any) {
       if (err.message) {
-        setError(err.message);
+        setError(apiMessage(err));
         setErrorKey(null);
       } else {
         setError(null);
@@ -137,7 +138,7 @@ export function useActors() {
     } else if (task.status === "error") {
       setLocalAiState("idle");
       if (task.error && !task.error.includes("Limit reached")) {
-        setError(task.error);
+        setError(task.errorMessage || task.error);
         setErrorKey(null);
       }
     }
@@ -197,7 +198,7 @@ export function useActors() {
         }
       } catch (err: any) {
         if (err.message) {
-          setError(err.message);
+          setError(apiMessage(err));
           setErrorKey(null);
         } else {
           setError(null);
@@ -282,7 +283,7 @@ export function useActors() {
     } catch (err: any) {
       if (err?.name !== "AbortError") {
         if (err.message) {
-          setError(err.message);
+          setError(apiMessage(err));
           setErrorKey(null);
         } else {
           setError(null);
@@ -339,7 +340,7 @@ export function useActors() {
     } catch (err: any) {
       if (err?.name !== "AbortError") {
         if (err.message) {
-          setError(err.message);
+          setError(apiMessage(err));
           setErrorKey(null);
         } else {
           setError(null);
@@ -409,7 +410,7 @@ export function useActors() {
     } catch (err: any) {
       if (err?.name !== "AbortError") {
         if (err.message) {
-          setError(err.message);
+          setError(apiMessage(err));
           setErrorKey(null);
         } else {
           setError(null);

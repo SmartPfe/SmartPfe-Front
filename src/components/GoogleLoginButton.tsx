@@ -1,4 +1,6 @@
 /// <reference types="vite/client" />
+import { apiMessage, type ApiMessage } from "@/lib/apiMessage";
+
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -11,7 +13,7 @@ declare global {
 }
 
 interface GoogleLoginButtonProps {
-  onError: (message: string) => void;
+  onError: (message: ApiMessage) => void;
   onLoading: (isLoading: boolean) => void;
 }
 
@@ -103,7 +105,7 @@ export default function GoogleLoginButton({ onError, onLoading }: GoogleLoginBut
       }
     } catch (err: any) {
       console.error("Google authentication error:", err);
-      onError(err.message || t("google.failed"));
+      onError(err.message ? apiMessage(err) : t("google.failed"));
     } finally {
       onLoading(false);
     }

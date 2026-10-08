@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
+import { displayApiMessage } from "@/lib/apiMessage";
 import InfoTooltip from "@/components/ui/InfoTooltip";
 import {
   UmlClass,
@@ -161,7 +162,7 @@ export default function UmlPreparation() {
 
       {(error || errorKey) && (
         <div className="mb-6 p-3.5 rounded-xl bg-error-container text-on-error-container border border-error/20 flex items-center justify-between gap-3 shadow-2xs">
-          <p className="text-sm font-medium">{errorKey ? t(errorKey) : error}</p>
+          <p className="text-sm font-medium">{errorKey ? t(errorKey) : error ? displayApiMessage(error) : ""}</p>
           <button onClick={dismissError} className="shrink-0 text-xs font-semibold underline hover:no-underline">
             {t("uml.dismiss")}
           </button>

@@ -1,3 +1,4 @@
+import { apiMessage, displayApiMessage, type ApiMessage } from "@/lib/apiMessage";
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { fetchApi } from "@/lib/api";
@@ -119,7 +120,7 @@ export default function BackofficeDashboard() {
   const [data, setData] = useState<DashboardData>(emptyDashboard);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState<ApiMessage>("");
   const [errorKey, setErrorKey] = useState<string | null>(null);
 
   // Credit Filter Controls (As shown in reference photo)
@@ -151,7 +152,7 @@ export default function BackofficeDashboard() {
       const response = await fetchApi("/admin/dashboard");
       setData(response);
     } catch (err) {
-      if (err instanceof Error) setError(err.message);
+      if (err instanceof Error) setError(apiMessage(err));
       else { setError(""); setErrorKey("dashboard.error"); }
     } finally {
       setLoading(false);
@@ -326,7 +327,7 @@ export default function BackofficeDashboard() {
       {(error || errorKey) && (
         <div className="flex items-center gap-3 rounded-2xl border border-error/30 bg-error/10 p-4 text-xs font-semibold text-error shadow-2xs">
           <HugeiconsIcon icon="alert-circle" size={18} strokeWidth={2} />
-          <span>{errorKey ? t(errorKey) : error}</span>
+          <span>{errorKey ? t(errorKey) : displayApiMessage(error)}</span>
         </div>
       )}
 
