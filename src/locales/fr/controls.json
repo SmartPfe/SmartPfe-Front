@@ -66,10 +66,10 @@
     }
   },
   "saveStatus": {
-    "saved": "Toutes les modifications sont enregistrées",
-    "saving": "Enregistrement automatique...",
-    "unsaved": "Modifications non enregistrées",
-    "saveNow": "Enregistrer maintenant"
+    "saved": "Enregistré",
+    "saving": "Enregistrement automatique…",
+    "unsaved": "Non enregistré",
+    "saveNow": "Enregistrer"
   },
   "creditBadge": {
     "paused": "EN PAUSE",
@@ -104,13 +104,13 @@
     "refillNote": "Les crédits promotionnels sont rechargés jusqu’à {{amount}} par jour et utilisés en priorité.",
     "requestReceived": "Demande reçue",
     "allSet": "Tout est prêt !",
-    "requestSubmitted": "Votre demande de crédit a bien été envoyée. Un membre de notre équipe vous contactera dès que possible pour vous expliquer les étapes de paiement.",
-    "paymentVerified": "Vos crédits seront ajoutés à votre portefeuille après vérification du paiement.",
-    "receiptSent": "Un reçu contenant les détails de votre demande a été envoyé par e-mail. Vous pouvez également suivre votre demande dans l’historique des crédits.",
-    "receiptNotSent": "Votre demande est enregistrée, mais l’envoi du reçu par e-mail a échoué. Tous les détails sont disponibles dans l’historique des crédits.",
+    "requestSubmitted": "Demande envoyée. Notre équipe vous contactera rapidement pour vous indiquer les étapes de paiement.",
+    "paymentVerified": "Les crédits seront ajoutés après vérification du paiement.",
+    "receiptSent": "Le reçu a été envoyé par e-mail. Vous pouvez aussi suivre la demande dans l’historique des crédits.",
+    "receiptNotSent": "Demande enregistrée, mais le reçu n’a pas pu être envoyé. Consultez l’historique des crédits pour les détails.",
     "gotIt": "Compris",
     "trackRequest": "Suivre ma demande",
-    "requestInstructions": "Notre équipe vous contactera avec les instructions de paiement. Les crédits seront ajoutés après vérification du paiement.",
+    "requestInstructions": "Notre équipe vous indiquera comment payer. Les crédits seront ajoutés après vérification.",
     "closeRequest": "Fermer la demande de crédit",
     "studentEmail": "E-mail étudiant",
     "phoneNumber": "Numéro de téléphone",
@@ -124,10 +124,10 @@
     "submitting": "Envoi...",
     "submitRequest": "Envoyer la demande",
     "errors": {
-      "validPhone": "Saisissez un numéro de téléphone valide afin que l’administration puisse vous contacter.",
-      "optionsLoading": "Les options d’achat sont encore en cours de chargement. Réessayez dans un instant.",
+      "validPhone": "Saisissez un numéro valide pour que l’équipe puisse vous contacter.",
+      "optionsLoading": "Chargement des options en cours. Réessayez dans un instant.",
       "creditRange": "Choisissez entre 1 et 100 000 crédits.",
-      "submitFailed": "Impossible d’envoyer votre demande de crédit."
+      "submitFailed": "Demande impossible à envoyer. Réessayez."
     },
     "activity": {
       "creditPurchase": "Achat de crédits",
@@ -163,12 +163,12 @@
   "aiToolbar": {
     "generateWithAi": "Générer avec l’IA",
     "refineWithAi": "Améliorer avec l’IA",
-    "refinePlaceholder": "Indiquez à l’IA ce que vous souhaitez améliorer (facultatif)...",
+    "refinePlaceholder": "Décrivez les améliorations souhaitées (facultatif)…",
     "translate": "Traduire",
     "generating": "Génération...",
     "refining": "Amélioration...",
     "translating": "Traduction...",
-    "refineInstructions": "Instructions d’amélioration",
+    "refineInstructions": "Consignes d’amélioration",
     "cancel": "Annuler",
     "refine": "Améliorer"
   },
@@ -178,8 +178,8 @@
     "translating": "Traduction de {{moduleName}}",
     "processing": "Traitement de {{moduleName}}",
     "backgroundTask": "Tâche en arrière-plan",
-    "explorePages": "Vous pouvez consulter d’autres pages ; votre progression sera conservée.",
-    "stopTooltip": "Arrêter et annuler cette génération",
+    "explorePages": "Vous pouvez consulter d’autres pages : votre progression est conservée.",
+    "stopTooltip": "Arrêter la génération",
     "stop": "Arrêter"
   },
   "aiDock": {
@@ -190,12 +190,12 @@
     "failed": "Échec",
     "generatingInBackground": "Génération en arrière-plan...",
     "generationFailed": "La génération a échoué",
-    "concurrentTitle": "Nombre maximal de générations simultanées",
-    "concurrentDescription_one": "Vous pouvez générer jusqu’à {{count}} section en parallèle. Attendez qu’une génération se termine.",
-    "concurrentDescription_other": "Vous pouvez générer jusqu’à {{count}} sections en parallèle. Attendez qu’une génération se termine.",
+    "concurrentTitle": "Limite de générations simultanées",
+    "concurrentDescription_one": "Vous pouvez lancer jusqu’à {{count}} section en parallèle. Attendez la fin d’une génération.",
+    "concurrentDescription_other": "Vous pouvez lancer jusqu’à {{count}} sections en parallèle. Attendez la fin d’une génération.",
     "jumpToSection": "Accéder à cette section",
     "view": "Voir",
-    "stopTooltip": "Arrêter et annuler cette génération",
+    "stopTooltip": "Arrêter la génération",
     "stop": "Arrêter",
     "close": "Fermer la notification"
   }

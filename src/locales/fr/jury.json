@@ -8,7 +8,7 @@
     "latestScore": "Dernier score : {{score}}/100",
     "enterPodium": "Accéder au pupitre",
     "dismiss": "Fermer",
-    "olderAttempts": "Les répétitions précédentes ont été enregistrées avec une ancienne version de cette présentation.",
+    "olderAttempts": "Les anciennes tentatives utilisent une version précédente de cette présentation.",
     "errors": {
       "load": "Impossible de charger la simulation du jury. Veuillez actualiser la page.",
       "microphoneUnsupported": "Ce navigateur ne prend pas en charge l’accès au microphone.",
@@ -23,7 +23,7 @@
       "recordingFailed": "L’enregistrement a échoué. Arrêtez-le puis relancez la simulation.",
       "recordingNotActive": "Aucun enregistrement n’était en cours.", "recordingSaveFailed": "L’enregistrement a échoué avant sa sauvegarde.",
       "recordingStartFailed": "L’enregistrement n’a pas pu démarrer dans ce navigateur. Réessayez avec Chrome ou Edge.",
-      "minimumDuration": "La répétition doit durer au moins 2 minutes (120 secondes) pour permettre au jury IA d’évaluer votre présentation.",
+      "minimumDuration": "La répétition doit durer au moins 2 minutes pour que le jury IA puisse évaluer votre présentation.",
       "analysisFailed": "Impossible d’analyser cette tentative. Veuillez réessayer."
     },
     "analyzing": "Analyse de votre discours de soutenance…",
@@ -54,6 +54,8 @@
     "testMic": "Tester le micro",
     "presentationDeck": "Présentation",
     "slidesReady": "{{count}} diapositives prêtes",
+    "slidesReady_one": "{{count}} diapositive prête",
+    "slidesReady_other": "{{count}} diapositives prêtes",
     "noSlides": "Aucune diapositive",
     "reviewSlides": "Voir les diapositives",
     "createSlides": "Créer les diapositives",
@@ -96,7 +98,7 @@
     "results": {
       "title": "Évaluation par l’IA", "currentVersion": "Version actuelle", "olderVersion": "Basée sur une ancienne version",
       "viewFinalReport": "Voir le rapport final", "resumeQuestions": "Reprendre les questions du jury", "continueQuestions": "Continuer avec les questions du jury", "practiceAgain": "S’entraîner à nouveau",
-      "reportTitle": "Soutenance terminée - Questions du jury - Rapport final",
+      "reportTitle": "Résultats de l’évaluation de votre soutenance",
       "finalEvaluationComplete": "Évaluation finale terminée. Niveau de préparation : {{readiness}}.",
       "presentationVersion": "Présentation v{{version}}", "pitchVersion": "Texte oral v{{version}}", "slide": "Diapositive {{number}}",
       "qaInProgress": "Votre session de questions du jury est en cours. Reprenez-la pour conserver vos réponses.",

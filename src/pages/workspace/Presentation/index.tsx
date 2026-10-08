@@ -20,7 +20,7 @@ import AiActionToolbar from "@/components/ai/AiActionToolbar";
 const durations: PresentationDuration[] = [5, 10, 15, 20];
 
 export default function PresentationPage() {
-  const { t } = useTranslation("delivery");
+  const { t, i18n } = useTranslation("delivery");
   const {
     presentation,
     projectLanguage,
@@ -74,8 +74,8 @@ export default function PresentationPage() {
   const pacingLabel = useMemo(() => {
     if (!slides.length) return t("presentation.pacingEmpty");
     const minutesPerSlide = presentation.durationMinutes / slides.length;
-    return t("presentation.pacingAverage", { minutes: minutesPerSlide.toFixed(1) });
-  }, [presentation.durationMinutes, slides.length, t]);
+    return t("presentation.pacingAverage", { minutes: new Intl.NumberFormat(i18n.resolvedLanguage || "en", { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(minutesPerSlide) });
+  }, [presentation.durationMinutes, slides.length, t, i18n.resolvedLanguage]);
 
   const setDuration = (durationMinutes: PresentationDuration) => {
     updatePresentation((current) => ({ ...current, durationMinutes }));

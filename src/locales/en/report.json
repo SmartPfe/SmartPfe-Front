@@ -60,6 +60,8 @@
     "appliesSelection": "Applies to highlighted selection",
     "appliesSection": "Applies to entire section",
     "selectionActive": "Selection active ({{count}} words): Quick actions will update only the selection.",
+    "selectionActive_one": "Selection active ({{count}} word): quick actions will only modify the selection.",
+    "selectionActive_other": "Selection active ({{count}} words): Quick actions will update only the selection.",
     "clearSelection": "Clear",
     "selectionHelp": "Highlight any passage in the editor to refine or expand only that specific selection.",
     "word": "word",
@@ -136,7 +138,7 @@
   "source": { "empty": "No source generated yet." },
   "overview": {
     "hub": "Thesis Compilation Hub",
-    "chapterCounts": "{{chapters}} Chapters • {{sections}} Subsections",
+    "chapterCounts": "Chapters: {{chapters}} • Subsections: {{sections}}",
     "progressTitle": "Academic Report Progress",
     "resumeDrafting": "Resume Drafting ({{number}})",
     "compiling": "Compiling...",
@@ -156,7 +158,9 @@
     "clickSection": "Click any section to edit",
     "draftedCount": "{{count}} Drafted",
     "complete": "Complete",
-    "wordsCount": "{{count}} words"
+    "wordsCount": "{{count}} words",
+    "wordsCount_one": "{{count}} word",
+    "wordsCount_other": "{{count}} words"
   },
   "compilation": {
     "title": "Final Thesis Compilation",

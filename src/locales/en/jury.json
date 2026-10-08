@@ -54,6 +54,8 @@
     "testMic": "Test Mic",
     "presentationDeck": "Presentation Deck",
     "slidesReady": "{{count}} Slides Ready",
+    "slidesReady_one": "{{count}} Slide Ready",
+    "slidesReady_other": "{{count}} Slides Ready",
     "noSlides": "No Slides",
     "reviewSlides": "Review Slides",
     "createSlides": "Create Slides",

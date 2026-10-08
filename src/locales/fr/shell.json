@@ -48,12 +48,12 @@
       "problemStatement": "Formulez clairement le problème que votre projet cherche à résoudre.",
       "actors": "Identifiez les utilisateurs et les systèmes qui interagissent avec votre application.",
       "solutions": "Présentez les solutions techniques et fonctionnelles au problème.",
-      "functionalRequirements": "Précisez les comportements et les fonctionnalités que le système doit prendre en charge.",
-      "nonFunctionalRequirements": "Définissez les qualités du système, comme les performances, la sécurité et l’évolutivité.",
+      "functionalRequirements": "Définissez les comportements et fonctions attendus du système.",
+      "nonFunctionalRequirements": "Définissez les qualités attendues : performance, sécurité et évolutivité.",
       "backlog": "Organisez et hiérarchisez les tâches et fonctionnalités à réaliser.",
       "umlPreparation": "Concevez l’architecture du système à l’aide de diagrammes UML.",
-      "reportStructure": "Définissez les chapitres et les sections de votre rapport de PFE.",
-      "reportBuilder": "Rédigez et assemblez le contenu de votre rapport final.",
+      "reportStructure": "Organisez les chapitres et sections de votre rapport de PFE.",
+      "reportBuilder": "Rédigez et assemblez votre rapport final.",
       "presentation": "Préparez les diapositives et le contenu de votre soutenance.",
       "pitch": "Rédigez un résumé concis et convaincant de votre projet.",
       "jurySimulation": "Simulez une soutenance orale avec des membres du jury IA."
@@ -69,17 +69,17 @@
   },
   "topbar": {
     "defaultProjectTitle": "Projet de PFE",
-    "toggleSidebar": "Afficher ou masquer la barre latérale",
+    "toggleSidebar": "Afficher/masquer la barre latérale",
     "saving": "Enregistrement...",
     "saved": "Enregistré",
-    "lastSynced": "Dernière synchronisation : {{time}}",
+    "lastSynced": "Dernière synchro : {{time}}",
     "justNow": "à l’instant",
     "oneMinuteAgo": "il y a 1 min",
-    "searchWorkspace": "Rechercher dans l’espace de travail (Ctrl+K)",
+    "searchWorkspace": "Rechercher dans l’espace (Ctrl+K)",
     "search": "Rechercher...",
     "revisionHistoryTitle": "Historique et versions",
     "revisionHistory": "Historique des versions",
-    "liveWorkspaceEvents": "Événements de l’espace de travail en direct",
+    "liveWorkspaceEvents": "Événements en direct",
     "userAccount": "Compte utilisateur",
     "userAvatar": "Avatar de {{name}}",
     "userAvatarFallback": "Avatar utilisateur",
@@ -146,7 +146,7 @@
       },
       "reportBuilder": {
         "label": "Studio de rédaction du rapport",
-        "description": "Rédigez votre mémoire avec un éditeur académique et la génération de sections par RAG correctif."
+        "description": "Rédigez votre mémoire avec un éditeur et l’aide de l’IA."
       },
       "presentation": {
         "label": "Diapositives et présentation de soutenance",
@@ -162,7 +162,7 @@
       },
       "settings": {
         "label": "Paramètres de l’espace de travail",
-        "description": "Configurez les clés API du projet, la langue et les préférences de l’espace."
+        "description": "Gérez le projet, votre compte, la langue de l’interface et le thème."
       },
       "account": {
         "label": "Profil du compte",
@@ -170,12 +170,12 @@
       }
     },
     "dialogLabel": "Recherche dans l’espace de travail",
-    "inputLabel": "Rechercher des pages et des documents de l’espace de travail",
+    "inputLabel": "Rechercher dans l’espace de travail",
     "placeholder": "Rechercher des pages, documents et étapes...",
     "clearQuery": "Effacer la recherche",
     "locked": "Verrouillé",
     "jump": "Ouvrir",
-    "noMatchingItems": "Aucun élément de l’espace ne correspond",
+    "noMatchingItems": "Aucun élément trouvé dans l’espace",
     "trySuggestions": "Aucun résultat pour « {{query}} ». Essayez <uml>UML</uml>, <report>Rapport</report> ou <requirements>Exigences</requirements>.",
     "suggestions": {
       "uml": "UML",

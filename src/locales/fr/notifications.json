@@ -8,11 +8,11 @@
     },
     "projectSettingsUpdated": {
       "title": "Paramètres du projet mis à jour",
-      "message": "Vos informations d’intégration ont été enregistrées."
+      "message": "Les informations de configuration de votre projet ont été enregistrées."
     },
     "userRegistered": {
       "title": "Nouvel utilisateur inscrit",
-      "message": "{{name}} s’est inscrit comme {{role}}."
+      "message": "Inscription de {{name}} — rôle : {{role}}."
     },
     "googleUserRegistered": {
       "title": "Nouvel utilisateur Google inscrit",
@@ -40,11 +40,11 @@
   "credits": {
     "submitted": {
       "title": "Demande de crédits envoyée",
-      "message": "Votre demande de {{credits}} crédits a été enregistrée. Un membre de l’équipe vous contactera dès que possible pour vous indiquer les étapes de paiement."
+      "message": "Votre demande de {{credits}} crédits est enregistrée. L’équipe vous contactera pour vous expliquer le paiement."
     },
     "confirmed": {
       "title": "Demande de crédits confirmée",
-      "message": "Votre demande de {{credits}} crédits a été confirmée. Les crédits apparaîtront lorsque l’administrateur aura effectué le dépôt."
+      "message": "Votre paiement est confirmé. Un administrateur ajoutera vos {{credits}} crédits."
     },
     "cancelled": {
       "title": "Demande de crédits annulée",

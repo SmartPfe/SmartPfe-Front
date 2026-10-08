@@ -1660,7 +1660,7 @@ function AttemptHistory({
   onSelectAttempt: (attempt: JuryAttempt) => void;
   selectedId?: string;
 }) {
-  const { t } = useTranslation("jury");
+  const { t, i18n } = useTranslation("jury");
   const displayReadinessLevel = (value: string | null | undefined) => {
     const keys: Record<string, string> = {
       "Not Ready": "qa.readinessLevels.notReady",
@@ -1717,7 +1717,7 @@ function AttemptHistory({
                     : t("simulation.results.qaNotStarted")}
               </p>
               <p className="mt-0.5 text-xs text-on-surface font-mono">
-                {attempt.createdAt ? new Date(attempt.createdAt).toLocaleDateString() : formatDuration(attempt.actualSeconds)}
+                {attempt.createdAt ? new Date(attempt.createdAt).toLocaleDateString(i18n.resolvedLanguage || "en") : formatDuration(attempt.actualSeconds)}
               </p>
             </button>
           );

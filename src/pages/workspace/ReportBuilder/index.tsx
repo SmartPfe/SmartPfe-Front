@@ -1535,7 +1535,7 @@ function ReportOverviewDashboard({
   onSelectSection: (sectionId: string) => void;
   sourceFingerprint: string;
 }) {
-  const { t } = useTranslation("report");
+  const { t, i18n } = useTranslation("report");
   const [collapsedOverviewChapters, setCollapsedOverviewChapters] = useState<Record<string, boolean>>({});
 
   const nextPendingSection =
@@ -1679,7 +1679,7 @@ function ReportOverviewDashboard({
           </div>
           <div className="flex items-baseline gap-2">
             <span className="text-2xl font-bold font-mono tracking-tight text-purple-600 dark:text-purple-400">
-              {totalWords.toLocaleString()}
+              {totalWords.toLocaleString(i18n.resolvedLanguage || "en")}
             </span>
             <span className="text-xs text-on-surface-variant font-medium">{t("overview.words")}</span>
           </div>

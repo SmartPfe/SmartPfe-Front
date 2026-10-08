@@ -31,6 +31,77 @@ import Presentation from '../src/pages/workspace/Presentation/index';
 import Pitch, { getPitchExportCopy } from '../src/pages/workspace/Pitch/index';
 import { OnboardingProvider } from '../src/context/OnboardingContext';
 import JuryQASession from '../src/pages/workspace/JuryQA/JuryQASession';
+import PresentationRoute from '../src/pages/workspace/Presentation';
+import PitchRoute from '../src/pages/workspace/Pitch';
+import InfoTooltip from '../src/components/ui/InfoTooltip';
+
+test('live delivery route wrappers resolve to the localized page implementations', () => {
+  assert.equal(PresentationRoute, Presentation);
+  assert.equal(PitchRoute, Pitch);
+  const appSource = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
+  assert.match(appSource, /import ReportBuilder from ["']\.\/pages\/workspace\/ReportBuilder\/index["']/);
+});
+
+test('every UI/content language combination preserves project data and an active generation', async t => {
+  for (const uiLanguage of ['en', 'fr'] as const) {
+    for (const contentLanguage of ['English', 'French', 'Arabic']) {
+      await t.test(`${uiLanguage} UI / ${contentLanguage} content`, async child => {
+        const project = { _id: 'matrix-project', basics: { language: contentLanguage }, actorsLanguage: contentLanguage };
+        const originalActor = { _id: 'matrix-actor', name: 'Original English name', description: 'Contenu utilisateur à conserver', type: 'primary', icon: 'person' };
+        const generatedActor = { ...originalActor, name: `Generated in ${contentLanguage}` };
+        const requests: Array<{ url: string; options?: RequestInit }> = [];
+        let complete!: (response: FetchResponse) => void;
+        const env = installBrowser(child, async (input, options) => {
+          const url = String(input);
+          requests.push({ url, options });
+          if (url.endsWith('/auth/preferences')) return jsonResponse({ uiLanguage: options?.method === 'PUT' ? JSON.parse(String(options.body)).uiLanguage : uiLanguage });
+          if (url.endsWith('/ai/actors/generate')) return new Promise(resolve => { complete = resolve; });
+          const body = url.endsWith('/my-project') ? project : { actors: [originalActor] };
+          return { ...jsonResponse(body), headers: new Headers({ 'content-type': 'application/json' }) };
+        });
+        identity(env.browser.localStorage, 'matrix-account', 'matrix-token', uiLanguage);
+        const projectKey = 'smartpfe:matrix:project';
+        env.browser.localStorage.setItem(projectKey, JSON.stringify(project));
+        let actorsState: ReturnType<typeof useActors>;
+        function MatrixHarness() {
+          const { uiLanguage: currentUiLanguage, setUiLanguage } = useInterfaceLanguage();
+          actorsState = useActors();
+          return <>
+            <button onClick={() => void actorsState.generateWithAi()}>Generate</button>
+            <button onClick={() => void setUiLanguage(currentUiLanguage === 'en' ? 'fr' : 'en')}>Switch interface</button>
+            <output>{JSON.stringify({ actors: actorsState.actors, project: actorsState.project, suggestion: actorsState.suggestion })}</output>
+          </>;
+        }
+        await act(async () => {
+          env.root.render(<MemoryRouter><InterfaceLanguageProvider><AiGenerationProvider><MatrixHarness /></AiGenerationProvider></InterfaceLanguageProvider></MemoryRouter>);
+        });
+        assert.equal(actorsState!.projectLanguage, { English: 'en', French: 'fr', Arabic: 'ar' }[contentLanguage]);
+        const loadedData = env.container.querySelector('output')!.textContent;
+        const afterLoad = requests.length;
+        // Starting generation is explicit; a UI switch alone must never start it.
+        await act(async () => { env.container.querySelectorAll('button')[1].click(); });
+        assert.equal(env.container.querySelector('output')!.textContent, loadedData);
+        assert.deepEqual(requests.slice(afterLoad).map(request => JSON.parse(String(request.options?.body))), [{ uiLanguage: uiLanguage === 'en' ? 'fr' : 'en' }]);
+        await act(async () => { env.container.querySelectorAll('button')[0].click(); });
+        const generation = requests.find(request => request.url.endsWith('/ai/actors/generate'))!;
+        assert.ok(generation);
+        assert.equal(generation.options?.body, undefined); // The server reads the existing project preference.
+        const beforeActiveSwitch = requests.length;
+        await act(async () => { env.container.querySelectorAll('button')[1].click(); });
+        assert.equal(requests.filter(request => request.url.endsWith('/ai/actors/generate')).length, 1);
+        assert.equal(generation.options?.signal?.aborted, false);
+        assert.equal(requests.length, beforeActiveSwitch + 1);
+        assert.deepEqual(JSON.parse(String(requests.at(-1)?.options?.body)), { uiLanguage });
+        assert.equal(env.container.querySelector('output')!.textContent, loadedData);
+        assert.equal(env.browser.localStorage.getItem(projectKey), JSON.stringify(project));
+        assert.equal(requests.some(request => request.options?.method === 'PUT' && !request.url.endsWith('/auth/preferences')), false);
+        await act(async () => { complete({ ...jsonResponse({ actors: [generatedActor] }), headers: new Headers({ 'content-type': 'application/json' }) } as FetchResponse); });
+        assert.deepEqual(actorsState!.actors, [originalActor]);
+        assert.deepEqual(actorsState!.suggestion, [generatedActor]);
+      });
+    }
+  }
+});
 
 test('Google SDK bootstrap follows account/device UI preference and ignores content language', () => {
   const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
@@ -123,6 +194,28 @@ async function renderProvider(root: Root) {
 function jsonResponse(body: unknown, ok = true): FetchResponse {
   return { ok, json: async () => body };
 }
+
+test('help tooltips are keyboard accessible, stay inside the viewport and dismiss without moving focus', async t => {
+  const env = installBrowser(t, async () => { throw new Error('No requests expected'); });
+  await act(async () => { env.root.render(<InfoTooltip label="Aide en français" tooltip="Une explication utile." />); });
+  const button = env.container.querySelector('button')!;
+  const tooltip = env.container.querySelector('[role="tooltip"]')! as HTMLElement;
+  assert.equal(button.getAttribute('aria-describedby'), tooltip.id);
+  assert.equal(button.getAttribute('aria-label'), 'Aide en français');
+  button.getBoundingClientRect = () => ({ left: env.browser.innerWidth - 28, right: env.browser.innerWidth, top: 100, bottom: 128, width: 28, height: 28, x: 0, y: 100, toJSON: () => ({}) });
+  await act(async () => { button.focus(); });
+  assert.ok(tooltip.classList.contains('visible'));
+  assert.ok(parseFloat(tooltip.style.left) >= 16);
+  assert.ok(parseFloat(tooltip.style.left) + parseFloat(tooltip.style.width) <= env.browser.innerWidth - 16);
+  assert.ok(parseFloat(tooltip.style.top) + parseFloat(tooltip.style.maxHeight) <= env.browser.innerHeight - 16);
+  await act(async () => { button.dispatchEvent(new env.browser.KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); });
+  assert.ok(tooltip.classList.contains('invisible'));
+  assert.equal(env.browser.document.activeElement, button);
+  await act(async () => { button.blur(); button.focus(); });
+  assert.ok(tooltip.classList.contains('visible'));
+  await act(async () => { env.browser.dispatchEvent(new env.browser.Event('scroll')); });
+  assert.ok(tooltip.classList.contains('invisible'));
+});
 
 function identity(storage: Storage, userId: string, token: string, uiLanguage = 'en') {
   storage.setItem('token', token);
@@ -325,6 +418,23 @@ test('translated UI messages preserve interpolation arguments', () => {
     for (const [key, message] of english) {
       assert.deepEqual(argumentsOf(french.get(key) || ''), argumentsOf(message), `${namespace}:${key} interpolation must match`);
     }
+  }
+});
+
+test('counted interface labels use singular and plural forms in both languages', () => {
+  const cases = [
+    ['delivery', 'presentation.slideCount', 'slide', 'diapositive', 'slides', 'diapositives'],
+    ['jury', 'simulation.slidesReady', 'Slide Ready', 'diapositive prête', 'Slides Ready', 'diapositives prêtes'],
+    ['report', 'overview.wordsCount', 'word', 'mot', 'words', 'mots'],
+    ['adminCredits', 'economy.actions', 'Action', 'action', 'Actions', 'actions'],
+    ['adminManagement', 'dashboard.studentsCount', 'student', 'étudiant', 'students', 'étudiants'],
+    ['adminManagement', 'dashboard.projectsCount', 'project', 'projet', 'projects', 'projets'],
+  ];
+  for (const [ns, key, english, french, englishPlural, frenchPlural] of cases) {
+    assert.equal(i18n.t(key, { ns, lng: 'en', count: 1 }), `1 ${english}`);
+    assert.equal(i18n.t(key, { ns, lng: 'fr', count: 1 }), `1 ${french}`);
+    assert.equal(i18n.t(key, { ns, lng: 'en', count: 2 }), `2 ${englishPlural}`);
+    assert.equal(i18n.t(key, { ns, lng: 'fr', count: 2 }), `2 ${frenchPlural}`);
   }
 });
 
@@ -585,7 +695,7 @@ test('Actors local validation is visible and updates language without a save req
   });
   const initialRequests = requests.length;
   await act(async () => {
-    const saveButton = [...env.container.querySelectorAll('button')].find(button => button.textContent?.trim() === 'Enregistrer maintenant');
+    const saveButton = [...env.container.querySelectorAll('button')].find(button => button.textContent?.trim() === i18n.t('saveStatus.saveNow', { ns: 'controls', lng: 'fr' }));
     assert.ok(saveButton);
     saveButton.dispatchEvent(new env.browser.MouseEvent('click', { bubbles: true }));
   });
@@ -828,8 +938,25 @@ test('a French credit request drawer preserves purchased amount, currency, packa
   assert.ok(env.browser.document.body.textContent?.includes(request.adminNote));
   assert.ok(env.browser.document.body.textContent?.includes(request.packageLabel));
   assert.ok(env.browser.document.body.textContent?.includes('29,50 TND'));
+  assert.ok(env.browser.document.body.textContent?.includes('ID de demande'));
+  assert.equal(env.browser.document.body.textContent?.includes('requestDetails.requestId'), false);
   assert.ok(env.browser.document.body.textContent?.includes(new Intl.NumberFormat('fr').format(1250)));
   assert.equal(calls, count);
+});
+
+test('credit activity details have localized heading and accessible close label', async t => {
+  const transaction = { _id: 'activity-test', kind: 'welcome', status: 'settled', promotionalDelta: 20, purchasedDelta: 0, createdAt: '2026-10-08T12:00:00Z' };
+  const env = installBrowser(t, async () => ({ ...jsonResponse({ items: [transaction], total: 1, page: 1, pages: 1, limit: 10 }), headers: new Headers({ 'content-type': 'application/json' }) }));
+  await act(async () => {
+    await i18n.changeLanguage('fr');
+    env.root.render(<MemoryRouter initialEntries={['/workspace/settings/credits?view=transactions']}><CreditProvider><CreditHistory /></CreditProvider></MemoryRouter>);
+  });
+  await act(async () => { env.container.querySelector('#credit-history-panel button')!.dispatchEvent(new env.browser.MouseEvent('click', { bubbles: true })); });
+  assert.ok(env.browser.document.querySelector('button[aria-label="Fermer les détails de l’activité"]'));
+  assert.equal(env.browser.document.querySelector('#credit-activity-title')?.textContent, 'Détails de l’activité');
+  await act(async () => { await i18n.changeLanguage('en'); });
+  assert.ok(env.browser.document.querySelector('button[aria-label="Close activity details"]'));
+  assert.equal(env.browser.document.querySelector('#credit-activity-title')?.textContent, 'Activity details');
 });
 
 test('an unsaved credit-policy timezone choice survives interface switching without an API write', async t => {

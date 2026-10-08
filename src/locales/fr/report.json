@@ -13,7 +13,7 @@
   "languages": { "en": "anglais", "fr": "français", "ar": "arabe" },
   "header": {
     "eyebrow": "Rédaction et présentation académique",
-    "title": "Rédacteur de rapport académique",
+    "title": "Rédaction du rapport",
     "tooltipLabel": "Rédaction du rapport",
     "tooltip": "Rédigez, générez, améliorez et compilez votre mémoire de fin d’études, chapitre par chapitre avec l’aide de l’IA.",
     "description": "Générez et améliorez des chapitres académiques à partir du contexte méthodologique complet de votre projet.",
@@ -60,6 +60,8 @@
     "appliesSelection": "S’applique au texte sélectionné",
     "appliesSection": "S’applique à toute la section",
     "selectionActive": "Sélection active ({{count}} mots) : les actions rapides modifieront uniquement la sélection.",
+    "selectionActive_one": "Sélection active ({{count}} mot) : les actions rapides modifieront uniquement la sélection.",
+    "selectionActive_other": "Sélection active ({{count}} mots) : les actions rapides modifieront uniquement la sélection.",
     "clearSelection": "Effacer",
     "selectionHelp": "Sélectionnez un passage dans l’éditeur pour améliorer ou développer uniquement ce texte.",
     "word": "mot",
@@ -93,7 +95,7 @@
     "drafted": "Rédigé",
     "notStarted": "Pas commencé",
     "chapterContainer": "Conteneur de chapitre",
-    "syncOutdated": "Synchronisation à actualiser",
+    "syncOutdated": "À resynchroniser",
     "draftInProgress": "Brouillon en cours",
     "notDrafted": "Pas rédigé",
     "generatingTitle": "Génération du brouillon…"
@@ -136,7 +138,7 @@
   "source": { "empty": "Aucune source générée pour le moment." },
   "overview": {
     "hub": "Espace de compilation du mémoire",
-    "chapterCounts": "{{chapters}} chapitres • {{sections}} sous-sections",
+    "chapterCounts": "Chapitres : {{chapters}} • Sous-sections : {{sections}}",
     "progressTitle": "Avancement du rapport académique",
     "resumeDrafting": "Reprendre la rédaction ({{number}})",
     "compiling": "Compilation…",
@@ -145,7 +147,7 @@
     "approvedDone": "Approuvé et terminé",
     "syncHealth": "État de synchronisation",
     "outdated": "à actualiser",
-    "resync": "Synchroniser à nouveau",
+    "resync": "Resynchroniser",
     "synced": "Synchronisé",
     "earlierUpdated": "Les données précédentes du projet ont été modifiées",
     "allUpToDate": "Tous les chapitres sont à jour",
@@ -156,7 +158,9 @@
     "clickSection": "Cliquez sur une section pour la modifier",
     "draftedCount": "{{count}} rédigées",
     "complete": "Terminé",
-    "wordsCount": "{{count}} mots"
+    "wordsCount": "{{count}} mots",
+    "wordsCount_one": "{{count}} mot",
+    "wordsCount_other": "{{count}} mots"
   },
   "compilation": {
     "title": "Compilation finale du mémoire",

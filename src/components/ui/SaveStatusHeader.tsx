@@ -39,7 +39,7 @@ export default function SaveStatusHeader({
   const isUnsaved = status === "unsaved";
 
   return (
-    <div className={cn("flex items-center gap-3 shrink-0 self-start sm:self-auto select-none", className)}>
+    <div className={cn("flex max-w-full flex-wrap items-center gap-2 shrink-0 self-start sm:self-auto select-none", className)}>
       <span
         className={cn(
           "text-xs font-medium px-2.5 py-1 rounded-full border transition-all duration-150",
@@ -54,7 +54,7 @@ export default function SaveStatusHeader({
         type="button"
         onClick={onSave}
         disabled={isSaving || isBusy}
-        className="h-9 px-4 rounded-lg bg-primary text-on-primary text-[13px] font-semibold tracking-tight hover:bg-primary/90 transition-all duration-150 shadow-2xs active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+        className="min-h-9 px-4 py-2 rounded-lg bg-primary text-on-primary text-[13px] font-semibold tracking-tight hover:bg-primary/90 transition-all duration-150 shadow-2xs active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
       >
         {resolvedSaveButtonLabel}
       </button>

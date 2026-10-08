@@ -14,6 +14,8 @@
     "targetDuration": "Durée cible",
     "minutes": "min",
     "slideCount": "{{count}} diapositives",
+    "slideCount_one": "{{count}} diapositive",
+    "slideCount_other": "{{count}} diapositives",
     "pacingEmpty": "L’IA adaptera le nombre de diapositives et le rythme",
     "pacingAverage": "{{minutes}} min en moyenne par diapositive",
     "refineDisabled": "Sélectionnez une diapositive avant de demander une amélioration",
@@ -35,7 +37,7 @@
     "deleteSlide": "Supprimer la diapositive",
     "bulletPoints": "Points clés",
     "bulletPlaceholder": "Un point par ligne",
-    "speakerTalkingPoints": "Notes orales du présentateur",
+    "speakerTalkingPoints": "Notes du présentateur",
     "notesPlaceholder": "Que doit dire le présentateur pendant cette diapositive ?",
     "errors": {
       "load": "Échec du chargement de la présentation. Actualisez la page.",
@@ -48,7 +50,7 @@
       "translate": "Échec de la traduction de la présentation par l’IA. Veuillez réessayer."
     },
     "tasks": {
-      "generate": "Génération de {{minutes}} minutes des diapositives par l’IA...",
+      "generate": "Création par l’IA d’un diaporama de {{minutes}} minutes…",
       "refineSlide": "Amélioration de la diapositive sélectionnée par l’IA...",
       "refineDeck": "Amélioration des diapositives par l’IA...",
       "translateSlide": "Traduction de la diapositive en {{language}}..."
@@ -82,7 +84,7 @@
     "durationMinutes": "{{minutes}} min {{seconds}} s",
     "languageNames": { "english": "anglais", "french": "français", "arabic": "arabe" },
     "speechPlaceholder": "Générez le discours avec l’IA ou commencez à le rédiger pour cette diapositive...",
-    "speakerDeliveryTips": "Conseils de présentation orale",
+    "speakerDeliveryTips": "Conseils pour la prise de parole",
     "tipsPlaceholder": "Accentuation, pauses, transitions ou erreurs à éviter.",
     "errors": {
       "load": "Échec du chargement du discours. Actualisez la page.",

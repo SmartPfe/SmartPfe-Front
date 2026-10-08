@@ -13,7 +13,7 @@
   },
   "wallet": {
     "available": "Crédits disponibles",
-    "dailyWelcome": "Quotidiens et de bienvenue",
+    "dailyWelcome": "Quotidiens et bonus de bienvenue",
     "purchased": "Crédits achetés",
     "credits": "crédits",
     "howItWorksTitle": "Fonctionnement des demandes de crédits",
@@ -46,7 +46,7 @@
     "dailyRefill": "Recharge quotidienne",
     "usage": "Utilisation de l’IA",
     "purchase": "Achat",
-    "adminAdjustment": "Ajustement / achat de crédits",
+    "adminAdjustment": "Ajustement ou achat de crédits",
     "refund": "Remboursement"
   },
   "actions": {
@@ -72,6 +72,8 @@
     "translation": "Traduction"
   },
   "transaction": {
+    "activityDetails": "Détails de l’activité",
+    "closeActivityAria": "Fermer les détails de l’activité",
     "creditPurchase": "Achat de crédits",
     "welcomeCredits": "Crédits de bienvenue",
     "dailyRefill": "Recharge quotidienne",
@@ -114,6 +116,7 @@
     "range": "{{start}}–{{end}} sur {{total}} {{kind}}"
   },
   "requestDetails": {
+    "requestId": "ID de demande",
     "title": "Détails de la demande",
     "closeAria": "Fermer les détails de la demande",
     "loading": "Chargement de la demande…",

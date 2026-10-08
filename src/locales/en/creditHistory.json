@@ -72,6 +72,8 @@
     "translation": "Translation"
   },
   "transaction": {
+    "activityDetails": "Activity details",
+    "closeActivityAria": "Close activity details",
     "creditPurchase": "Credit purchase",
     "welcomeCredits": "Welcome credits",
     "dailyRefill": "Daily refill",
@@ -114,6 +116,7 @@
     "range": "{{start}}–{{end}} of {{total}} {{kind}}"
   },
   "requestDetails": {
+    "requestId": "Request ID",
     "title": "Request details",
     "closeAria": "Close request details",
     "loading": "Loading request…",
