@@ -1,0 +1,23 @@
+# SmartPFE code navigation index
+.graphify/
+graphify-code.ps1
+node_modules/
+.git/
+.venv*/
+venv/
+env/
+__pycache__/
+dist/
+build/
+coverage/
+graphify-out/
+.agents/
+.gemini/
+.codex/
+.env
+.env.*
+*.lock
+package-lock.json
+database_dump/
+uploads/
+rag-evaluation/results/
