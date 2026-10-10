@@ -36,17 +36,23 @@ export default function AccountSettings({
   const [connecting, setConnecting] = useState(false);
   const [showGoogleConnect, setShowGoogleConnect] = useState(false);
   const [linkPassword, setLinkPassword] = useState("");
+  const [googleLinkError, setGoogleLinkError] = useState<ApiMessage>("");
   const [signingOut, setSigningOut] = useState(false);
+
   const signOutEverywhere = async () => {
     setSigningOut(true);
     try {
-      await fetchApi('/auth/logout-all', { method: 'POST' });
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      navigate('/login', { replace: true });
-    } catch (error) { setError(apiMessage(error)); }
-    finally { setSigningOut(false); }
+      await fetchApi("/auth/logout-all", { method: "POST" });
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      navigate("/login", { replace: true });
+    } catch (error) {
+      setError(apiMessage(error));
+    } finally {
+      setSigningOut(false);
+    }
   };
+
   const [form, setForm] = useState<AccountForm>({
     fullName: "",
     email: "",
@@ -75,9 +81,13 @@ export default function AccountSettings({
     }));
 
     let active = true;
-    fetchApi("/auth/profile").then((profile) => {
-      if (active) setForm((current) => ({ ...current, ...profile }));
-    }).catch((error) => { if (active) setError(apiMessage(error)); });
+    fetchApi("/auth/profile")
+      .then((profile) => {
+        if (active) setForm((current) => ({ ...current, ...profile }));
+      })
+      .catch((error) => {
+        if (active) setError(apiMessage(error));
+      });
     const clearAutofilledPasswords = window.setTimeout(() => {
       setForm((current) => ({
         ...current,
@@ -87,16 +97,21 @@ export default function AccountSettings({
       }));
     }, 100);
 
-    return () => { active = false; window.clearTimeout(clearAutofilledPasswords); };
+    return () => {
+      active = false;
+      window.clearTimeout(clearAutofilledPasswords);
+    };
   }, []);
 
   const isGoogleAccount = form.hasPassword === false || (form.hasPassword === undefined && form.authProvider === "google");
-  const displayBackLabel = backLabel === "Back to Admin Dashboard"
-    ? t("account.backToAdmin")
-    : backLabel ?? t("account.backToSettings");
-  const displayMemberLabel = memberLabel === "Administrator"
-    ? t("account.administrator")
-    : memberLabel ?? t("account.studentMember");
+  const displayBackLabel =
+    backLabel === "Back to Admin Dashboard"
+      ? t("account.backToAdmin")
+      : backLabel ?? t("account.backToSettings");
+  const displayMemberLabel =
+    memberLabel === "Administrator"
+      ? t("account.administrator")
+      : memberLabel ?? t("account.studentMember");
   const wantsPasswordChange = Boolean(form.currentPassword || form.newPassword || form.confirmPassword);
   const newPasswordHasMinLength = [...form.newPassword].length >= MIN_PASSWORD_CHARACTERS;
   const newPasswordFitsStorage = new TextEncoder().encode(form.newPassword).length <= MAX_PASSWORD_BYTES;
@@ -131,7 +146,10 @@ export default function AccountSettings({
       }
 
       const passwordError = passwordPolicyError(form.newPassword);
-      if (passwordError) { setErrorKey(passwordError); return; }
+      if (passwordError) {
+        setErrorKey(passwordError);
+        return;
+      }
 
       if (!confirmationMatches) {
         setErrorKey("account.passwordMismatch");
@@ -176,9 +194,7 @@ export default function AccountSettings({
       }));
       setSaved(true);
       setSuccessMessageKey(
-        wantsPasswordChange
-          ? "account.profileAndPasswordSaved"
-          : "account.saved"
+        wantsPasswordChange ? "account.profileAndPasswordSaved" : "account.saved"
       );
       window.setTimeout(() => setSaved(false), 2400);
     } catch (err) {
@@ -190,30 +206,34 @@ export default function AccountSettings({
   };
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col h-full pb-24 font-sans">
-      {/* Header & Notion Back Navigation */}
-      <header className="mb-6 flex flex-col gap-2">
-        <Link
-          to={backTo}
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-on-surface-variant hover:text-primary transition-colors cursor-pointer w-fit"
-        >
-          <HugeiconsIcon icon="arrow-left" size={14} strokeWidth={2} />
-          <span>{displayBackLabel}</span>
-        </Link>
+    <div className="mx-auto flex w-full max-w-4xl flex-col font-sans pb-16">
+      {/* Top Header & Breadcrumb */}
+      <div className="mb-6 flex flex-col gap-3">
+        <div className="flex items-center gap-2 text-xs font-semibold text-on-surface-variant">
+          <Link
+            to={backTo}
+            className="hover:text-primary transition-colors flex items-center gap-1 group"
+          >
+            <HugeiconsIcon icon="arrow-left" size={13} className="group-hover:-translate-x-0.5 transition-transform" />
+            <span>{displayBackLabel}</span>
+          </Link>
+          <span className="text-outline-variant/60">/</span>
+          <span className="text-on-surface">{t("account.title")}</span>
+        </div>
 
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-1">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-outline-variant/50">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-on-surface">
               {t("account.title")}
             </h1>
-            <p className="text-xs sm:text-sm text-on-surface-variant max-w-xl leading-relaxed mt-1">
+            <p className="mt-1 text-xs sm:text-sm text-on-surface-variant leading-relaxed max-w-2xl">
               {t("account.description")}
             </p>
           </div>
         </div>
-      </header>
+      </div>
 
-      {/* Google Account Notice */}
+      {/* Google Account Notice (for pure Google SSO users) */}
       {isGoogleAccount && (
         <div className="mb-6 rounded-2xl border border-outline-variant/80 bg-surface-container-low/60 p-4 text-on-surface flex items-start gap-3 shadow-2xs">
           <div className="w-9 h-9 rounded-xl bg-surface border border-outline-variant/80 flex items-center justify-center shrink-0 shadow-2xs">
@@ -228,15 +248,15 @@ export default function AccountSettings({
         </div>
       )}
 
-      {/* Success Notification */}
+      {/* Global Success Notification */}
       {saved && (
-        <div className="mb-6 flex items-center gap-2.5 rounded-xl border border-secondary/30 bg-secondary/10 px-4 py-3 text-secondary text-xs font-semibold shadow-2xs animate-in fade-in duration-200">
+        <div className="mb-6 flex items-center gap-2.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-emerald-700 dark:text-emerald-400 text-xs font-semibold shadow-2xs animate-in fade-in duration-200">
           <HugeiconsIcon icon="checkmark-circle-02" size={18} strokeWidth={2} className="shrink-0" />
           <span>{t(successMessageKey || "account.saved")}</span>
         </div>
       )}
 
-      {/* Error Notification */}
+      {/* Global Error Notification (Profile & Password only) */}
       {(errorKey || error) && (
         <div className="mb-6 flex items-center gap-2.5 rounded-xl border border-error/30 bg-error/10 px-4 py-3 text-error text-xs font-semibold shadow-2xs animate-in fade-in duration-200">
           <HugeiconsIcon icon="cancel-circle" size={18} strokeWidth={2} className="shrink-0" />
@@ -244,151 +264,375 @@ export default function AccountSettings({
         </div>
       )}
 
-      {/* Profile Form Card */}
-      <section className="bg-surface-container-lowest border border-outline-variant/80 rounded-2xl p-6 shadow-2xs flex flex-col gap-6">
-        <div className="flex items-center gap-4 pb-5 border-b border-outline-variant/40">
-          <div className="w-14 h-14 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center font-bold text-base overflow-hidden shrink-0 shadow-2xs">
-            {form.avatar ? (
-              <img src={form.avatar} alt={t("account.avatarAlt")} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-            ) : (
-              (form.fullName || "U").substring(0, 2).toUpperCase()
-            )}
-          </div>
-          <div className="min-w-0">
-            <p className="text-base font-bold text-on-surface truncate">{form.fullName || t("account.studentAccount")}</p>
-            <p className="text-xs text-on-surface-variant truncate mt-0.5">{form.email}</p>
-            <span className="inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded bg-surface border border-outline-variant text-[10px] font-semibold text-outline-variant uppercase tracking-wide">
-              <span>{isGoogleAccount ? t("account.googleVerified") : displayMemberLabel}</span>
-            </span>
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-4">
-          <TextField
-            id="account-full-name"
-            label={t("account.fullName")}
-            value={form.fullName}
-            onChange={(fullName) => updateField("fullName", fullName)}
-            placeholder={t("account.fullNamePlaceholder")}
-            disabled={isGoogleAccount}
-          />
-          <TextField
-            id="account-email"
-            label={t("account.email")}
-            type="email"
-            value={form.email}
-            onChange={() => undefined}
-            disabled
-            helperText={t("account.emailUnchangeable")}
-          />
-        </div>
-
-        {!isGoogleAccount && (
-          <div className="border-t border-outline-variant/40 pt-5 flex flex-col gap-4">
+      {/* Main Settings Sections */}
+      <div className="space-y-6">
+        {/* Section 1: Profile & Personal Info */}
+        <section className="bg-surface-container-lowest border border-outline-variant/80 rounded-2xl p-5 sm:p-6 shadow-2xs flex flex-col gap-5">
+          <div className="flex items-start gap-3.5 pb-4 border-b border-outline-variant/40">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 border border-primary/20">
+              <HugeiconsIcon icon="user" size={19} strokeWidth={1.8} />
+            </div>
             <div>
-              <h2 className="text-sm font-bold text-on-surface">{t("account.changePassword")}</h2>
+              <h2 className="text-base font-bold text-on-surface">
+                Informations du profil
+              </h2>
               <p className="text-xs text-on-surface-variant mt-0.5 leading-relaxed">
-                {t("account.leavePasswordBlank")}
+                Votre identité et coordonnées universitaires.
               </p>
             </div>
+          </div>
+
+          <div className="flex items-center gap-4 pb-2">
+            <div className="w-14 h-14 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center font-bold text-base overflow-hidden shrink-0 shadow-2xs">
+              {form.avatar ? (
+                <img
+                  src={form.avatar}
+                  alt={t("account.avatarAlt")}
+                  className="w-full h-full object-cover"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                (form.fullName || "U").substring(0, 2).toUpperCase()
+              )}
+            </div>
+            <div className="min-w-0">
+              <p className="text-base font-bold text-on-surface truncate">
+                {form.fullName || t("account.studentAccount")}
+              </p>
+              <p className="text-xs text-on-surface-variant truncate mt-0.5">{form.email}</p>
+              <span className="inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded-md bg-surface border border-outline-variant/80 text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">
+                <span>{isGoogleAccount ? t("account.googleVerified") : displayMemberLabel}</span>
+              </span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <TextField
-              id="account-current-password"
-              name="manual-account-current-secret"
-              label={t("account.currentPassword")}
-              type="password"
-              value={form.currentPassword}
-              onChange={(currentPassword) => updateField("currentPassword", currentPassword)}
-              placeholder={t("account.currentPasswordPlaceholder")}
-              helperText={t("account.currentPasswordHelp")}
-              autoComplete="new-password"
+              id="account-full-name"
+              label={t("account.fullName")}
+              value={form.fullName}
+              onChange={(fullName) => updateField("fullName", fullName)}
+              placeholder={t("account.fullNamePlaceholder")}
+              disabled={isGoogleAccount}
             />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <TextField
-                id="account-new-password"
-                name="manual-account-new-secret"
-                label={t("account.newPassword")}
-                type="password"
-                value={form.newPassword}
-                onChange={(newPassword) => updateField("newPassword", newPassword)}
-                placeholder={t("account.newPasswordPlaceholder")}
-                autoComplete="new-password"
-              />
-              <TextField
-                id="account-confirm-password"
-                name="manual-account-confirm-secret"
-                label={t("account.confirmPassword")}
-                type="password"
-                value={form.confirmPassword}
-                onChange={(confirmPassword) => updateField("confirmPassword", confirmPassword)}
-                placeholder={t("account.confirmPasswordPlaceholder")}
-                autoComplete="new-password"
-              />
+            <TextField
+              id="account-email"
+              label={t("account.email")}
+              type="email"
+              value={form.email}
+              onChange={() => undefined}
+              disabled
+              helperText={t("account.emailUnchangeable")}
+            />
+          </div>
+        </section>
+
+        {/* Section 2: Password & Authentication */}
+        {!isGoogleAccount && (
+          <section className="bg-surface-container-lowest border border-outline-variant/80 rounded-2xl p-5 sm:p-6 shadow-2xs flex flex-col gap-5">
+            <div className="flex items-start gap-3.5 pb-4 border-b border-outline-variant/40">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-500/20">
+                <HugeiconsIcon icon="lock-password" size={19} strokeWidth={1.8} />
+              </div>
+              <div>
+                <h2 className="text-base font-bold text-on-surface">
+                  {t("account.changePassword")}
+                </h2>
+                <p className="text-xs text-on-surface-variant mt-0.5 leading-relaxed">
+                  {t("account.leavePasswordBlank")}
+                </p>
+              </div>
             </div>
 
-            {wantsPasswordChange && (
-              <div className="rounded-xl border border-outline-variant/60 bg-surface p-4">
-                <p className="text-xs font-bold text-on-surface mb-2">{t("account.passwordRequirements")}</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {passwordRules.map((rule) => (
-                    <div
-                      key={rule.label}
-                      className={`flex items-center gap-1.5 text-xs font-medium ${
-                        rule.isValid ? "text-secondary font-semibold" : "text-on-surface-variant"
-                      }`}
-                    >
-                      <HugeiconsIcon 
-                        icon={rule.isValid ? "checkmark-circle-02" : "time-02"} 
-                        size={14} 
-                        strokeWidth={2}
-                      />
-                      <span>{rule.label}</span>
+            <div className="flex flex-col gap-4">
+              <TextField
+                id="account-current-password"
+                name="manual-account-current-secret"
+                label={t("account.currentPassword")}
+                type="password"
+                value={form.currentPassword}
+                onChange={(currentPassword) => updateField("currentPassword", currentPassword)}
+                placeholder={t("account.currentPasswordPlaceholder")}
+                helperText={t("account.currentPasswordHelp")}
+                autoComplete="new-password"
+              />
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <TextField
+                  id="account-new-password"
+                  name="manual-account-new-secret"
+                  label={t("account.newPassword")}
+                  type="password"
+                  value={form.newPassword}
+                  onChange={(newPassword) => updateField("newPassword", newPassword)}
+                  placeholder={t("account.newPasswordPlaceholder")}
+                  autoComplete="new-password"
+                />
+                <TextField
+                  id="account-confirm-password"
+                  name="manual-account-confirm-secret"
+                  label={t("account.confirmPassword")}
+                  type="password"
+                  value={form.confirmPassword}
+                  onChange={(confirmPassword) => updateField("confirmPassword", confirmPassword)}
+                  placeholder={t("account.confirmPasswordPlaceholder")}
+                  autoComplete="new-password"
+                />
+              </div>
+
+              {wantsPasswordChange && (
+                <div className="rounded-xl border border-outline-variant/60 bg-surface p-4">
+                  <p className="text-xs font-bold text-on-surface mb-2">
+                    {t("account.passwordRequirements")}
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    {passwordRules.map((rule) => (
+                      <div
+                        key={rule.label}
+                        className={`flex items-center gap-1.5 text-xs font-medium ${
+                          rule.isValid ? "text-emerald-600 dark:text-emerald-400 font-semibold" : "text-on-surface-variant"
+                        }`}
+                      >
+                        <HugeiconsIcon
+                          icon={rule.isValid ? "checkmark-circle-02" : "time-02"}
+                          size={14}
+                          strokeWidth={2}
+                        />
+                        <span>{rule.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end pt-2">
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  disabled={!canSave}
+                  className="inline-flex items-center justify-center gap-2 h-9 px-5 rounded-xl bg-primary text-on-primary text-xs font-bold shadow-2xs hover:bg-primary/90 active:scale-98 transition-all disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  <HugeiconsIcon
+                    icon={loading ? "cloud-sync" : "cloud-check"}
+                    size={16}
+                    className={loading ? "animate-spin" : ""}
+                    strokeWidth={1.8}
+                  />
+                  <span>
+                    {loading
+                      ? t("account.saving")
+                      : wantsPasswordChange
+                      ? t("account.updatePassword")
+                      : t("account.saveChanges")}
+                  </span>
+                </button>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* Section 3: Connected Accounts (Google Linking) */}
+        <section className="bg-surface-container-lowest border border-outline-variant/80 rounded-2xl p-5 sm:p-6 shadow-2xs flex flex-col gap-5">
+          <div className="flex items-start gap-3.5 pb-4 border-b border-outline-variant/40">
+            <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 border border-blue-500/20">
+              <HugeiconsIcon icon={GoogleIcon} size={20} />
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-on-surface">
+                {t("account.googleTitle")}
+              </h2>
+              <p className="text-xs text-on-surface-variant mt-0.5 leading-relaxed">
+                {t(form.googleConnected ? "account.googleLinkedHelp" : "account.googleConnectHelp")}
+              </p>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-outline-variant/80 bg-surface p-4 flex flex-col gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3.5">
+                <div className="w-11 h-11 rounded-xl bg-surface border border-outline-variant/70 shadow-2xs flex items-center justify-center shrink-0">
+                  <HugeiconsIcon icon={GoogleIcon} size={22} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold text-on-surface">Google</span>
+                    {form.googleConnected && (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                        {t("account.googleLinked")}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-on-surface-variant mt-0.5">
+                    {form.googleConnected
+                      ? t("account.googleLinkedHelp")
+                      : t("account.googleConnectHelp")}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                {form.googleConnected ? (
+                  <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 shadow-2xs">
+                    <HugeiconsIcon icon="checkmark-circle-02" size={15} strokeWidth={2} />
+                    <span>{t("account.googleLinked")}</span>
+                  </div>
+                ) : !isGoogleAccount && !showGoogleConnect ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowGoogleConnect(true);
+                      setGoogleLinkError("");
+                    }}
+                    className="inline-flex items-center gap-2 h-9 px-4 rounded-xl border border-outline-variant/80 bg-surface hover:bg-surface-container text-xs font-bold text-on-surface shadow-2xs hover:border-primary/50 transition-all cursor-pointer"
+                  >
+                    <HugeiconsIcon icon={GoogleIcon} size={15} />
+                    <span>{t("account.connectGoogle")}</span>
+                  </button>
+                ) : null}
+              </div>
+            </div>
+
+            {/* Inline Google Link Form (Where the connection is, with INLINE errors) */}
+            {!form.googleConnected && !isGoogleAccount && showGoogleConnect && (
+              <div className="mt-2 rounded-xl border border-primary/20 bg-primary/5 dark:bg-primary/10 p-4 sm:p-5 flex flex-col gap-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 border border-primary/20">
+                    <HugeiconsIcon icon="lock-password" size={16} strokeWidth={1.8} />
+                  </div>
+                  <div>
+                    <h3 className="text-xs sm:text-sm font-bold text-on-surface">
+                      {t("account.confirmGooglePassword")}
+                    </h3>
+                    <p className="text-xs text-on-surface-variant mt-0.5 leading-relaxed">
+                      Pour autoriser l'association de votre compte Google, veuillez saisir votre mot de passe SmartPFE actuel.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-3">
+                  <TextField
+                    id="google-link-password"
+                    label={t("account.confirmGooglePassword")}
+                    type="password"
+                    value={linkPassword}
+                    onChange={(v) => {
+                      setLinkPassword(v);
+                      setGoogleLinkError("");
+                    }}
+                    placeholder="Saisissez votre mot de passe actuel"
+                    autoComplete="current-password"
+                    disabled={connecting}
+                  />
+
+                  {/* INLINE ERROR RIGHT AT THE CONNECTION CONTAINER */}
+                  {googleLinkError && (
+                    <div className="flex items-center gap-2 p-3 rounded-xl border border-error/30 bg-error/10 text-error text-xs font-semibold animate-in fade-in duration-150">
+                      <HugeiconsIcon icon="cancel-circle" size={16} className="shrink-0" />
+                      <span>{displayApiMessage(googleLinkError)}</span>
                     </div>
-                  ))}
+                  )}
+
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
+                    <div className="min-h-[44px] flex items-center">
+                      {linkPassword ? (
+                        <div className="w-full sm:w-auto">
+                          <GoogleLoginButton
+                            mode="connect"
+                            currentPassword={linkPassword}
+                            onError={(err) => setGoogleLinkError(err)}
+                            onLoading={setConnecting}
+                            onConnected={(profile) => {
+                              setForm((current) => ({
+                                ...current,
+                                googleConnected: profile.googleConnected,
+                                hasPassword: profile.hasPassword,
+                              }));
+                              setLinkPassword("");
+                              setShowGoogleConnect(false);
+                              setGoogleLinkError("");
+                              setSaved(true);
+                              setSuccessMessageKey("account.googleLinked");
+                            }}
+                          />
+                        </div>
+                      ) : (
+                        <p className="text-xs text-on-surface-variant italic">
+                          Saisissez votre mot de passe pour afficher le bouton d'association Google.
+                        </p>
+                      )}
+                    </div>
+
+                    <button
+                      type="button"
+                      disabled={connecting}
+                      onClick={() => {
+                        setShowGoogleConnect(false);
+                        setLinkPassword("");
+                        setGoogleLinkError("");
+                      }}
+                      className="h-9 px-4 rounded-xl border border-outline-variant/80 bg-surface hover:bg-surface-container text-xs font-semibold text-on-surface-variant hover:text-on-surface transition-all cursor-pointer self-start sm:self-auto shrink-0"
+                    >
+                      {t("account.cancelGoogleConnect")}
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
           </div>
-        )}
-      </section>
+        </section>
 
-      {/* Save Action Footer */}
-      {!isGoogleAccount && (
-        <footer className="flex justify-end pt-5 mt-5 border-t border-outline-variant/60">
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={!canSave}
-            className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-xl bg-primary text-on-primary text-xs font-bold shadow-2xs hover:bg-primary/90 active:scale-98 transition-all disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
-          >
-            <HugeiconsIcon icon={loading ? "cloud-sync" : "cloud-check"} size={16} className={loading ? "animate-spin" : ""} strokeWidth={1.8} />
-            <span>{loading ? t("account.saving") : wantsPasswordChange ? t("account.updatePassword") : t("account.saveChanges")}</span>
-          </button>
-        </footer>
-      )}
-      {children}
-      <section className="mt-8 border-t border-outline-variant/60 pt-6">
-        <h2 className="text-sm font-semibold">{t("account.googleTitle")}</h2>
-        <p className="mt-1 text-xs text-on-surface-variant">{t(form.googleConnected ? "account.googleLinkedHelp" : "account.googleConnectHelp")}</p>
-        {form.googleConnected ? <p className="mt-3 text-sm text-secondary">{t("account.googleLinked")}</p> : !isGoogleAccount && (
-          <div className="mt-3">
-            {!showGoogleConnect ? <button type="button" onClick={() => setShowGoogleConnect(true)} className="rounded-lg border border-outline-variant px-4 py-2 text-sm">{t("account.connectGoogle")}</button> : (
-              <div className="flex flex-col gap-3 rounded-xl border border-outline-variant p-4">
-                <TextField id="google-link-password" label={t("account.confirmGooglePassword")} type="password" value={linkPassword} onChange={setLinkPassword} autoComplete="current-password" disabled={connecting} />
-                {linkPassword && <GoogleLoginButton mode="connect" currentPassword={linkPassword} onError={setError} onLoading={setConnecting} onConnected={(profile) => {
-                  setForm(current => ({ ...current, googleConnected: profile.googleConnected, hasPassword: profile.hasPassword }));
-                  setLinkPassword(""); setShowGoogleConnect(false); setSaved(true); setSuccessMessageKey("account.googleLinked");
-                }} />}
-                <button type="button" disabled={connecting} onClick={() => { setShowGoogleConnect(false); setLinkPassword(""); }} className="text-xs text-on-surface-variant">{t("account.cancelGoogleConnect")}</button>
-              </div>
-            )}
+        {/* Section 4: Active Sessions */}
+        <section className="bg-surface-container-lowest border border-outline-variant/80 rounded-2xl p-5 sm:p-6 shadow-2xs flex flex-col gap-5">
+          <div className="flex items-start gap-3.5 pb-4 border-b border-outline-variant/40">
+            <div className="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 border border-rose-500/20">
+              <HugeiconsIcon icon="logout-01" size={19} strokeWidth={1.8} />
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-on-surface">
+                {t("account.sessionsTitle")}
+              </h2>
+              <p className="text-xs text-on-surface-variant mt-0.5 leading-relaxed">
+                {t("account.sessionsHelp")}
+              </p>
+            </div>
           </div>
-        )}
-      </section>
-      <section className="mt-8 border-t border-outline-variant/60 pt-6">
-        <h2 className="text-sm font-semibold">{t('account.sessionsTitle')}</h2>
-        <p className="mt-1 text-xs text-on-surface-variant">{t('account.sessionsHelp')}</p>
-        <button type="button" disabled={signingOut || loading} onClick={signOutEverywhere} className="mt-3 rounded-lg border border-outline-variant px-4 py-2 text-sm text-on-surface disabled:opacity-50">{t('account.signOutEverywhere')}</button>
-      </section>
+
+          <div className="rounded-xl border border-outline-variant/80 bg-surface p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-surface-container-low border border-outline-variant/60 flex items-center justify-center shrink-0 text-on-surface-variant">
+                <HugeiconsIcon icon="computer" size={20} />
+              </div>
+              <div>
+                <p className="text-xs sm:text-sm font-bold text-on-surface">
+                  Tous les appareils et navigateurs
+                </p>
+                <p className="text-xs text-on-surface-variant mt-0.5">
+                  Déconnecte instantanément toutes les sessions actives sur tous vos appareils.
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              disabled={signingOut || loading}
+              onClick={signOutEverywhere}
+              className="inline-flex items-center justify-center gap-2 h-9 px-4 rounded-xl border border-error/30 bg-error/5 hover:bg-error/15 text-error text-xs font-bold shadow-2xs transition-all cursor-pointer disabled:opacity-50 shrink-0"
+            >
+              <HugeiconsIcon
+                icon={signingOut ? "cloud-sync" : "logout-01"}
+                size={15}
+                className={signingOut ? "animate-spin" : ""}
+                strokeWidth={1.8}
+              />
+              <span>{signingOut ? t("account.saving") : t("account.signOutEverywhere")}</span>
+            </button>
+          </div>
+        </section>
+
+        {/* Children (e.g., Admin Settings) */}
+        {children}
+      </div>
     </div>
   );
 }

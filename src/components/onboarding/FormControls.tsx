@@ -49,7 +49,6 @@ export function TextField({
   return (
     <div className="flex flex-col w-full">
       <FieldLabel id={id} label={label} required={required} />
-      {helperText && <p className="text-xs text-on-surface-variant mb-1.5 leading-relaxed">{helperText}</p>}
       <div className="relative w-full">
         <input
           id={id}
@@ -76,6 +75,7 @@ export function TextField({
           </button>
         )}
       </div>
+      {helperText && <p className="text-xs text-on-surface-variant mt-1.5 leading-relaxed">{helperText}</p>}
     </div>
   );
 }
@@ -98,7 +98,6 @@ export function TextAreaField({
   return (
     <div className="flex flex-col w-full">
       <FieldLabel id={id} label={label} required={required} />
-      {helperText && <p className="text-xs text-on-surface-variant mb-1.5 leading-relaxed">{helperText}</p>}
       <textarea
         id={id}
         rows={rows}
@@ -107,6 +106,7 @@ export function TextAreaField({
         placeholder={placeholder}
         className="w-full rounded-xl border border-outline-variant/80 bg-surface p-3.5 text-sm text-on-surface placeholder:text-on-surface-variant/40 focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none transition-all resize-y"
       />
+      {helperText && <p className="text-xs text-on-surface-variant mt-1.5 leading-relaxed">{helperText}</p>}
     </div>
   );
 }
@@ -130,7 +130,6 @@ export function SelectField({
   return (
     <div className="flex flex-col w-full">
       <FieldLabel id={id} label={label} required={required} />
-      {helperText && <p className="text-xs text-on-surface-variant mb-1.5 leading-relaxed">{helperText}</p>}
       <div className="relative w-full">
         <select
           id={id}
@@ -158,6 +157,7 @@ export function SelectField({
           </svg>
         </div>
       </div>
+      {helperText && <p className="text-xs text-on-surface-variant mt-1.5 leading-relaxed">{helperText}</p>}
     </div>
   );
 }
