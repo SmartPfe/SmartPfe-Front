@@ -42,7 +42,10 @@
     "passwordTooLong": "Password exceeds 72 UTF-8 bytes. Please shorten it.",
     "googleLinkRequired": "Sign in with your existing login method, then connect Google in Account & Security.",
     "googlePasswordRequired": "Confirm your current password to connect Google.",
-    "googleLinkConflict": "Choose the Google account with your SmartPFE email. An existing Google link cannot be replaced."
+    "googleLinkConflict": "The account changed or the Google account does not match. Please sign in again and choose the Google account with your SmartPFE email.",
+    "googleNotConnected": "Google is not connected to this account.",
+    "googlePasswordBeforeDisconnect": "Set a SmartPFE password before disconnecting Google so you can still sign in.",
+    "googleDisconnectFailed": "Could not disconnect Google. Please try again."
   },
   "common": {
     "serverError": "Server error",

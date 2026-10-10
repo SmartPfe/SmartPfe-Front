@@ -42,7 +42,10 @@
     "passwordTooLong": "Le mot de passe dépasse 72 octets UTF-8. Raccourcissez-le.",
     "googleLinkRequired": "Connectez-vous avec votre méthode habituelle, puis associez Google dans Compte et sécurité.",
     "googlePasswordRequired": "Confirmez votre mot de passe actuel pour associer Google.",
-    "googleLinkConflict": "Choisissez le compte Google associé à votre adresse SmartPFE. Un lien existant ne peut pas être remplacé."
+    "googleLinkConflict": "Le compte a changé ou le compte Google ne correspond pas. Reconnectez-vous et choisissez le compte Google associé à votre adresse SmartPFE.",
+    "googleNotConnected": "Aucun compte Google n’est associé à ce compte.",
+    "googlePasswordBeforeDisconnect": "Créez un mot de passe SmartPFE avant de dissocier Google pour pouvoir vous reconnecter.",
+    "googleDisconnectFailed": "Impossible de dissocier Google. Réessayez."
   },
   "common": {
     "serverError": "Erreur du serveur.",

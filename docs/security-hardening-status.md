@@ -1,7 +1,7 @@
 # Application security hardening — current status
 
 Implemented locally on 10 October 2026. Administrator MFA was deliberately excluded.
-No `.github` workflows were changed, and nothing was pushed or deployed.
+No `.github` workflows were changed. Live deployment status must be checked separately.
 This document supersedes the implementation statuses in the earlier reviews.
 
 | Step | Result |
@@ -21,7 +21,7 @@ tokens are stored correctly.
 
 ## Validation
 
-- 81 frontend tests, 70 backend tests, TypeScript check and production build pass.
+- 82 frontend tests, 73 backend tests, TypeScript check and production build pass.
 - Regression cases cover admin permissions, old-token rejection after reset/change/
   logout-all, authenticated SSE and URL-token rejection, contact limits, disguised
   audio, upload capacity on abort, and SVG attack samples.
@@ -72,6 +72,22 @@ bcrypt-boundary validation. Google tokens and database operations were controlle
 fixtures; no real account was linked or altered and no live exploit was attempted.
 The running public signup page was visually checked. Local Google linking still
 needs a user-driven end-to-end check with their real Google account.
+
+### Google account management follow-up
+
+The account card displays one connection badge, explicitly explains direct Google
+sign-in and shows the name/email obtained from a verified Google identity. Existing
+links without these details are refreshed on the next Google sign-in. Disconnect
+requires an authenticated session and current SmartPFE password, removes the link
+and stored Google profile, and revokes previous sessions while issuing a replacement
+for the current device. Google-only accounts must first set a password using the
+existing email reset flow to retain a sign-in method. Conditional database updates
+prevent concurrent link changes from restoring a disconnected identity.
+
+Tests cover missing sessions, structured/wrong passwords, Google-only lockout
+protection, account preservation, session revocation and concurrent changes. The
+EN/FR card, light/dark themes, wrong-password feedback and successful disconnect
+were checked in an isolated browser preview using a simulated account.
 
 ### Operational limit requiring a separate follow-up
 

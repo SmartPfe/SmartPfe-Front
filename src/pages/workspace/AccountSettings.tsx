@@ -14,6 +14,7 @@ type AccountForm = {
   avatar: string;
   authProvider: string;
   googleConnected?: boolean;
+  googleAccount?: { fullName: string; email: string } | null;
   hasPassword?: boolean;
   currentPassword: string;
   newPassword: string;
@@ -37,6 +38,10 @@ export default function AccountSettings({
   const [showGoogleConnect, setShowGoogleConnect] = useState(false);
   const [linkPassword, setLinkPassword] = useState("");
   const [googleLinkError, setGoogleLinkError] = useState<ApiMessage>("");
+  const [showGoogleDisconnect, setShowGoogleDisconnect] = useState(false);
+  const [disconnectPassword, setDisconnectPassword] = useState("");
+  const [disconnecting, setDisconnecting] = useState(false);
+  const [googleDisconnectError, setGoogleDisconnectError] = useState<ApiMessage>("");
   const [signingOut, setSigningOut] = useState(false);
 
   const signOutEverywhere = async () => {
@@ -77,6 +82,7 @@ export default function AccountSettings({
       avatar: user.avatar || "",
       authProvider: user.authProvider || "email",
       googleConnected: user.googleConnected ?? user.authProvider === "google",
+      googleAccount: user.googleAccount,
       hasPassword: user.hasPassword,
     }));
 
@@ -202,6 +208,31 @@ export default function AccountSettings({
       else setErrorKey("account.updateFailed");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDisconnectGoogle = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!disconnectPassword || disconnecting) return;
+    setDisconnecting(true);
+    setGoogleDisconnectError("");
+    try {
+      const { token, ...profile } = await fetchApi("/auth/google/disconnect", {
+        method: "POST", body: JSON.stringify({ currentPassword: disconnectPassword }),
+      });
+      localStorage.setItem("token", token);
+      localStorage.setItem("user", JSON.stringify(profile));
+      window.dispatchEvent(new Event("user-updated"));
+      setForm((current) => ({ ...current, ...profile }));
+      setShowGoogleDisconnect(false);
+      setDisconnectPassword("");
+      setSaved(true);
+      setSuccessMessageKey("account.googleDisconnected");
+      window.setTimeout(() => setSaved(false), 4000);
+    } catch (error) {
+      setGoogleDisconnectError(apiMessage(error));
+    } finally {
+      setDisconnecting(false);
     }
   };
 
@@ -449,13 +480,13 @@ export default function AccountSettings({
 
           <div className="rounded-xl border border-outline-variant/80 bg-surface p-4 flex flex-col gap-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-3.5">
+              <div className="flex min-w-0 items-center gap-3.5">
                 <div className="w-11 h-11 rounded-xl bg-surface border border-outline-variant/70 shadow-2xs flex items-center justify-center shrink-0">
                   <HugeiconsIcon icon={GoogleIcon} size={22} />
                 </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-bold text-on-surface">Google</span>
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm font-bold text-on-surface">{form.googleConnected && form.googleAccount?.fullName ? form.googleAccount.fullName : "Google"}</span>
                     {form.googleConnected && (
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
@@ -463,20 +494,20 @@ export default function AccountSettings({
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-on-surface-variant mt-0.5">
+                  <p className="text-xs text-on-surface-variant mt-0.5 break-all">
                     {form.googleConnected
-                      ? t("account.googleLinkedHelp")
-                      : t("account.googleConnectHelp")}
+                      ? form.googleAccount?.email || t("account.googleDetailsUnavailable")
+                      : t("account.googleNotConnected")}
                   </p>
                 </div>
               </div>
 
               <div className="flex items-center gap-2 shrink-0">
                 {form.googleConnected ? (
-                  <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 shadow-2xs">
-                    <HugeiconsIcon icon="checkmark-circle-02" size={15} strokeWidth={2} />
-                    <span>{t("account.googleLinked")}</span>
-                  </div>
+                  <button type="button" onClick={() => { setShowGoogleDisconnect(true); setGoogleDisconnectError(""); }}
+                    className="inline-flex items-center gap-2 h-9 px-4 rounded-xl border border-error/30 text-error hover:bg-error/5 text-xs font-bold transition-colors cursor-pointer">
+                    {t("account.disconnectGoogle")}
+                  </button>
                 ) : !isGoogleAccount && !showGoogleConnect ? (
                   <button
                     type="button"
@@ -505,7 +536,7 @@ export default function AccountSettings({
                       {t("account.confirmGooglePassword")}
                     </h3>
                     <p className="text-xs text-on-surface-variant mt-0.5 leading-relaxed">
-                      Pour autoriser l'association de votre compte Google, veuillez saisir votre mot de passe SmartPFE actuel.
+                      {t("account.googlePasswordHelp")}
                     </p>
                   </div>
                 </div>
@@ -520,7 +551,7 @@ export default function AccountSettings({
                       setLinkPassword(v);
                       setGoogleLinkError("");
                     }}
-                    placeholder="Saisissez votre mot de passe actuel"
+                    placeholder={t("account.currentPasswordPlaceholder")}
                     autoComplete="current-password"
                     disabled={connecting}
                   />
@@ -546,19 +577,20 @@ export default function AccountSettings({
                               setForm((current) => ({
                                 ...current,
                                 googleConnected: profile.googleConnected,
+                                googleAccount: profile.googleAccount,
                                 hasPassword: profile.hasPassword,
                               }));
                               setLinkPassword("");
                               setShowGoogleConnect(false);
                               setGoogleLinkError("");
-                              setSaved(true);
-                              setSuccessMessageKey("account.googleLinked");
+                              setSaved(false);
+                              setSuccessMessageKey("");
                             }}
                           />
                         </div>
                       ) : (
                         <p className="text-xs text-on-surface-variant italic">
-                          Saisissez votre mot de passe pour afficher le bouton d'association Google.
+                          {t("account.googleEnterPassword")}
                         </p>
                       )}
                     </div>
@@ -578,6 +610,36 @@ export default function AccountSettings({
                   </div>
                 </div>
               </div>
+            )}
+            {form.googleConnected && showGoogleDisconnect && (
+              <form onSubmit={handleDisconnectGoogle} className="rounded-xl border border-error/20 bg-error/5 p-4 sm:p-5 space-y-4">
+                <div>
+                  <h3 className="text-sm font-bold text-on-surface">{t("account.disconnectGoogle")}</h3>
+                  <p className="mt-1 text-xs leading-relaxed text-on-surface-variant">
+                    {t(isGoogleAccount ? "account.googleSetPasswordFirst" : "account.googleDisconnectHelp")}
+                  </p>
+                </div>
+                {!isGoogleAccount && (
+                  <TextField id="google-disconnect-password" label={t("account.confirmGooglePassword")} type="password"
+                    value={disconnectPassword} onChange={(value) => { setDisconnectPassword(value); setGoogleDisconnectError(""); }}
+                    placeholder={t("account.currentPasswordPlaceholder")} autoComplete="current-password" disabled={disconnecting} />
+                )}
+                {googleDisconnectError && <p role="alert" className="text-xs text-error">{displayApiMessage(googleDisconnectError)}</p>}
+                <div className="flex flex-wrap items-center gap-3">
+                  {isGoogleAccount ? (
+                    <Link to="/forgot-password" className="text-xs font-bold text-primary hover:underline">{t("account.googleSetPassword")}</Link>
+                  ) : (
+                    <button type="submit" disabled={disconnecting || !disconnectPassword}
+                      className="h-9 px-4 rounded-xl bg-error text-on-error text-xs font-bold disabled:opacity-50 cursor-pointer">
+                      {t(disconnecting ? "account.googleDisconnecting" : "account.confirmGoogleDisconnect")}
+                    </button>
+                  )}
+                  <button type="button" disabled={disconnecting} onClick={() => { setShowGoogleDisconnect(false); setDisconnectPassword(""); setGoogleDisconnectError(""); }}
+                    className="h-9 px-4 rounded-xl border border-outline-variant/80 text-xs font-semibold text-on-surface cursor-pointer">
+                    {t("account.cancelGoogleConnect")}
+                  </button>
+                </div>
+              </form>
             )}
           </div>
         </section>

@@ -1182,12 +1182,34 @@ test('Google linking sends the current password to the protected connection endp
   assert.ok(!env.container.textContent?.includes('Wrong redirect'));
 });
 test('linking Google does not hide the password controls for accounts with both login methods', async t => {
-  const env = installBrowser(t, async () => ({ ...jsonResponse({ fullName: 'Existing user', email: 'same@example.com', authProvider: 'google', googleConnected: true, hasPassword: true }), headers: new Headers({ 'content-type': 'application/json' }) }));
+  const env = installBrowser(t, async () => ({ ...jsonResponse({ fullName: 'Existing user', email: 'same@example.com', authProvider: 'google', googleConnected: true, hasPassword: true, googleAccount: { fullName: 'Google Name', email: 'same@example.com' } }), headers: new Headers({ 'content-type': 'application/json' }) }));
   env.browser.localStorage.setItem('token', 'fixture');
   env.browser.localStorage.setItem('user', JSON.stringify({ authProvider: 'google', hasPassword: true, googleConnected: true }));
   await act(async () => { await i18n.changeLanguage('fr'); env.root.render(<MemoryRouter><AccountSettings /></MemoryRouter>); });
   assert.ok(env.container.querySelector('#account-current-password')); assert.ok(env.container.querySelector('#account-new-password'));
   assert.ok(env.container.textContent?.includes('Compte Google associé'));
+  const section = [...env.container.querySelectorAll('section')].find(s => s.textContent?.includes('Connexion Google'))!;
+  assert.equal(section.textContent!.split('Compte Google associé').length - 1, 1);
+  assert.ok(section.textContent?.includes('Google Name')); assert.ok(section.textContent?.includes('same@example.com'));
+  assert.ok(section.textContent?.includes('Continuer avec Google'));
+  await act(async () => [...section.querySelectorAll('button')].find(b => b.textContent === 'Dissocier Google')!.click());
+  assert.ok(section.querySelector('#google-disconnect-password'));
+  assert.equal(section.querySelector('button[type="submit"]')?.hasAttribute('disabled'), true);
+  await act(async () => { await i18n.changeLanguage('en'); });
+  assert.ok(section.textContent?.includes('Continue with Google'));
+  assert.ok(section.textContent?.includes('Confirm disconnect'));
+});
+
+test('Google-only accounts must set a password before disconnecting, without sending a disconnect request', async t => {
+  const calls: string[] = [];
+  const env = installBrowser(t, async url => { calls.push(String(url)); return { ...jsonResponse({ fullName: 'Google User', authProvider: 'google', googleConnected: true, hasPassword: false }), headers: new Headers({ 'content-type': 'application/json' }) }; });
+  await act(async () => { await i18n.changeLanguage('en'); env.root.render(<MemoryRouter><AccountSettings /></MemoryRouter>); });
+  await act(async () => [...env.container.querySelectorAll('button')].find(b => b.textContent === 'Disconnect Google')!.click());
+  assert.ok(env.container.textContent?.includes('Google is your only sign-in method'));
+  assert.ok(env.container.querySelector('a[href="/forgot-password"]'));
+  assert.equal(env.container.querySelector('#google-disconnect-password'), null);
+  assert.equal(env.container.querySelector('button[type="submit"]'), null);
+  assert.ok(calls.every(url => url.endsWith('/auth/profile')));
 });
 test('Google email collisions show recovery instructions without saving a session', async t => {
   let callback: ((value: { credential: string }) => void) | undefined;
