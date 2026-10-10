@@ -1,5 +1,166 @@
 import AccountSettings from "../src/pages/workspace/AccountSettings";
+import CreditWalletButton from "../src/components/credits/CreditWalletButton";
+import WorkspaceTourProvider, { useWorkspaceTour, tourCardPosition } from '../src/components/tour/WorkspaceTour';
 import { passwordPolicyError } from "../src/lib/passwordPolicy";
+
+function TourHarness() {
+  const { startTour } = useWorkspaceTour();
+  return <div data-tour-root><button data-tour-help onClick={startTour}>Replay tour</button><main data-tour="content"><input defaultValue="unsaved project content" /></main></div>;
+}
+test('new students receive a five-step bilingual tour without editing or generating project content', async t => {
+  const writes: unknown[] = [];
+  const env = installBrowser(t, async (url, options) => {
+    assert.ok(String(url).endsWith('/auth/workspace-tour'));
+    if (options?.method === 'PUT') { writes.push(JSON.parse(String(options.body))); return { ...jsonResponse({ status: 'completed' }), headers: new Headers({ 'content-type': 'application/json' }) }; }
+    return { ...jsonResponse({ status: 'pending', eligible: true }), headers: new Headers({ 'content-type': 'application/json' }) };
+  });
+  env.browser.localStorage.setItem('user', JSON.stringify({ _id: 'new-tour-user' }));
+  await act(async () => { await i18n.changeLanguage('en'); env.root.render(<MemoryRouter initialEntries={['/workspace/overview']}><WorkspaceTourProvider sidebarOpen={false} setSidebarOpen={() => {}}><TourHarness /></WorkspaceTourProvider></MemoryRouter>); });
+  const dialog = () => env.browser.document.querySelector('[role="dialog"]')!;
+  const click = async (text: string) => act(async () => [...dialog().querySelectorAll('button')].find(b => b.textContent === text)!.click());
+  assert.ok(dialog().textContent?.includes('Your project is ready'));
+  assert.equal((env.container.firstChild as HTMLElement).inert, true);
+  await click('Show me around');
+  assert.ok(dialog().textContent?.includes('Step 1 of 5'));
+  await click('Back'); assert.ok(dialog().textContent?.includes('Show me around'));
+  await click('Show me around'); await click('Next');
+  assert.ok(dialog().textContent?.includes('Step 2 of 5'));
+  await act(async () => { await i18n.changeLanguage('fr'); });
+  assert.ok(dialog().textContent?.includes('Étape 2 sur 5')); assert.equal(writes.length, 0);
+  await click('Suivant'); await click('Suivant'); await click('Suivant'); await click('C’est parti !');
+  assert.equal(env.browser.document.querySelector('[role="dialog"]'), null);
+  assert.deepEqual(writes, [{ status: 'completed' }]);
+  assert.equal(env.browser.localStorage.getItem('smartpfe:workspace-tour:v1:new-tour-user'), 'completed');
+  assert.equal((env.container.firstChild as HTMLElement).inert, false);
+  assert.equal(env.container.querySelector('input')!.value, 'unsaved project content');
+});
+
+test('existing, finished and ineligible accounts remain uninterrupted but can replay and skip the tour', async t => {
+  for (const sample of [{ status: 'inactive', eligible: true }, { status: 'completed', eligible: true }, { status: 'skipped', eligible: true }, { status: 'pending', eligible: false }]) await t.test(sample.status + '/' + sample.eligible, async child => {
+    const writes: unknown[] = [];
+    const env = installBrowser(child, async (_url, options) => {
+      if (options?.method === 'PUT') writes.push(JSON.parse(String(options.body)));
+      return { ...jsonResponse(sample), headers: new Headers({ 'content-type': 'application/json' }) };
+    });
+    await act(async () => { await i18n.changeLanguage('en'); env.root.render(<MemoryRouter><WorkspaceTourProvider sidebarOpen={true} setSidebarOpen={() => {}}><TourHarness /></WorkspaceTourProvider></MemoryRouter>); });
+    assert.equal(env.browser.document.querySelector('[role="dialog"]'), null);
+    const replay = env.container.querySelector('button')!; replay.focus();
+    await act(async () => replay.click());
+    assert.ok(env.browser.document.querySelector('[role="dialog"]'));
+    await act(async () => env.browser.document.dispatchEvent(new env.browser.KeyboardEvent('keydown', { key: 'Escape', bubbles: true })));
+    assert.deepEqual(writes, [{ status: 'skipped' }]);
+    assert.equal(env.browser.document.querySelector('[role="dialog"]'), null);
+    assert.equal(env.browser.document.activeElement, replay);
+  });
+});
+
+test('replaying the tour from a project or settings page navigates to overview before the first step', async t => {
+  function RoutedTourHarness() {
+    const location = useLocation();
+    return <><output data-current-route>{location.pathname}</output><TourHarness />{location.pathname === '/workspace/overview' && <section data-tour="overview">Project overview</section>}</>;
+  }
+  for (const path of ['/workspace/problem-statement', '/workspace/settings/onboarding']) await t.test(path, async t => {
+    const env = installBrowser(t, async () => ({ ...jsonResponse({ status: 'inactive', eligible: true }), headers: new Headers({ 'content-type': 'application/json' }) }));
+    await act(async () => { await i18n.changeLanguage('en'); env.root.render(<MemoryRouter initialEntries={[path]}><WorkspaceTourProvider sidebarOpen={true} setSidebarOpen={() => {}}><RoutedTourHarness /></WorkspaceTourProvider></MemoryRouter>); });
+    assert.equal(env.container.querySelector('[data-current-route]')?.textContent, path);
+    assert.equal(env.browser.document.querySelector('[role="dialog"]'), null);
+    await act(async () => env.container.querySelector<HTMLButtonElement>('[data-tour-help]')!.click());
+    assert.equal(env.container.querySelector('[data-current-route]')?.textContent, '/workspace/overview');
+    assert.ok(env.container.querySelector('[data-tour="overview"]'));
+    const dialog = env.browser.document.querySelector('[role="dialog"]')!;
+    await act(async () => [...dialog.querySelectorAll('button')].find(b => b.textContent === 'Show me around')!.click());
+    assert.ok(dialog.textContent?.includes('Your project, at a glance'));
+    assert.equal(env.container.querySelector('[data-current-route]')?.textContent, '/workspace/overview');
+  });
+});
+
+test('tour completion fallback is isolated by account and retries a failed server save', async t => {
+  const writes: unknown[] = [];
+  const env = installBrowser(t, async (_url, options) => { if (options?.method === 'PUT') writes.push(JSON.parse(String(options.body))); return { ...jsonResponse({ status: 'pending', eligible: true }), headers: new Headers({ 'content-type': 'application/json' }) }; });
+  env.browser.localStorage.setItem('user', JSON.stringify({ _id: 'account-a' }));
+  env.browser.localStorage.setItem('smartpfe:workspace-tour:v1:account-a', 'skipped');
+  await act(async () => env.root.render(<MemoryRouter initialEntries={['/workspace/overview']}><WorkspaceTourProvider key="account-a" sidebarOpen={true} setSidebarOpen={() => {}}><TourHarness /></WorkspaceTourProvider></MemoryRouter>));
+  assert.equal(env.browser.document.querySelector('[role="dialog"]'), null);
+  assert.deepEqual(writes, [{ status: 'skipped' }]);
+  env.browser.localStorage.setItem('user', JSON.stringify({ _id: 'account-b' }));
+  await act(async () => env.root.render(<MemoryRouter initialEntries={['/workspace/overview']}><WorkspaceTourProvider key="account-b" sidebarOpen={true} setSidebarOpen={() => {}}><TourHarness /></WorkspaceTourProvider></MemoryRouter>));
+  assert.ok(env.browser.document.querySelector('[role="dialog"]'));
+});
+
+test('credit tour opens the real wallet and closes it when leaving without modifying credits', async t => {
+  const writes: string[] = [];
+  const env = installBrowser(t, async (url, options) => {
+    if (options?.method && options.method !== 'GET') writes.push(String(url));
+    const path = String(url);
+    const data = path.includes('/auth/workspace-tour') ? { status: 'inactive', eligible: true }
+      : path.includes('/credits/me') ? { wallet: { total: 42, promotional: 30, purchased: 12, dailyRefillTarget: 20 } }
+      : path.includes('/credits/catalog') ? { policies: [] } : { items: [], requests: [] };
+    return { ...jsonResponse(data), headers: new Headers({ 'content-type': 'application/json' }) };
+  });
+  env.browser.localStorage.setItem('user', JSON.stringify({ _id: 'wallet-tour-user' }));
+  env.browser.localStorage.setItem('token', 'test-token');
+  await act(async () => { await i18n.changeLanguage('fr'); env.root.render(<MemoryRouter initialEntries={['/workspace/overview']}><CreditProvider><WorkspaceTourProvider sidebarOpen={false} setSidebarOpen={() => {}}><TourHarness /><CreditWalletButton /></WorkspaceTourProvider></CreditProvider></MemoryRouter>); });
+  const dialog = () => env.browser.document.querySelector('[role="dialog"]')!;
+  const click = async (text: string) => act(async () => [...dialog().querySelectorAll('button')].find(b => b.textContent === text)!.click());
+  await act(async () => env.container.querySelector<HTMLButtonElement>('[data-tour-help]')!.click());
+  await click('Découvrir');
+  for (let i = 0; i < 3; i++) await click('Suivant');
+  assert.equal(env.browser.document.querySelector('[data-tour="credit-wallet"]'), null, 'highlight the source button before opening');
+  await act(async () => { await new Promise(resolve => setTimeout(resolve, 700)); });
+  const wallet = env.browser.document.querySelector('[data-tour="credit-wallet"]');
+  assert.ok(wallet, 'the actual wallet is opened during the credit step');
+  assert.ok(wallet.textContent?.includes('42'));
+  assert.ok(wallet.textContent?.includes('30'));
+  assert.ok(wallet.textContent?.includes('12'));
+  assert.equal(writes.length, 0, 'opening the wallet does not purchase or spend credits');
+  await click('Suivant');
+  assert.equal(env.browser.document.querySelector('[data-tour="credit-wallet"]'), null);
+  await click('Retour');
+  await act(async () => { await new Promise(resolve => setTimeout(resolve, 700)); });
+  assert.ok(env.browser.document.querySelector('[data-tour="credit-wallet"]'));
+  await click('Passer la visite');
+  assert.equal(env.browser.document.querySelector('[data-tour="credit-wallet"]'), null);
+  assert.ok(writes.every(path => path.endsWith('/auth/workspace-tour')));
+});
+
+test('cold credit step keeps the button highlighted until a positioned wallet mounts', async t => {
+  const env = installBrowser(t, async () => ({ ...jsonResponse({ status: 'inactive', eligible: true }), headers: new Headers({ 'content-type': 'application/json' }) }));
+  function LateWalletHarness() {
+    const { startTour, creditStep } = useWorkspaceTour();
+    const [stage, setStage] = useState(0);
+    return <div data-tour-root><button data-tour-help onClick={startTour}>Replay</button>
+      <button data-mount-wallet onClick={() => setStage(value => value + 1)}>Mount wallet</button>
+      <button data-tour="credit-trigger" ref={node => { if (node) node.getBoundingClientRect = () => new env.browser.DOMRect(700, 20, 50, 32); }}>Credits</button>
+      <main data-tour="content" ref={node => { if (node) node.getBoundingClientRect = () => new env.browser.DOMRect(100, 100, 800, 500); }} />
+      {creditStep && stage > 0 && <div data-tour="credit-wallet" style={stage > 1 ? { left: 400, top: 64 } : undefined} ref={node => { if (node) {
+        node.getBoundingClientRect = () => new env.browser.DOMRect(400, 64, 300, 250);
+        Object.defineProperty(node, 'offsetWidth', { configurable: true, value: 300 });
+        Object.defineProperty(node, 'offsetHeight', { configurable: true, value: 250 });
+      } }}>Wallet</div>}
+    </div>;
+  }
+  await act(async () => { await i18n.changeLanguage('en'); env.root.render(<MemoryRouter initialEntries={['/workspace/overview']}><WorkspaceTourProvider sidebarOpen={false} setSidebarOpen={() => {}}><LateWalletHarness /></WorkspaceTourProvider></MemoryRouter>); });
+  const click = async (text: string) => act(async () => [...env.browser.document.querySelectorAll('[role="dialog"] button')].find(b => b.textContent === text)!.click());
+  await act(async () => env.container.querySelector<HTMLButtonElement>('[data-tour-help]')!.click());
+  await click('Show me around');
+  for (let i = 0; i < 3; i++) await click('Next');
+  await act(async () => { await new Promise(resolve => setTimeout(resolve, 720)); });
+  const spotlight = () => env.browser.document.querySelector('mask rect.tour-spotlight')!;
+  assert.equal(spotlight().getAttribute('x'), '694', 'a missing wallet keeps the source button highlighted');
+  await act(async () => { env.container.querySelector<HTMLButtonElement>('[data-mount-wallet]')!.click(); await new Promise(resolve => setTimeout(resolve, 30)); });
+  assert.equal(spotlight().getAttribute('x'), '694', 'an unpositioned wallet never becomes the target');
+  await act(async () => { env.container.querySelector<HTMLButtonElement>('[data-mount-wallet]')!.click(); });
+  await act(async () => { await new Promise(resolve => setTimeout(resolve, 30)); });
+  assert.equal(spotlight().getAttribute('x'), '394', 'the highlight moves directly to the measured wallet');
+});
+
+test('tour cards stay inside desktop and narrow mobile viewports', () => {
+  for (const width of [320, 390, 768, 1280]) for (const height of [420, 720]) for (const rect of [null, { x: width - 60, y: height - 60, width: 50, height: 50 }, { x: 8, y: 8, width: 250, height: 400 }]) {
+    const result = tourCardPosition(rect, width, height, 340);
+    assert.ok(result.left >= 16); assert.ok(result.top >= 16);
+    assert.ok(result.left + result.width <= width - 16); assert.ok(result.top + 340 <= height - 16);
+  }
+});
 import './notificationDisplay.test';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -9,7 +170,7 @@ import { Window } from 'happy-dom';
 import React, { act, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { createRoot, type Root } from 'react-dom/client';
-import { MemoryRouter, Routes, Route } from 'react-router-dom';
+import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom';
 import ProtectedRoute from '../src/components/ProtectedRoute';
 import { sanitizeDiagram } from '../src/lib/sanitizeDiagram';
 import { JSDOM } from 'jsdom';

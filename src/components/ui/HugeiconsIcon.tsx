@@ -84,6 +84,13 @@ const ICONS: Record<string, (props: { strokeWidth: number }) => React.ReactNode>
   ),
 
   // Info & Help
+  "help-circle": ({ strokeWidth }) => (
+    <>
+      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth={strokeWidth} />
+      <path d="M9 8.5a3 3 0 0 1 6 0c0 2-3 2-3 4" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" />
+      <circle cx="12" cy="16.5" r="0.75" fill="currentColor" />
+    </>
+  ),
   "information-circle": ({ strokeWidth }) => (
     <>
       <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />

@@ -117,7 +117,7 @@ export default function Overview() {
       </div>
 
       {/* Top Project Executive Ribbon */}
-      <div className="mb-6 rounded-2xl border border-outline-variant/80 bg-surface-container-lowest p-5 sm:p-6 shadow-2xs">
+      <div data-tour="overview" className="mb-6 rounded-2xl border border-outline-variant/80 bg-surface-container-lowest p-5 sm:p-6 shadow-2xs">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2 mb-2.5">
@@ -296,7 +296,7 @@ export default function Overview() {
         <div className="flex flex-col gap-6">
           
           {/* Next Recommended Step Card */}
-          <section className="rounded-2xl border border-primary/30 bg-primary/5 p-6 shadow-2xs flex flex-col justify-between">
+          <section data-tour="ai" className="rounded-2xl border border-primary/30 bg-primary/5 p-6 shadow-2xs flex flex-col justify-between">
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center border border-primary/20">

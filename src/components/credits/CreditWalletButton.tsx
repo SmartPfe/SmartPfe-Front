@@ -1,7 +1,9 @@
 import { apiMessage, displayApiMessage, type ApiMessage } from "@/lib/apiMessage";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import CreditDialog from "./CreditDialog";
+import { useWorkspaceTour } from "@/components/tour/WorkspaceTour";
 import { CREDIT_HISTORY_PATH, transactionLabel, transactionDelta, type CreditRequest, type CreditTransaction } from "@/lib/creditHistory";
 import creditCoin from "@/assets/credit-coin.png";
 import { useCredits } from "@/context/CreditContext";
@@ -85,12 +87,32 @@ export default function CreditWalletButton() {
   const language = i18n.resolvedLanguage === "fr" ? "fr" : "en";
   const { wallet, transactions, loading, walletOpenRequest, refresh, loadTransactions } = useCredits();
   const [open, setOpen] = useState(false);
+  const { creditStep } = useWorkspaceTour();
   const [modalOpen, setModalOpen] = useState(false);
   const [requests, setRequests] = useState<CreditRequest[]>([]);
   const [options, setOptions] = useState<{ pricePerCredit: number; currency: string; packages: PurchasePackage[] } | null>(null);
   const [requestLoading, setRequestLoading] = useState(false);
   const [confirmation, setConfirmation] = useState<{ request: CreditRequest; studentEmailSent: boolean } | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
+  const [tourAnchor, setTourAnchor] = useState<{ left: number; top: number; origin: number; maxHeight: number } | null>(null);
+  const walletVisible = (open || creditStep) && (!creditStep || tourAnchor !== null);
+  useLayoutEffect(() => {
+    if (!creditStep) return;
+    const measure = () => {
+      const bounds = rootRef.current?.querySelector("button")?.getBoundingClientRect();
+      if (!bounds) return;
+      const width = Math.min(384, window.innerWidth - 32);
+      const left = Math.max(16, Math.min(bounds.right - width, window.innerWidth - width - 16));
+      const top = bounds.bottom + 12;
+      setTourAnchor({ left, top, origin: bounds.left + bounds.width / 2 - left,
+        maxHeight: Math.max(120, Math.min(window.innerHeight - top - 16, window.innerWidth < 640 ? window.innerHeight * .42 : window.innerHeight)) });
+    };
+    measure();
+    let resizeTimer = 0;
+    const resize = () => { measure(); window.clearTimeout(resizeTimer); resizeTimer = window.setTimeout(measure, 400); };
+    window.addEventListener("resize", resize);
+    return () => { window.clearTimeout(resizeTimer); window.removeEventListener("resize", resize); };
+  }, [creditStep]);
 
   const loadRequests = async () => {
     const userIdAtRequestStart = readCurrentUserId();
@@ -122,18 +144,18 @@ export default function CreditWalletButton() {
   }, [walletOpenRequest]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!walletVisible) return;
     refresh().catch(() => undefined);
     loadTransactions().catch(() => undefined);
     loadRequests().catch(() => undefined);
     loadPurchaseOptions().catch(() => undefined);
     const close = (event: MouseEvent) => {
-      if (modalOpen) return;
+      if (modalOpen || creditStep) return;
       if (rootRef.current && !rootRef.current.contains(event.target as Node)) setOpen(false);
     };
     document.addEventListener("mousedown", close);
     return () => document.removeEventListener("mousedown", close);
-  }, [open, modalOpen, loadTransactions, refresh]);
+  }, [walletVisible, creditStep, modalOpen, loadTransactions, refresh]);
 
   const handleSubmitted = (result: { request: CreditRequest; studentEmailSent: boolean }) => {
     setConfirmation(result);
@@ -143,10 +165,14 @@ export default function CreditWalletButton() {
     loadRequests().catch(() => undefined);
   };
 
+  const walletPortal = (content: ReactNode) => creditStep ? createPortal(<div inert>{content}</div>, document.body) : content;
+
   return (
     <div ref={rootRef} className="relative">
       <button
+        data-tour="credit-trigger"
         type="button"
+        aria-expanded={walletVisible}
         onClick={() => setOpen((value) => !value)}
         className="inline-flex h-8 items-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-400/10 px-2.5 text-xs font-bold text-on-surface shadow-2xs transition hover:bg-amber-400/15"
         title={t("creditWallet.title")}
@@ -155,8 +181,9 @@ export default function CreditWalletButton() {
         <span>{loading && !wallet ? "-" : formatInterfaceNumber(wallet?.total ?? 0, language)}</span>
       </button>
 
-      {open && (
-        <div className="absolute right-0 top-full z-50 mt-2 w-[min(24rem,calc(100vw-1.5rem))] overflow-hidden rounded-2xl border border-outline-variant/80 bg-surface shadow-2xl">
+      {creditStep && tourAnchor && walletPortal(<span aria-hidden="true" className="tour-wallet-enter fixed z-50 h-3 w-3 rotate-45 border-l border-t border-outline-variant/80 bg-surface" style={{ left: tourAnchor.left + tourAnchor.origin - 6, top: tourAnchor.top - 6 }} />)}
+      {walletVisible && walletPortal(
+        <div data-tour="credit-wallet" style={creditStep && tourAnchor ? { left: tourAnchor.left, top: tourAnchor.top, maxHeight: tourAnchor.maxHeight, transformOrigin: `${tourAnchor.origin}px top` } : undefined} className={cn("z-50 w-[min(24rem,calc(100vw-2rem))] overflow-y-auto rounded-2xl border border-outline-variant/80 bg-surface shadow-2xl", creditStep ? "tour-wallet-enter fixed" : "absolute right-0 top-full mt-2 max-h-[calc(100dvh-5rem)]")}>
           <div className="flex items-center justify-between border-b border-outline-variant/60 bg-gradient-to-br from-amber-400/15 to-primary/5 p-4">
             <div>
               <p className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">{t("creditWallet.availableCredits")}</p>

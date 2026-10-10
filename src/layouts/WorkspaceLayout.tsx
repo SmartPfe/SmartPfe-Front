@@ -9,6 +9,7 @@ import { AiGenerationProvider } from "@/context/AiGenerationContext";
 import { NotificationProvider } from "@/context/NotificationContext";
 import FloatingAiDock from "@/components/ai/FloatingAiDock";
 import { useTranslation } from "react-i18next";
+import WorkspaceTourProvider from "@/components/tour/WorkspaceTour";
 
 const WORKFLOW_METHODOLOGY_PATHS = [
   "/workspace/problem-statement",
@@ -76,14 +77,15 @@ export default function WorkspaceLayout() {
       <OnboardingProvider>
         <WorkflowProvider>
           <AiGenerationProvider>
-            <div className="flex h-dvh min-h-dvh bg-surface overflow-hidden">
+            <WorkspaceTourProvider sidebarOpen={isSidebarOpen} setSidebarOpen={setIsSidebarOpen}>
+            <div data-tour-root className="flex h-dvh min-h-dvh bg-surface overflow-hidden">
               <Sidebar isOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} />
               <div className={cn(
                 "flex-1 flex flex-col h-dvh min-w-0 transition-all duration-300 ease-in-out",
                 isSidebarOpen ? "md:ml-[280px]" : "ml-0"
               )}>
                 <Topbar toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
-                <main className={cn(
+                <main data-tour="content" data-tour-scroll className={cn(
                   "flex-1 overflow-y-auto overflow-x-hidden relative bg-surface-container-lowest",
                   isFullWidthPage ? "p-4 sm:p-6" : "p-4 sm:p-6 md:p-8"
                 )}>
@@ -92,6 +94,7 @@ export default function WorkspaceLayout() {
               </div>
               <FloatingAiDock />
             </div>
+            </WorkspaceTourProvider>
           </AiGenerationProvider>
         </WorkflowProvider>
       </OnboardingProvider>

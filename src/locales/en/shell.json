@@ -1,4 +1,42 @@
 {
+  "tour": {
+    "help": "Help",
+    "replay": "Take the workspace tour",
+    "eyebrow": "Welcome to SmartPFE",
+    "welcomeTitle": "Your project is ready. Let’s get started!",
+    "welcomeDescription": "Discover the essentials of your workspace, one step at a time. You can skip the tour whenever you like.",
+    "duration": "5 steps · About a minute",
+    "replayHint": "You can find this tour again in Help, at the top of your workspace.",
+    "start": "Show me around",
+    "skip": "Skip tour",
+    "close": "Close tour",
+    "back": "Back",
+    "next": "Next",
+    "finish": "Ready to start",
+    "progress": "Step {{current}} of {{total}}",
+    "steps": {
+      "overview": {
+        "title": "Your project, at a glance",
+        "description": "Your workspace brings together your project information, progress and next steps. The Overview is your starting point whenever you return."
+      },
+      "sections": {
+        "title": "A clear path for your project",
+        "description": "The side menu helps you move through your project, from the problem statement to your report and defense. Complete the available steps to unlock the next ones."
+      },
+      "ai": {
+        "title": "Take your next step with AI",
+        "description": "Start with the recommended section on your Overview. Inside each section, AI can help you draft content. Review and adapt its suggestions before continuing."
+      },
+      "credits": {
+        "title": "Keep an eye on your credits",
+        "description": "Click your credit balance in the top bar to open this wallet. See your daily and purchased credits, recent activity, and full history. Check the cost before starting an AI generation."
+      },
+      "settings": {
+        "title": "Make this workspace yours",
+        "description": "Open your account menu to find settings, edit your project information, choose your language or theme, and manage account security. You can replay this tour from Help anytime."
+      }
+    }
+  },
   "navigation": {
     "thesisWorkspace": "Thesis Workspace",
     "hub": "Hub",
@@ -77,8 +115,6 @@
     "oneMinuteAgo": "1 min ago",
     "searchWorkspace": "Search workspace (Ctrl+K)",
     "search": "Search...",
-    "revisionHistoryTitle": "Revision History & Versions",
-    "revisionHistory": "Revision History",
     "liveWorkspaceEvents": "Live workspace events",
     "userAccount": "User Account",
     "userAvatar": "{{name}} avatar",

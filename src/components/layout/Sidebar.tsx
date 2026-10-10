@@ -99,7 +99,7 @@ export default function Sidebar({ isOpen, setIsSidebarOpen }: SidebarProps) {
       />
 
       {/* Main Sidebar Container */}
-      <aside
+      <aside data-tour="sections" data-tour-scroll
         className={cn(
           "bg-surface-container-low text-on-surface w-[min(265px,85vw)] h-full fixed left-0 top-0 bottom-0 z-40 flex flex-col border-r border-outline-variant/60 transition-transform duration-300 ease-in-out font-sans select-none",
           isOpen ? "translate-x-0" : "-translate-x-full"
@@ -304,7 +304,7 @@ export default function Sidebar({ isOpen, setIsSidebarOpen }: SidebarProps) {
             </div>
 
             {/* Scrollable Methodology 12-Step Phases Nav */}
-            <div className="flex-1 overflow-y-auto px-2 space-y-3.5 py-1">
+            <div data-tour-scroll className="flex-1 overflow-y-auto px-2 space-y-3.5 py-1">
               {METHODOLOGY_GROUPS.map(({ group }) => {
                 const groupSteps = METHODOLOGY_STEPS.filter((s) => s.group === group);
                 return (

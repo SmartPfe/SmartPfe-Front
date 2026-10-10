@@ -21,50 +21,6 @@
     "hoursAgo_one": "{{countDisplay}}h ago",
     "hoursAgo_other": "{{countDisplay}}h ago"
   },
-  "revisionHistory": {
-    "title": "Revision History",
-    "description": "Track modifications across all PFE phases",
-    "close": "Close revision history",
-    "latestEdit": "Latest Edit",
-    "restore": "Restore",
-    "entries": {
-      "1": {
-        "time": "Just now",
-        "date": "Today, 10:50 AM",
-        "action": "Updated UML Diagrams",
-        "details": "Added 'AnalyticsEngine' class and defined relation with Dashboard component in Class Diagram.",
-        "phase": "UML Preparation"
-      },
-      "2": {
-        "time": "2 hours ago",
-        "date": "Today, 8:30 AM",
-        "action": "Validated Phase: Product Backlog",
-        "details": "Approved 12 Backlog Items and moved sprint velocity metric to 42 points.",
-        "phase": "Product Backlog"
-      },
-      "3": {
-        "time": "Yesterday",
-        "date": "Jun 16, 4:15 PM",
-        "action": "Added Review Comment",
-        "details": "\"Please consider scaling implications. Add a Non-Functional Requirement for at least 10,000 concurrent users.\"",
-        "phase": "Non-Functional Reqs"
-      },
-      "4": {
-        "time": "Yesterday",
-        "date": "Jun 16, 1:20 PM",
-        "action": "Restructured Report Sections",
-        "details": "Reordered 'Technical Stack' to appear before 'Implementation Details'. Added Chapter 4.",
-        "phase": "Report Structure"
-      },
-      "5": {
-        "time": "2 days ago",
-        "date": "Jun 15, 11:00 AM",
-        "action": "Project Initialization",
-        "details": "Created 'AI-Powered Analytics Platform for Retail' project workspace and defined core Domain.",
-        "phase": "Overview"
-      }
-    }
-  },
   "saveStatus": {
     "saved": "All changes saved",
     "saving": "Autosaving...",

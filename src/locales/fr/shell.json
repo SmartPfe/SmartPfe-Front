@@ -1,4 +1,42 @@
 {
+  "tour": {
+    "help": "Aide",
+    "replay": "Découvrir l’espace de travail",
+    "eyebrow": "Bienvenue sur SmartPFE",
+    "welcomeTitle": "Votre projet est prêt. On commence ?",
+    "welcomeDescription": "Découvrez l’essentiel de votre espace de travail, étape par étape. Vous pouvez passer la visite à tout moment.",
+    "duration": "5 étapes · Environ une minute",
+    "replayHint": "Retrouvez cette visite dans Aide, en haut de votre espace de travail.",
+    "start": "Découvrir",
+    "skip": "Passer la visite",
+    "close": "Fermer la visite",
+    "back": "Retour",
+    "next": "Suivant",
+    "finish": "C’est parti !",
+    "progress": "Étape {{current}} sur {{total}}",
+    "steps": {
+      "overview": {
+        "title": "Votre projet en un coup d’œil",
+        "description": "Votre espace rassemble les informations du projet, votre progression et les prochaines étapes. La vue d’ensemble est votre point de départ à chaque visite."
+      },
+      "sections": {
+        "title": "Un parcours clair pour votre projet",
+        "description": "Le menu latéral vous guide de la problématique jusqu’au rapport et à la soutenance. Terminez les étapes disponibles pour débloquer les suivantes."
+      },
+      "ai": {
+        "title": "Avancez avec l’aide de l’IA",
+        "description": "Commencez par la section recommandée dans la vue d’ensemble. Dans chaque section, l’IA peut vous aider à rédiger. Relisez et adaptez ses propositions avant de poursuivre."
+      },
+      "credits": {
+        "title": "Gardez vos crédits en vue",
+        "description": "Cliquez sur votre solde de crédits en haut pour ouvrir ce portefeuille. Retrouvez vos crédits quotidiens et achetés, vos dernières opérations et l’historique complet. Vérifiez le coût avant de lancer une génération IA."
+      },
+      "settings": {
+        "title": "Un espace à votre image",
+        "description": "Ouvrez le menu de votre compte pour accéder aux paramètres, modifier votre projet, choisir la langue ou le thème et gérer la sécurité du compte. Retrouvez cette visite à tout moment dans Aide."
+      }
+    }
+  },
   "navigation": {
     "thesisWorkspace": "Espace de mémoire",
     "hub": "Accueil",
@@ -77,8 +115,6 @@
     "oneMinuteAgo": "il y a 1 min",
     "searchWorkspace": "Rechercher dans l’espace (Ctrl+K)",
     "search": "Rechercher...",
-    "revisionHistoryTitle": "Historique et versions",
-    "revisionHistory": "Historique des versions",
     "liveWorkspaceEvents": "Événements en direct",
     "userAccount": "Compte utilisateur",
     "userAvatar": "Avatar de {{name}}",

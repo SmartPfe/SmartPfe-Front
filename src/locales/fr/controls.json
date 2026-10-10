@@ -21,50 +21,6 @@
     "hoursAgo_one": "Il y a {{countDisplay}} h",
     "hoursAgo_other": "Il y a {{countDisplay}} h"
   },
-  "revisionHistory": {
-    "title": "Historique des versions",
-    "description": "Suivez les modifications de toutes les phases du PFE",
-    "close": "Fermer l’historique des versions",
-    "latestEdit": "Dernière modification",
-    "restore": "Restaurer",
-    "entries": {
-      "1": {
-        "time": "À l’instant",
-        "date": "Aujourd’hui, 10:50",
-        "action": "Diagrammes UML mis à jour",
-        "details": "Ajout de la classe 'AnalyticsEngine' et définition de sa relation avec le composant Dashboard dans le diagramme de classes.",
-        "phase": "Préparation UML"
-      },
-      "2": {
-        "time": "Il y a 2 heures",
-        "date": "Aujourd’hui, 8:30",
-        "action": "Phase validée : backlog produit",
-        "details": "12 éléments du backlog approuvés et indicateur de vélocité du sprint porté à 42 points.",
-        "phase": "Backlog produit"
-      },
-      "3": {
-        "time": "Hier",
-        "date": "16 juin, 16:15",
-        "action": "Commentaire de révision ajouté",
-        "details": "\"Veuillez tenir compte des enjeux de mise à l’échelle. Ajoutez une exigence non fonctionnelle pour au moins 10 000 utilisateurs simultanés.\"",
-        "phase": "Exigences non fonctionnelles"
-      },
-      "4": {
-        "time": "Hier",
-        "date": "16 juin, 13:20",
-        "action": "Sections du rapport réorganisées",
-        "details": "La section 'Pile technologique' a été déplacée avant 'Détails de l’implémentation'. Le chapitre 4 a été ajouté.",
-        "phase": "Structure du rapport"
-      },
-      "5": {
-        "time": "Il y a 2 jours",
-        "date": "15 juin, 11:00",
-        "action": "Initialisation du projet",
-        "details": "Création de l’espace de projet 'Plateforme d’analyse intelligente pour le commerce de détail' et définition du domaine principal.",
-        "phase": "Vue d’ensemble"
-      }
-    }
-  },
   "saveStatus": {
     "saved": "Enregistré",
     "saving": "Enregistrement automatique…",
