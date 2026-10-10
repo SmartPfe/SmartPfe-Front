@@ -1,4 +1,12 @@
 {
+  "security": {
+    "contactLimited": "Too many contact messages. Please try again later.",
+    "authLimited": "Too many authentication attempts. Please try again later.",
+    "invalidInput": "Invalid authentication input.",
+    "audioBusy": "An audio request is already running. Please try again later.",
+    "invalidAudio": "Please upload a supported audio recording.",
+    "studentRequired": "Verified student access required."
+  },
   "auth": {
     "googleLoginRequired": "This email is already connected with Google. Please log in using 'Continue with Google'.",
     "verificationCodeSent": "Verification code sent. Please check your email.",
@@ -17,7 +25,7 @@
     "invalidUiLanguage": "uiLanguage must be en or fr",
     "userNotFound": "User not found",
     "googleProfileManaged": "This account is connected with Google. Profile and password changes are managed by Google.",
-    "passwordTooShort": "Password must be at least 6 characters",
+    "passwordTooShort": "Password must be at least 15 characters.",
     "currentPasswordRequired": "Current password is required",
     "currentPasswordIncorrect": "Current password is incorrect",
     "passwordResetIfAccountExists": "If an account exists, an email has been sent.",
@@ -30,7 +38,11 @@
     "tokenRequired": "Not authorized, no token",
     "userNotAuthorized": "Not authorized, user not found",
     "tokenInvalid": "Not authorized, token failed",
-    "adminAccessRequired": "Admin access required"
+    "adminAccessRequired": "Admin access required",
+    "passwordTooLong": "Password exceeds 72 UTF-8 bytes. Please shorten it.",
+    "googleLinkRequired": "Sign in with your existing login method, then connect Google in Account & Security.",
+    "googlePasswordRequired": "Confirm your current password to connect Google.",
+    "googleLinkConflict": "Choose the Google account with your SmartPFE email. An existing Google link cannot be replaced."
   },
   "common": {
     "serverError": "Server error",
@@ -181,7 +193,8 @@
     "loadRequestFailed": "Failed to load credit request.",
     "loadHistoryFailed": "Failed to load credit history.",
     "updateRequestFailed": "Failed to update credit request.",
-    "addRequestedCreditsFailed": "Failed to add requested credits."
+    "addRequestedCreditsFailed": "Failed to add requested credits.",
+    "settlementPending": "The credit reservation is pending confirmation. Contact support before repeating the generation."
   },
   "contact": {
     "completeAllFields": "Please complete all contact form fields.",

@@ -179,7 +179,7 @@
     "processing": "Processing {{moduleName}}",
     "backgroundTask": "Background task",
     "explorePages": "Feel free to explore other pages — your progress won't be lost.",
-    "stopTooltip": "Stop and cancel this generation",
+    "stopTooltip": "Stop waiting. Work already started may continue and still be charged.",
     "stop": "Stop"
   },
   "aiDock": {
@@ -195,8 +195,9 @@
     "concurrentDescription_other": "You can generate up to {{count}} sections in parallel. Please wait for one to finish.",
     "jumpToSection": "Jump to this section",
     "view": "View",
-    "stopTooltip": "Stop and cancel this generation",
-    "stop": "Stop",
-    "close": "Close notification"
+    "stopTooltip": "Stop waiting. Work already started may continue and still be charged.",
+    "stop": "Stop waiting",
+    "close": "Close notification",
+    "billingNote": "Closing or stopping your wait does not guarantee a credit refund."
   }
 }

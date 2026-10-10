@@ -4,6 +4,7 @@ import { renderToString } from '@plantuml/core';
 import { toPng } from 'html-to-image';
 import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
+import { sanitizeDiagram } from '@/lib/sanitizeDiagram';
 
 interface PlantUmlRendererProps {
   markup: string;
@@ -35,7 +36,7 @@ export default function PlantUmlRenderer({ markup, className, diagramName = 'dia
           lines,
           (resultSvg: string) => {
             if (isMounted) {
-              setSvg(resultSvg);
+              setSvg(sanitizeDiagram(resultSvg));
               setLoading(false);
             }
           },

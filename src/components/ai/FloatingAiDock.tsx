@@ -172,6 +172,7 @@ export default function FloatingAiDock() {
               </div>
             </div>
 
+            {isRunning && task.scope !== "system" && <p className="px-3 pb-2 text-[10px] leading-relaxed text-on-surface-variant">{t("aiDock.billingNote")}</p>}
             {/* Active Task Progress Bar */}
             {isRunning && (
               <div className="h-1 w-full bg-surface-container-high rounded-full overflow-hidden">

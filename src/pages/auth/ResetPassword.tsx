@@ -1,3 +1,4 @@
+import { passwordPolicyError, MIN_PASSWORD_CHARACTERS } from "@/lib/passwordPolicy";
 import { apiMessage, displayApiMessage, type ApiMessage } from "@/lib/apiMessage";
 import React, { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
@@ -22,8 +23,9 @@ export default function ResetPassword() {
     setError("");
     setErrorKey("");
 
-    if (password.length < 6) {
-      setErrorKey("reset.passwordTooShort");
+    const passwordError = passwordPolicyError(password);
+    if (passwordError) {
+      setErrorKey(passwordError);
       return;
     }
 
@@ -112,7 +114,7 @@ export default function ResetPassword() {
               }}
               autoComplete="new-password"
               required
-              minLength={6}
+              minLength={MIN_PASSWORD_CHARACTERS}
               placeholder="••••••••"
               className="block w-full h-11 pl-10 pr-10 bg-surface border border-outline-variant/80 rounded-xl text-sm text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
             />
@@ -147,7 +149,7 @@ export default function ResetPassword() {
               }}
               autoComplete="new-password"
               required
-              minLength={6}
+              minLength={MIN_PASSWORD_CHARACTERS}
               placeholder="••••••••"
               className="block w-full h-11 pl-10 pr-10 bg-surface border border-outline-variant/80 rounded-xl text-sm text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
             />

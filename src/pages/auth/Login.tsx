@@ -45,6 +45,7 @@ export default function Login() {
         email: data.email,
         avatar: data.avatar,
         authProvider: data.authProvider || "email",
+    googleConnected: data.googleConnected, hasPassword: data.hasPassword,
         emailVerified: data.emailVerified !== false,
         hasCompletedOnboarding: data.hasCompletedOnboarding,
         role: data.role || "etudiant",

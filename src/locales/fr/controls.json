@@ -179,7 +179,7 @@
     "processing": "Traitement de {{moduleName}}",
     "backgroundTask": "Tâche en arrière-plan",
     "explorePages": "Vous pouvez consulter d’autres pages : votre progression est conservée.",
-    "stopTooltip": "Arrêter la génération",
+    "stopTooltip": "Ne plus attendre. Le travail déjà lancé peut continuer et rester facturé.",
     "stop": "Arrêter"
   },
   "aiDock": {
@@ -195,8 +195,9 @@
     "concurrentDescription_other": "Vous pouvez lancer jusqu’à {{count}} sections en parallèle. Attendez la fin d’une génération.",
     "jumpToSection": "Accéder à cette section",
     "view": "Voir",
-    "stopTooltip": "Arrêter la génération",
-    "stop": "Arrêter",
-    "close": "Fermer la notification"
+    "stopTooltip": "Ne plus attendre. Le travail déjà lancé peut continuer et rester facturé.",
+    "stop": "Ne plus attendre",
+    "close": "Fermer la notification",
+    "billingNote": "Fermer ou arrêter l’attente ne garantit pas le remboursement des crédits."
   }
 }

@@ -132,7 +132,7 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
       window.dispatchEvent(new CustomEvent(CREDIT_ERROR_EVENT, { detail: data }));
     }
     const body = data?.message ? data : { ...data, message: "Something went wrong", messageKey: "client.unexpectedError" };
-    throw Object.assign(new Error(body.message), body);
+    throw Object.assign(new Error(body.message), body, { status: response.status });
   }
 
   if (data?.creditUsage) {

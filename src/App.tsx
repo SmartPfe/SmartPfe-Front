@@ -66,7 +66,7 @@ export default function App() {
           <Route path="reset-password/:token" element={<ResetPassword />} />
         </Route>
 
-      <Route path="/onboarding" element={ <ProtectedRoute> <OnboardingLayout /> </ProtectedRoute> }>
+      <Route path="/onboarding" element={ <ProtectedRoute requiredRole="etudiant" onboardingOnly> <OnboardingLayout /> </ProtectedRoute> }>
           <Route index element={<Navigate to="1" replace />} />
           <Route path="1" element={<ProjectBasics />} />
           <Route path="2" element={<ProjectDescription />} />
@@ -74,7 +74,7 @@ export default function App() {
           <Route path="4" element={<SummaryReview />} />
         </Route>
 
-      <Route path="/workspace" element={ <ProtectedRoute> <WorkspaceLayout /> </ProtectedRoute>}>     
+      <Route path="/workspace" element={ <ProtectedRoute requiredRole="etudiant"> <WorkspaceLayout /> </ProtectedRoute>}>
          <Route index element={<Navigate to="overview" replace />} />
           <Route path="overview" element={<Overview />} />
           <Route path="problem-statement" element={<ProblemStatement />} />

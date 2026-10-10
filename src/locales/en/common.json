@@ -1,4 +1,7 @@
 {
+  "loading": "Checking access…",
+  "accessCheckFailed": "Could not verify access. Please try again.",
+  "retry": "Try again",
   "interfaceLanguage": "Interface language",
   "languageHelp": "Choose the language of menus and controls. Your generation language and project content stay unchanged.",
   "language": "Language",

@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import HugeiconsIcon from "@/components/ui/HugeiconsIcon";
@@ -11,24 +10,6 @@ export default function Settings() {
   const { t } = useTranslation<'settings'>("settings");
   const { data } = useOnboarding();
   const { isDarkMode, toggleTheme } = useTheme();
-  const [downloaded, setDownloaded] = useState(false);
-
-  const handleExportJson = () => {
-    try {
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
-      const downloadAnchor = document.createElement("a");
-      downloadAnchor.setAttribute("href", dataStr);
-      downloadAnchor.setAttribute("download", `smartpfe_project_config_${Date.now()}.json`);
-      document.body.appendChild(downloadAnchor);
-      downloadAnchor.click();
-      downloadAnchor.remove();
-      setDownloaded(true);
-      setTimeout(() => setDownloaded(false), 2000);
-    } catch (err) {
-      console.error("Export failed:", err);
-    }
-  };
-
   const projectTitle = data?.basics?.title?.trim() || t("workspace.untitledProject");
   const university = data?.basics?.university?.trim() || t("workspace.notSpecified");
   const methodology = data?.technicalContext?.methodology || t("workspace.defaultMethodology");
@@ -141,37 +122,6 @@ export default function Settings() {
           </div>
         </div>
 
-        {/* Section 3: Data & Backup */}
-        <div>
-          <h2 className="text-xs font-bold uppercase tracking-wider text-on-surface-variant px-1 mb-2.5">
-            {t("general.dataGroup")}
-          </h2>
-          <div className="rounded-2xl border border-outline-variant/70 bg-surface-container-lowest overflow-hidden shadow-2xs">
-            <div className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="space-y-0.5">
-                <h3 className="text-sm font-semibold text-on-surface">
-                  {t("general.exportSnapshot")}
-                </h3>
-                <p className="text-xs text-on-surface-variant max-w-md">
-                  {t("general.exportSnapshotDescription")}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={handleExportJson}
-                className={cn(
-                  "inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl border text-xs font-semibold transition-all shadow-2xs shrink-0 self-start sm:self-auto",
-                  downloaded
-                    ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold"
-                    : "border-outline-variant/80 bg-surface hover:bg-surface-container-high/60 text-on-surface"
-                )}
-              >
-                <HugeiconsIcon icon={downloaded ? "checkmark-circle-02" : "download"} size={14} strokeWidth={2} />
-                <span>{downloaded ? t("general.exportedSuccess") : t("general.exportButton")}</span>
-              </button>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );

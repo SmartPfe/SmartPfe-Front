@@ -1,6 +1,8 @@
+import GoogleLoginButton from "@/components/GoogleLoginButton";
+import { passwordPolicyError, MIN_PASSWORD_CHARACTERS, MAX_PASSWORD_BYTES } from "@/lib/passwordPolicy";
 import { apiMessage, displayApiMessage, type ApiMessage } from "@/lib/apiMessage";
 import { useEffect, useState, type ReactNode } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { TextField } from "@/components/onboarding/FormControls";
 import { fetchApi } from "@/lib/api";
@@ -11,6 +13,8 @@ type AccountForm = {
   email: string;
   avatar: string;
   authProvider: string;
+  googleConnected?: boolean;
+  hasPassword?: boolean;
   currentPassword: string;
   newPassword: string;
   confirmPassword: string;
@@ -28,6 +32,21 @@ export default function AccountSettings({
   children?: ReactNode;
 } = {}) {
   const { t } = useTranslation("auth");
+  const navigate = useNavigate();
+  const [connecting, setConnecting] = useState(false);
+  const [showGoogleConnect, setShowGoogleConnect] = useState(false);
+  const [linkPassword, setLinkPassword] = useState("");
+  const [signingOut, setSigningOut] = useState(false);
+  const signOutEverywhere = async () => {
+    setSigningOut(true);
+    try {
+      await fetchApi('/auth/logout-all', { method: 'POST' });
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      navigate('/login', { replace: true });
+    } catch (error) { setError(apiMessage(error)); }
+    finally { setSigningOut(false); }
+  };
   const [form, setForm] = useState<AccountForm>({
     fullName: "",
     email: "",
@@ -50,9 +69,15 @@ export default function AccountSettings({
       fullName: user.fullName || "",
       email: user.email || "",
       avatar: user.avatar || "",
-      authProvider: user.authProvider || (user.avatar?.includes("googleusercontent.com") ? "google" : "email"),
+      authProvider: user.authProvider || "email",
+      googleConnected: user.googleConnected ?? user.authProvider === "google",
+      hasPassword: user.hasPassword,
     }));
 
+    let active = true;
+    fetchApi("/auth/profile").then((profile) => {
+      if (active) setForm((current) => ({ ...current, ...profile }));
+    }).catch((error) => { if (active) setError(apiMessage(error)); });
     const clearAutofilledPasswords = window.setTimeout(() => {
       setForm((current) => ({
         ...current,
@@ -62,10 +87,10 @@ export default function AccountSettings({
       }));
     }, 100);
 
-    return () => window.clearTimeout(clearAutofilledPasswords);
+    return () => { active = false; window.clearTimeout(clearAutofilledPasswords); };
   }, []);
 
-  const isGoogleAccount = form.authProvider === "google";
+  const isGoogleAccount = form.hasPassword === false || (form.hasPassword === undefined && form.authProvider === "google");
   const displayBackLabel = backLabel === "Back to Admin Dashboard"
     ? t("account.backToAdmin")
     : backLabel ?? t("account.backToSettings");
@@ -73,22 +98,19 @@ export default function AccountSettings({
     ? t("account.administrator")
     : memberLabel ?? t("account.studentMember");
   const wantsPasswordChange = Boolean(form.currentPassword || form.newPassword || form.confirmPassword);
-  const newPasswordHasMinLength = form.newPassword.length >= 6;
-  const newPasswordHasUppercase = /[A-Z]/.test(form.newPassword);
-  const newPasswordHasNumberOrSymbol = /[0-9]|[^A-Za-z0-9]/.test(form.newPassword);
+  const newPasswordHasMinLength = [...form.newPassword].length >= MIN_PASSWORD_CHARACTERS;
+  const newPasswordFitsStorage = new TextEncoder().encode(form.newPassword).length <= MAX_PASSWORD_BYTES;
   const confirmationMatches = Boolean(form.confirmPassword) && form.newPassword === form.confirmPassword;
   const passwordRules = [
-    { label: t("account.atLeast6Characters"), isValid: newPasswordHasMinLength },
-    { label: t("account.uppercaseLetter"), isValid: newPasswordHasUppercase },
-    { label: t("account.numberOrSymbol"), isValid: newPasswordHasNumberOrSymbol },
+    { label: t("password.minimum"), isValid: newPasswordHasMinLength },
+    { label: t("password.maximum"), isValid: newPasswordFitsStorage },
     { label: t("account.confirmationMatches"), isValid: confirmationMatches },
   ];
   const isPasswordFormValid =
     !wantsPasswordChange ||
     (Boolean(form.currentPassword) &&
       newPasswordHasMinLength &&
-      newPasswordHasUppercase &&
-      newPasswordHasNumberOrSymbol &&
+      newPasswordFitsStorage &&
       confirmationMatches);
   const canSave = !loading && isPasswordFormValid;
 
@@ -108,20 +130,8 @@ export default function AccountSettings({
         return;
       }
 
-      if (form.newPassword.length < 6) {
-        setErrorKey("account.newPasswordTooShort");
-        return;
-      }
-
-      if (!newPasswordHasUppercase) {
-        setErrorKey("account.uppercaseRequired");
-        return;
-      }
-
-      if (!newPasswordHasNumberOrSymbol) {
-        setErrorKey("account.numberOrSymbolRequired");
-        return;
-      }
+      const passwordError = passwordPolicyError(form.newPassword);
+      if (passwordError) { setErrorKey(passwordError); return; }
 
       if (!confirmationMatches) {
         setErrorKey("account.passwordMismatch");
@@ -149,9 +159,12 @@ export default function AccountSettings({
         method: "PUT",
         body: JSON.stringify(payload),
       });
+      if (response?.token) localStorage.setItem("token", response.token);
 
-      if (response?.user) {
-        localStorage.setItem("user", JSON.stringify(response.user));
+      if (response?._id || response?.user) {
+        const updatedUser = response.user || response;
+        const { token: _token, passwordChanged: _passwordChanged, ...profile } = updatedUser;
+        localStorage.setItem("user", JSON.stringify(profile));
         window.dispatchEvent(new Event("user-updated"));
       }
 
@@ -353,6 +366,29 @@ export default function AccountSettings({
         </footer>
       )}
       {children}
+      <section className="mt-8 border-t border-outline-variant/60 pt-6">
+        <h2 className="text-sm font-semibold">{t("account.googleTitle")}</h2>
+        <p className="mt-1 text-xs text-on-surface-variant">{t(form.googleConnected ? "account.googleLinkedHelp" : "account.googleConnectHelp")}</p>
+        {form.googleConnected ? <p className="mt-3 text-sm text-secondary">{t("account.googleLinked")}</p> : !isGoogleAccount && (
+          <div className="mt-3">
+            {!showGoogleConnect ? <button type="button" onClick={() => setShowGoogleConnect(true)} className="rounded-lg border border-outline-variant px-4 py-2 text-sm">{t("account.connectGoogle")}</button> : (
+              <div className="flex flex-col gap-3 rounded-xl border border-outline-variant p-4">
+                <TextField id="google-link-password" label={t("account.confirmGooglePassword")} type="password" value={linkPassword} onChange={setLinkPassword} autoComplete="current-password" disabled={connecting} />
+                {linkPassword && <GoogleLoginButton mode="connect" currentPassword={linkPassword} onError={setError} onLoading={setConnecting} onConnected={(profile) => {
+                  setForm(current => ({ ...current, googleConnected: profile.googleConnected, hasPassword: profile.hasPassword }));
+                  setLinkPassword(""); setShowGoogleConnect(false); setSaved(true); setSuccessMessageKey("account.googleLinked");
+                }} />}
+                <button type="button" disabled={connecting} onClick={() => { setShowGoogleConnect(false); setLinkPassword(""); }} className="text-xs text-on-surface-variant">{t("account.cancelGoogleConnect")}</button>
+              </div>
+            )}
+          </div>
+        )}
+      </section>
+      <section className="mt-8 border-t border-outline-variant/60 pt-6">
+        <h2 className="text-sm font-semibold">{t('account.sessionsTitle')}</h2>
+        <p className="mt-1 text-xs text-on-surface-variant">{t('account.sessionsHelp')}</p>
+        <button type="button" disabled={signingOut || loading} onClick={signOutEverywhere} className="mt-3 rounded-lg border border-outline-variant px-4 py-2 text-sm text-on-surface disabled:opacity-50">{t('account.signOutEverywhere')}</button>
+      </section>
     </div>
   );
 }

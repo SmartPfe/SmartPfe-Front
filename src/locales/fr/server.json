@@ -1,4 +1,12 @@
 {
+  "security": {
+    "contactLimited": "Trop de messages. Réessayez plus tard.",
+    "authLimited": "Trop de tentatives de connexion. Réessayez plus tard.",
+    "invalidInput": "Informations d’authentification invalides.",
+    "audioBusy": "Une demande audio est déjà en cours. Réessayez plus tard.",
+    "invalidAudio": "Veuillez envoyer un enregistrement audio pris en charge.",
+    "studentRequired": "L’accès nécessite un compte étudiant vérifié."
+  },
   "auth": {
     "googleLoginRequired": "Cette adresse e-mail est déjà associée à Google. Connectez-vous avec « Continuer avec Google ».",
     "verificationCodeSent": "Code de vérification envoyé. Consultez votre e-mail.",
@@ -17,7 +25,7 @@
     "invalidUiLanguage": "uiLanguage doit être « en » ou « fr ».",
     "userNotFound": "Utilisateur introuvable.",
     "googleProfileManaged": "Ce compte est associé à Google. La gestion du profil et du mot de passe s’effectue depuis Google.",
-    "passwordTooShort": "Le mot de passe doit contenir au moins 6 caractères.",
+    "passwordTooShort": "Le mot de passe doit contenir au moins 15 caractères.",
     "currentPasswordRequired": "Le mot de passe actuel est obligatoire.",
     "currentPasswordIncorrect": "Le mot de passe actuel est incorrect.",
     "passwordResetIfAccountExists": "Si un compte existe, un e-mail a été envoyé.",
@@ -30,7 +38,11 @@
     "tokenRequired": "Authentification requise : jeton manquant.",
     "userNotAuthorized": "Authentification refusée : utilisateur introuvable.",
     "tokenInvalid": "Authentification refusée : jeton invalide.",
-    "adminAccessRequired": "Accès administrateur requis."
+    "adminAccessRequired": "Accès administrateur requis.",
+    "passwordTooLong": "Le mot de passe dépasse 72 octets UTF-8. Raccourcissez-le.",
+    "googleLinkRequired": "Connectez-vous avec votre méthode habituelle, puis associez Google dans Compte et sécurité.",
+    "googlePasswordRequired": "Confirmez votre mot de passe actuel pour associer Google.",
+    "googleLinkConflict": "Choisissez le compte Google associé à votre adresse SmartPFE. Un lien existant ne peut pas être remplacé."
   },
   "common": {
     "serverError": "Erreur du serveur.",
@@ -181,7 +193,8 @@
     "loadRequestFailed": "Impossible de charger la demande de crédits.",
     "loadHistoryFailed": "Impossible de charger l’historique des crédits.",
     "updateRequestFailed": "Impossible de mettre à jour la demande de crédits.",
-    "addRequestedCreditsFailed": "Impossible d’ajouter les crédits demandés."
+    "addRequestedCreditsFailed": "Impossible d’ajouter les crédits demandés.",
+    "settlementPending": "Le solde est en attente de confirmation. Contactez le support avant de relancer la génération."
   },
   "contact": {
     "completeAllFields": "Veuillez remplir tous les champs du formulaire de contact.",

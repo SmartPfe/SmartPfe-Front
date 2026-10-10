@@ -2,6 +2,7 @@ import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, 
 import { API_BASE_URL, fetchApi } from "@/lib/api";
 import { useTranslation } from "react-i18next";
 import { getNotificationDisplayText } from "@/lib/notificationDisplay";
+import { fetchEventSource } from '@microsoft/fetch-event-source';
 
 export type NotificationItem = {
   _id: string;
@@ -86,7 +87,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   }, [showToast]);
 
   useEffect(() => {
-    let eventSource: EventSource | undefined;
+    const streamController = new AbortController();
     let pollingId: number | undefined;
     let isMounted = true;
 
@@ -104,20 +105,28 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         console.error("Failed to load notifications:", error);
       }
 
-      eventSource = new EventSource(`${API_BASE_URL}/notifications/stream?token=${encodeURIComponent(token)}`);
-      eventSource.addEventListener("connected", () => isMounted && setIsConnected(true));
-      eventSource.addEventListener("heartbeat", () => isMounted && setIsConnected(true));
-      eventSource.addEventListener("notification", (event) => {
-        if (!isMounted) return;
-
-        setIsConnected(true);
-        const notification = JSON.parse((event as MessageEvent).data) as NotificationItem;
-        setNotifications((current) => mergeNotification(current, notification));
-        showToast(notification);
-      });
-      eventSource.onerror = () => {
-        if (isMounted) setIsConnected(false);
-      };
+      if (!isMounted) return;
+      void fetchEventSource(`${API_BASE_URL}/notifications/stream`, {
+        signal: streamController.signal, openWhenHidden: true,
+        fetch: (input, init) => fetch(input, { ...init, headers: { ...init?.headers, Authorization: `Bearer ${localStorage.getItem('token') || ''}` } }),
+        async onopen(response) {
+          if (!response.ok || !response.headers.get('content-type')?.includes('text/event-stream')) throw new Error('Notification stream unavailable');
+        },
+        onmessage(event) {
+          if (!isMounted) return;
+          if (event.event === 'connected' || event.event === 'heartbeat') setIsConnected(true);
+          if (event.event === 'notification') {
+            try {
+              const notification = JSON.parse(event.data) as NotificationItem;
+              setIsConnected(true);
+              setNotifications(current => mergeNotification(current, notification));
+              showToast(notification);
+            } catch { /* Ignore malformed events; polling remains available. */ }
+          }
+        },
+        onclose() { throw new Error('Notification stream closed'); },
+        onerror() { if (isMounted) setIsConnected(false); return 5000; },
+      }).catch(() => { if (isMounted) setIsConnected(false); });
 
       pollingId = window.setInterval(() => {
         loadNotifications(false, true).catch((error) => {
@@ -131,7 +140,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     return () => {
       isMounted = false;
       setIsConnected(false);
-      eventSource?.close();
+      streamController.abort();
       if (pollingId) window.clearInterval(pollingId);
       toastTimeoutIdsRef.current.forEach((timeoutId) => window.clearTimeout(timeoutId));
       toastTimeoutIdsRef.current = [];

@@ -1,3 +1,4 @@
+import { passwordPolicyError, MIN_PASSWORD_CHARACTERS } from "@/lib/passwordPolicy";
 import { apiMessage, displayApiMessage, type ApiMessage } from "@/lib/apiMessage";
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -23,11 +24,11 @@ export default function Signup() {
   // Calculate 4-stage password strength
   useEffect(() => {
     let score = 0;
-    if (formData.password.length >= 6) score += 1;
-    if (formData.password.length >= 8) score += 1;
+    if ([...formData.password].length >= MIN_PASSWORD_CHARACTERS) score += 1;
+    if ([...formData.password].length >= 20) score += 1;
     if (/[A-Z]/.test(formData.password)) score += 1;
     if (/[0-9]|[^A-Za-z0-9]/.test(formData.password)) score += 1;
-    
+
     setPasswordStrength(score);
   }, [formData.password]);
 
@@ -39,11 +40,12 @@ export default function Signup() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (formData.password.length < 6) {
-      setErrorKey("signup.passwordTooShort");
+    const passwordError = passwordPolicyError(formData.password);
+    if (passwordError) {
+      setErrorKey(passwordError);
       return;
     }
-    
+
     setLoading(true);
     setError("");
     setErrorKey("");
@@ -126,14 +128,14 @@ export default function Signup() {
             <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-on-surface-variant/60">
               <HugeiconsIcon icon="user" size={18} strokeWidth={1.6} />
             </div>
-            <input 
-              type="text" 
-              id="fullName" 
+            <input
+              type="text"
+              id="fullName"
               value={formData.fullName}
               onChange={handleChange}
               placeholder={t("signup.namePlaceholder")}
-              required 
-              className="block w-full h-11 pl-10 pr-3.5 bg-surface border border-outline-variant/80 rounded-xl text-sm text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all" 
+              required
+              className="block w-full h-11 pl-10 pr-3.5 bg-surface border border-outline-variant/80 rounded-xl text-sm text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
             />
           </div>
         </div>
@@ -146,14 +148,14 @@ export default function Signup() {
             <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-on-surface-variant/60">
               <HugeiconsIcon icon="mail" size={18} strokeWidth={1.6} />
             </div>
-            <input 
-              type="email" 
-              id="email" 
+            <input
+              type="email"
+              id="email"
               value={formData.email}
               onChange={handleChange}
               placeholder={t("signup.emailPlaceholder")}
-              required 
-              className="block w-full h-11 pl-10 pr-3.5 bg-surface border border-outline-variant/80 rounded-xl text-sm text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all" 
+              required
+              className="block w-full h-11 pl-10 pr-3.5 bg-surface border border-outline-variant/80 rounded-xl text-sm text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
             />
           </div>
         </div>
@@ -166,15 +168,15 @@ export default function Signup() {
             <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-on-surface-variant/60">
               <HugeiconsIcon icon="lock" size={18} strokeWidth={1.6} />
             </div>
-            <input 
-              type={showPassword ? "text" : "password"} 
-              id="password" 
+            <input
+              type={showPassword ? "text" : "password"}
+              id="password"
               value={formData.password}
               onChange={handleChange}
-              minLength={6} 
+              minLength={MIN_PASSWORD_CHARACTERS}
               placeholder={t("signup.passwordPlaceholder")}
-              required 
-              className="block w-full h-11 pl-10 pr-10 bg-surface border border-outline-variant/80 rounded-xl text-sm text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all" 
+              required
+              className="block w-full h-11 pl-10 pr-10 bg-surface border border-outline-variant/80 rounded-xl text-sm text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
             />
             <button
               type="button"
@@ -185,14 +187,15 @@ export default function Signup() {
               <HugeiconsIcon icon={showPassword ? "eye-off" : "eye"} size={18} strokeWidth={1.6} />
             </button>
           </div>
-          
+
           {/* iOS-Style 4-Segment Password Strength Bar */}
+          <p className="mt-2 text-xs text-on-surface-variant">{t("password.help")}</p>
           {formData.password.length > 0 && (
             <div className="mt-2.5 space-y-1.5">
               <div className="flex gap-1.5 w-full">
                 {[0, 1, 2, 3].map((index) => (
-                  <div 
-                    key={index} 
+                  <div
+                    key={index}
                     className={`h-1 flex-1 rounded-full transition-colors duration-300 ${getSegmentColor(index)}`}
                   />
                 ))}
@@ -208,8 +211,8 @@ export default function Signup() {
         </div>
 
         <div className="pt-2">
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             disabled={loading}
             className="w-full h-11 flex items-center justify-center gap-2 rounded-xl bg-primary text-on-primary text-sm font-semibold hover:bg-primary/90 active:scale-[0.99] transition-all shadow-xs disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
           >
@@ -247,8 +250,8 @@ export default function Signup() {
       <div className="space-y-3 text-center pt-1">
         <p className="text-xs text-on-surface-variant">
           {t("signup.haveAccount")}{" "}
-          <Link 
-            to="/login" 
+          <Link
+            to="/login"
             className="font-semibold text-primary hover:text-primary/80 transition-colors ml-0.5"
           >
             {t("signup.logIn")}

@@ -1,3 +1,5 @@
+import AccountSettings from "../src/pages/workspace/AccountSettings";
+import { passwordPolicyError } from "../src/lib/passwordPolicy";
 import './notificationDisplay.test';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -7,7 +9,10 @@ import { Window } from 'happy-dom';
 import React, { act, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { createRoot, type Root } from 'react-dom/client';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Routes, Route } from 'react-router-dom';
+import ProtectedRoute from '../src/components/ProtectedRoute';
+import { sanitizeDiagram } from '../src/lib/sanitizeDiagram';
+import { JSDOM } from 'jsdom';
 import { InterfaceLanguageProvider, useInterfaceLanguage } from '../src/context/InterfaceLanguageContext';
 import { SelectField, OptionCards, MultiSelectChips } from '../src/components/onboarding/FormControls';
 import GoogleLoginButton from '../src/components/GoogleLoginButton';
@@ -36,6 +41,28 @@ import JuryQASession from '../src/pages/workspace/JuryQA/JuryQASession';
 import PresentationRoute from '../src/pages/workspace/Presentation';
 import PitchRoute from '../src/pages/workspace/Pitch';
 import InfoTooltip from '../src/components/ui/InfoTooltip';
+
+test('route guards use server permissions and onboarding state instead of browser claims', async t => {
+  for (const sample of [
+    { serverRole: 'etudiant', cachedRole: 'admin', requiredRole: 'admin', completed: true, onboardingOnly: false, expected: 'Workspace' },
+    { serverRole: 'admin', cachedRole: 'etudiant', requiredRole: 'etudiant', completed: false, onboardingOnly: false, expected: 'Admin' },
+    { serverRole: 'etudiant', cachedRole: 'etudiant', requiredRole: 'etudiant', completed: true, onboardingOnly: true, expected: 'Edit project' },
+    { serverRole: 'etudiant', cachedRole: 'etudiant', requiredRole: 'etudiant', completed: false, onboardingOnly: true, expected: 'Protected content' },
+    { serverRole: 'invalid', cachedRole: 'admin', requiredRole: 'admin', completed: false, onboardingOnly: false, expected: 'Login' },
+  ] as const) await t.test(`${sample.serverRole}/${sample.requiredRole}/${sample.completed}`, async child => {
+    const env = installBrowser(child, async () => ({ ...jsonResponse({ role: sample.serverRole, hasCompletedOnboarding: sample.completed }), headers: new Headers({ 'content-type': 'application/json' }) }));
+    env.browser.localStorage.setItem('token', 'test-token');
+    env.browser.localStorage.setItem('user', JSON.stringify({ role: sample.cachedRole }));
+    await act(async () => env.root.render(<MemoryRouter initialEntries={['/protected']}><Routes>
+      <Route path="/protected" element={<ProtectedRoute requiredRole={sample.requiredRole} onboardingOnly={sample.onboardingOnly}><div>Protected content</div></ProtectedRoute>} />
+      <Route path="/workspace/overview" element={<div>Workspace</div>} />
+      <Route path="/workspace/settings/onboarding" element={<div>Edit project</div>} />
+      <Route path="/admin/dashboard" element={<div>Admin</div>} />
+      <Route path="/login" element={<div>Login</div>} />
+    </Routes></MemoryRouter>));
+    assert.equal(env.container.textContent, sample.expected);
+  });
+});
 
 test('live delivery route wrappers resolve to the localized page implementations', () => {
   assert.equal(PresentationRoute, Presentation);
@@ -590,10 +617,10 @@ test('visible local signup validation changes language without sending an authen
   await act(async () => {
     browserEnv.container.querySelector('form')!.dispatchEvent(new browserEnv.browser.Event('submit', { bubbles: true, cancelable: true }));
   });
-  assert.ok(browserEnv.container.textContent?.includes('Le mot de passe doit contenir au moins 6 caractères.'));
+  assert.ok(browserEnv.container.textContent?.includes('Le mot de passe doit contenir au moins 15 caractères.'));
   await act(async () => { await i18n.changeLanguage('en'); });
-  assert.ok(browserEnv.container.textContent?.includes('Password must be at least 6 characters.'));
-  assert.ok(!browserEnv.container.textContent?.includes('Le mot de passe doit contenir au moins 6 caractères.'));
+  assert.ok(browserEnv.container.textContent?.includes('Password must be at least 15 characters.'));
+  assert.ok(!browserEnv.container.textContent?.includes('Le mot de passe doit contenir au moins 15 caractères.'));
   assert.equal(requestCount, 0);
 });
 
@@ -1093,27 +1120,89 @@ test('a visible login API failure switches language without another authenticati
 
 test('notification history and SSE toasts switch language without reconnecting or changing read state', async t => {
   const requests: string[] = [];
+  let opens = 0; let closes = 0;
+  let stream: ReadableStreamDefaultController<Uint8Array>;
   const saved = { _id: 'n-history', title: 'Actors section is ready', message: 'The Actors section has been generated successfully.', type: 'generation_complete', feature: 'actors', read: false, createdAt: '2026-10-08T12:00:00Z' };
   const custom = { _id: 'n-custom', title: 'Existing English custom title', message: 'Existing English custom content', type: 'info', read: false, createdAt: '2026-10-08T11:00:00Z' };
   const env = installBrowser(t, async (input, options) => {
     assert.equal(options?.method || 'GET', 'GET'); requests.push(String(input));
+    if (String(input).endsWith('/notifications/stream')) {
+      opens++;
+      assert.equal(new Headers(options?.headers).get('Authorization'), 'Bearer test-placeholder');
+      assert.ok(!String(input).includes('token='));
+      options?.signal?.addEventListener('abort', () => { closes++; stream.close(); });
+      return { ok: true, headers: new Headers({ 'content-type': 'text/event-stream' }), body: new ReadableStream<Uint8Array>({ start(controller) { stream = controller; } }) } as unknown as FetchResponse;
+    }
     return { ...jsonResponse([saved, custom]), headers: new Headers({ 'content-type': 'application/json' }) };
   });
   env.browser.localStorage.setItem('token', 'test-placeholder');
-  const previous = Object.getOwnPropertyDescriptor(globalThis, 'EventSource');
-  let opens = 0; let closes = 0;
-  const listeners = new Map<string, (event: { data: string }) => void>();
-  class TestEventSource { onerror: unknown; constructor() { opens++; } addEventListener(name: string, callback: (event: { data: string }) => void) { listeners.set(name, callback); } close() { closes++; } }
-  setGlobal('EventSource', TestEventSource);
-  t.after(() => { if (previous) Object.defineProperty(globalThis, 'EventSource', previous); else delete (globalThis as any).EventSource; });
   await act(async () => { await i18n.changeLanguage('en'); env.root.render(<MemoryRouter><NotificationProvider><NotificationBell /></NotificationProvider></MemoryRouter>); });
   const bell = env.container.querySelector('button')!;
   await act(async () => { bell.dispatchEvent(new env.browser.MouseEvent('click', { bubbles: true })); });
-  await act(async () => { listeners.get('notification')!({ data: JSON.stringify({ ...saved, _id: 'n-stream' }) }); });
+  await act(async () => { stream.enqueue(new TextEncoder().encode(`event: notification\ndata: ${JSON.stringify({ ...saved, _id: 'n-stream' })}\n\n`)); });
   const count = requests.length;
   await act(async () => { await i18n.changeLanguage('fr'); });
   assert.ok(env.container.textContent?.includes(i18n.t('generation.actors.title', { ns: 'notifications', lng: 'fr' })));
   assert.ok(env.container.textContent?.includes(custom.message));
   assert.ok(env.container.querySelector('[role="status"]')?.textContent?.includes(i18n.t('generation.actors.message', { ns: 'notifications', lng: 'fr' })));
   assert.equal(opens, 1); assert.equal(closes, 0); assert.equal(requests.length, count);
+});
+
+test('diagram sanitization strips executable markup and external resources while preserving geometry', t => {
+  installBrowser(t, async () => jsonResponse({}));
+  const dom = new JSDOM('');
+  setGlobal('window', dom.window);
+  t.after(() => dom.window.close());
+  const clean = sanitizeDiagram('<svg xmlns="http://www.w3.org/2000/svg" onload="alert(1)"><script>alert(1)</script><foreignObject><img src=x onerror="alert(1)" /></foreignObject><a href="javascript:alert(1)"><text>Label</text></a><image href="https://example.invalid/a"/><rect width="10" height="20" style="stroke:red"/><path d="M0 0L10 10" style="fill:url(https://example.invalid/a)"/></svg>');
+  assert.doesNotMatch(clean, /onload|onerror|script|foreignObject|javascript:|https:\/\//);
+  assert.match(clean, /<rect/);
+  assert.match(clean, /width="10"/);
+  assert.match(clean, /stroke:red/);
+  assert.match(clean, /<path/);
+});
+
+
+test('Google linking sends the current password to the protected connection endpoint and preserves the current page', async t => {
+  let callback: ((value: { credential: string }) => void) | undefined;
+  const requests: { url: string; options?: RequestInit }[] = [];
+  const env = installBrowser(t, async (url, options) => {
+    requests.push({ url: String(url), options });
+    return { ...jsonResponse({ _id: 'same-account', fullName: 'Existing user', email: 'same@example.com', role: 'etudiant', hasPassword: true, googleConnected: true, token: 'new-token', authProvider: 'email' }), headers: new Headers({ 'content-type': 'application/json' }) };
+  });
+  env.browser.localStorage.setItem('token', 'old-token');
+  (env.browser as unknown as Window).google = { accounts: { id: { initialize: (options: any) => { callback = options.callback; }, renderButton: () => {} } } };
+  let connected: any;
+  await act(async () => env.root.render(<MemoryRouter initialEntries={['/workspace/account']}><Routes><Route path="/workspace/account" element={<GoogleLoginButton mode="connect" currentPassword="existing-password" onConnected={profile => { connected = profile; }} onLoading={() => {}} onError={() => {}} />} /><Route path="/workspace/overview" element={<div>Wrong redirect</div>} /></Routes></MemoryRouter>));
+  await act(async () => callback!({ credential: 'google-fixture' }));
+  assert.equal(requests.length, 1); assert.ok(requests[0].url.endsWith('/auth/google/connect'));
+  assert.equal(new Headers(requests[0].options?.headers).get('Authorization'), 'Bearer old-token');
+  assert.deepEqual(JSON.parse(String(requests[0].options?.body)), { credential: 'google-fixture', currentPassword: 'existing-password' });
+  assert.equal(connected._id, 'same-account'); assert.equal(env.browser.localStorage.getItem('token'), 'new-token');
+  assert.equal(JSON.parse(env.browser.localStorage.getItem('user')!).hasPassword, true);
+  assert.ok(!env.container.textContent?.includes('Wrong redirect'));
+});
+test('linking Google does not hide the password controls for accounts with both login methods', async t => {
+  const env = installBrowser(t, async () => ({ ...jsonResponse({ fullName: 'Existing user', email: 'same@example.com', authProvider: 'google', googleConnected: true, hasPassword: true }), headers: new Headers({ 'content-type': 'application/json' }) }));
+  env.browser.localStorage.setItem('token', 'fixture');
+  env.browser.localStorage.setItem('user', JSON.stringify({ authProvider: 'google', hasPassword: true, googleConnected: true }));
+  await act(async () => { await i18n.changeLanguage('fr'); env.root.render(<MemoryRouter><AccountSettings /></MemoryRouter>); });
+  assert.ok(env.container.querySelector('#account-current-password')); assert.ok(env.container.querySelector('#account-new-password'));
+  assert.ok(env.container.textContent?.includes('Compte Google associé'));
+});
+test('Google email collisions show recovery instructions without saving a session', async t => {
+  let callback: ((value: { credential: string }) => void) | undefined;
+  const env = installBrowser(t, async () => ({ ...jsonResponse({ message: 'Link required', messageKey: 'auth.googleLinkRequired', code: 'GOOGLE_LINK_REQUIRED' }, false), headers: new Headers({ 'content-type': 'application/json' }), status: 409 }));
+  (env.browser as unknown as Window).google = { accounts: { id: { initialize: (options: any) => { callback = options.callback; }, renderButton: () => {} } } };
+  let error: any;
+  await act(async () => env.root.render(<MemoryRouter><GoogleLoginButton onError={value => { error = value; }} onLoading={() => {}} /></MemoryRouter>));
+  await act(async () => callback!({ credential: 'fixture' }));
+  assert.equal(error.messageKey, 'auth.googleLinkRequired'); assert.equal(env.browser.localStorage.getItem('token'), null); assert.equal(env.browser.localStorage.getItem('user'), null);
+});
+test('password policy counts Unicode characters and rejects bcrypt truncation without requiring character mixtures', () => {
+  assert.equal(passwordPolicyError('a long simple passphrase'), null);
+  assert.equal(passwordPolicyError('Short1!'), 'password.tooShort');
+  assert.equal(passwordPolicyError('🙂'.repeat(14)), 'password.tooShort');
+  assert.equal(passwordPolicyError('🙂'.repeat(18)), null);
+  assert.equal(passwordPolicyError('🙂'.repeat(19)), 'password.tooLong');
+  assert.equal(passwordPolicyError('x'.repeat(73)), 'password.tooLong');
 });
