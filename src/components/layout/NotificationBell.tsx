@@ -181,7 +181,7 @@ export default function NotificationBell({ label }: { label?: string }) {
                       <p className="text-xs font-semibold text-on-surface truncate">{displayText.title}</p>
                     </div>
                     <p className="text-xs text-on-surface-variant line-clamp-2 mt-0.5">{displayText.message}</p>
-                    <p className="text-[10px] text-outline-variant mt-1 font-mono">
+                    <p className="text-[11px] text-on-surface mt-1 font-mono">
                       {formatNotificationTime(notification.createdAt, language, t)}
                     </p>
                   </div>

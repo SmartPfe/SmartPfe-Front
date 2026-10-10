@@ -181,7 +181,7 @@ export default function Sidebar({ isOpen, setIsSidebarOpen }: SidebarProps) {
                           cn(
                             "flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all group",
                             isLocked
-                              ? "opacity-50 cursor-not-allowed text-on-surface-variant/70"
+                              ? "cursor-not-allowed text-on-surface-variant"
                               : isActive
                               ? "bg-primary/10 text-primary font-semibold shadow-2xs"
                               : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high/60"
@@ -191,7 +191,7 @@ export default function Sidebar({ isOpen, setIsSidebarOpen }: SidebarProps) {
                         {({ isActive }) => (
                           <>
                             <div className="flex items-center gap-2.5 min-w-0">
-                              <span className="text-[10px] font-mono text-outline-variant/80 shrink-0 w-3.5 text-right">
+                              <span className={cn("text-[11px] font-mono font-medium shrink-0 w-3.5 text-right", isActive && !isLocked ? "text-primary" : "text-on-surface")}>
                                 {step.stepNumber}
                               </span>
                               <HugeiconsIcon
@@ -255,6 +255,7 @@ export default function Sidebar({ isOpen, setIsSidebarOpen }: SidebarProps) {
             onClick={toggleTheme}
             className="w-full flex items-center justify-between px-2.5 py-1.5 text-xs text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high/60 rounded-lg transition-colors font-medium cursor-pointer group"
             aria-label={t("sidebar.toggleTheme")}
+            aria-pressed={isDarkMode}
           >
             <div className="flex items-center gap-2">
               <HugeiconsIcon

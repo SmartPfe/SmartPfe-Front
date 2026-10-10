@@ -1,4 +1,5 @@
 {
+  "admin": { "interfacePreferences": "Interface preferences", "languageHelp": "Change the language of administration menus and controls." },
   "workspace": {
     "title": "Settings",
     "untitledProject": "Untitled Project",

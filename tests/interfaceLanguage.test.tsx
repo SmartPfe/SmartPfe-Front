@@ -13,6 +13,7 @@ import { SelectField, OptionCards, MultiSelectChips } from '../src/components/on
 import GoogleLoginButton from '../src/components/GoogleLoginButton';
 import i18n from '../src/lib/i18n';
 import { initialInterfaceLanguage, normalizeInterfaceLanguage } from '../src/lib/interfaceLanguage';
+import { initializeTheme, useTheme } from '../src/lib/theme';
 import Signup from '../src/pages/auth/Signup';
 import { displayOptions } from '../src/lib/onboardingOptions';
 import { AiGenerationProvider, useAiGeneration } from '../src/context/AiGenerationContext';
@@ -41,6 +42,63 @@ test('live delivery route wrappers resolve to the localized page implementations
   assert.equal(PitchRoute, Pitch);
   const appSource = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
   assert.match(appSource, /import ReportBuilder from ["']\.\/pages\/workspace\/ReportBuilder\/index["']/);
+});
+
+test('theme controls and the rendered theme agree on mount and cross-tab changes', async t => {
+  for (const sample of [
+    { saved: 'dark', systemDark: false, expected: 'dark' },
+    { saved: 'light', systemDark: true, expected: 'light' },
+    { saved: null, systemDark: true, expected: 'dark' },
+  ]) {
+    await t.test(`saved=${sample.saved}, systemDark=${sample.systemDark}`, async child => {
+      const env = installBrowser(child, async () => jsonResponse({}));
+      if (sample.saved) env.browser.localStorage.setItem('theme', sample.saved);
+      Object.defineProperty(env.browser, 'matchMedia', { value: () => ({ matches: sample.systemDark, addEventListener() {}, removeEventListener() {} }) });
+      assert.equal(initializeTheme(), sample.expected);
+      assert.equal(env.browser.document.documentElement.classList.contains('dark'), sample.expected === 'dark');
+      assert.equal(env.browser.document.documentElement.style.colorScheme, sample.expected);
+      assert.equal(env.browser.localStorage.getItem('theme'), sample.saved);
+      function ThemeControl() {
+        const { isDarkMode, toggleTheme } = useTheme();
+        return <button aria-pressed={isDarkMode} onClick={toggleTheme}>Theme</button>;
+      }
+      await act(async () => { env.root.render(<><ThemeControl /><ThemeControl /></>); });
+      assert.equal(env.browser.document.documentElement.classList.contains('dark'), sample.expected === 'dark');
+      assert.deepEqual([...env.container.querySelectorAll('button')].map(button => button.getAttribute('aria-pressed')), [String(sample.expected === 'dark'), String(sample.expected === 'dark')]);
+      await act(async () => { env.container.querySelector('button')!.click(); });
+      assert.equal(env.browser.document.documentElement.classList.contains('dark'), sample.expected !== 'dark');
+      assert.deepEqual([...env.container.querySelectorAll('button')].map(button => button.getAttribute('aria-pressed')), [String(sample.expected !== 'dark'), String(sample.expected !== 'dark')]);
+      env.browser.localStorage.setItem('theme', 'dark');
+      await act(async () => { env.browser.dispatchEvent(new env.browser.StorageEvent('storage', { key: 'theme', newValue: 'dark' })); });
+      assert.equal(env.browser.document.documentElement.classList.contains('dark'), true);
+      assert.deepEqual([...env.container.querySelectorAll('button')].map(button => button.getAttribute('aria-pressed')), ['true', 'true']);
+    });
+  }
+});
+
+test('system theme changes synchronize controls without overriding a saved choice', async t => {
+  const env = installBrowser(t, async () => jsonResponse({}));
+  let systemDark = true;
+  const listeners = new Set<() => void>();
+  Object.defineProperty(env.browser, 'matchMedia', { value: () => ({
+    get matches() { return systemDark; },
+    addEventListener(_event: string, listener: () => void) { listeners.add(listener); },
+    removeEventListener(_event: string, listener: () => void) { listeners.delete(listener); },
+  }) });
+  function ThemeControl() {
+    const { isDarkMode, setTheme } = useTheme();
+    return <button aria-pressed={isDarkMode} onClick={() => setTheme('dark')}>Theme</button>;
+  }
+  await act(async () => { env.root.render(<ThemeControl />); });
+  assert.equal(env.browser.document.documentElement.classList.contains('dark'), true);
+  await act(async () => { systemDark = false; listeners.forEach(listener => listener()); });
+  assert.equal(env.browser.document.documentElement.classList.contains('dark'), false);
+  assert.equal(env.container.querySelector('button')!.getAttribute('aria-pressed'), 'false');
+  assert.equal(env.browser.localStorage.getItem('theme'), null);
+  await act(async () => { env.container.querySelector('button')!.click(); listeners.forEach(listener => listener()); });
+  assert.equal(env.browser.document.documentElement.classList.contains('dark'), true);
+  assert.equal(env.container.querySelector('button')!.getAttribute('aria-pressed'), 'true');
+  assert.equal(env.browser.localStorage.getItem('theme'), 'dark');
 });
 
 test('every UI/content language combination preserves project data and an active generation', async t => {

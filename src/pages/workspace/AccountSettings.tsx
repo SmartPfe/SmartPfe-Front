@@ -1,5 +1,5 @@
 import { apiMessage, displayApiMessage, type ApiMessage } from "@/lib/apiMessage";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { TextField } from "@/components/onboarding/FormControls";
@@ -20,10 +20,12 @@ export default function AccountSettings({
   backTo = "/workspace/settings",
   backLabel,
   memberLabel,
+  children,
 }: {
   backTo?: string;
   backLabel?: string;
   memberLabel?: string;
+  children?: ReactNode;
 } = {}) {
   const { t } = useTranslation("auth");
   const [form, setForm] = useState<AccountForm>({
@@ -350,6 +352,7 @@ export default function AccountSettings({
           </button>
         </footer>
       )}
+      {children}
     </div>
   );
 }

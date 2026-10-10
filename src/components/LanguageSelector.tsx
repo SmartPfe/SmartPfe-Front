@@ -9,6 +9,7 @@ export interface LanguageSelectorProps {
   compact?: boolean;
   inverse?: boolean;
   className?: string;
+  description?: string;
 }
 
 export default function LanguageSelector({
@@ -16,6 +17,7 @@ export default function LanguageSelector({
   compact = false,
   inverse = false,
   className,
+  description,
 }: LanguageSelectorProps) {
   const { t } = useTranslation<'common'>('common');
   const { uiLanguage, setUiLanguage, isSaving, error } = useInterfaceLanguage();
@@ -114,7 +116,7 @@ export default function LanguageSelector({
           </span>
           <div>
             <h2 id={id} className={cn('text-sm font-semibold', inverse ? 'text-slate-300' : 'text-on-surface')}>{t('interfaceLanguage')}</h2>
-            <p id={`${id}-help`} className="mt-1 max-w-md text-xs leading-relaxed text-on-surface-variant">{t('languageHelp')}</p>
+            <p id={`${id}-help`} className="mt-1 max-w-md text-xs leading-relaxed text-on-surface-variant">{description ?? t('languageHelp')}</p>
           </div>
         </div>
         <div role="group" aria-labelledby={id} aria-describedby={`${id}-help`} className={cn('inline-flex self-start rounded-lg border p-1 sm:self-auto', inverse ? 'border-white/15 bg-white/5' : 'border-outline-variant/70 bg-surface-container-low')}>

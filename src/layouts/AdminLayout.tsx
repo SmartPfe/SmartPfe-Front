@@ -7,6 +7,7 @@ import creditCoin from "@/assets/credit-coin.png";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
 import LanguageSelector from "@/components/LanguageSelector";
+import { useTheme } from "@/lib/theme";
 
 const ADMIN_NAV_ITEMS = [
   { labelKey: "admin.navigation.overview", icon: "dashboard", path: "/admin/dashboard", helperKey: "admin.navigation.overviewHelper" },
@@ -19,6 +20,7 @@ const ADMIN_NAV_ITEMS = [
 
 export default function AdminLayout() {
   const { t } = useTranslation("shell");
+  const { isDarkMode, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -65,7 +67,11 @@ export default function AdminLayout() {
         ))}
       </nav>
 
-      <div className="border-t border-outline-variant/60 p-3">
+      <div className="shrink-0 border-t border-outline-variant/60 p-3">
+        <button type="button" onClick={toggleTheme} aria-label={t("sidebar.toggleTheme")} aria-pressed={isDarkMode} className="mb-3 flex w-full items-center justify-between gap-3 rounded-lg px-2.5 py-2 text-xs font-medium text-on-surface-variant transition-colors hover:bg-surface-container-high/60 hover:text-on-surface focus-visible:outline-2 focus-visible:outline-primary">
+          <span className="inline-flex items-center gap-2"><HugeiconsIcon icon={isDarkMode ? "moon" : "sun"} size={16} /><span>{t(isDarkMode ? "sidebar.darkMode" : "sidebar.lightMode")}</span></span>
+          <span aria-hidden="true" className={`inline-flex h-4 w-7 shrink-0 items-center rounded-full p-0.5 transition-colors ${isDarkMode ? "bg-primary" : "bg-outline-variant/80"}`}><span className={`h-3 w-3 rounded-full bg-white shadow-sm transition-transform ${isDarkMode ? "translate-x-3" : "translate-x-0"}`} /></span>
+        </button>
         <div className="mb-2 flex items-center gap-3 rounded-xl bg-surface-container-low p-2.5">
           <div className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-xl bg-primary/10 text-xs font-extrabold text-primary">
             {user.avatar ? <img src={user.avatar} alt="" className="h-full w-full object-cover" referrerPolicy="no-referrer" /> : initials}
