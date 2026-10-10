@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import CreditWalletButton from "@/components/credits/CreditWalletButton";
 import LanguageSelector from "@/components/LanguageSelector";
 import { topbarPhaseLabelKey, workspaceTooltipKey } from "@/lib/workspaceLabels";
+import { useTheme } from "@/lib/theme";
 
 interface TopbarProps {
   toggleSidebar: () => void;
@@ -35,7 +36,8 @@ const PHASE_ICONS: Record<string, string> = {
 };
 
 export default function Topbar({ toggleSidebar }: TopbarProps) {
-  const { t } = useTranslation("shell");
+  const { t } = useTranslation(["shell", "settings"]);
+  const { isDarkMode, toggleTheme } = useTheme();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -244,7 +246,7 @@ export default function Topbar({ toggleSidebar }: TopbarProps) {
           {/* Notification Bell */}
           <NotificationBell label={t("topbar.liveWorkspaceEvents")} />
 
-          {/* User Profile Avatar & Notion-Style Dropdown */}
+          {/* User Profile Avatar & Dropdown */}
           <div ref={profileRef} className="relative ml-1">
             <button
               onClick={() => setIsProfileOpen(!isProfileOpen)}
@@ -266,74 +268,101 @@ export default function Topbar({ toggleSidebar }: TopbarProps) {
 
             {isProfileOpen && (
               <div className="absolute right-0 mt-2 w-56 bg-surface rounded-xl shadow-xl border border-outline-variant/80 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-100 font-sans">
-                {/* User Profile Header */}
+                {/* User Profile Header (clean without badge) */}
                 <div className="px-3.5 py-2.5 border-b border-outline-variant/60">
                   <p className="text-xs font-semibold text-on-surface truncate">{user.fullName || t("topbar.studentAccount")}</p>
                   <p className="text-[11px] text-on-surface-variant truncate mt-0.5">{user.email || t("topbar.defaultEmail")}</p>
-                  <div className="mt-2 inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-primary/10 text-primary text-[10px] font-semibold tracking-wide uppercase">
-                    <HugeiconsIcon icon="school" size={12} strokeWidth={1.75} />
-                    <span>{t("topbar.pfeCandidate")}</span>
-                  </div>
                 </div>
 
-                  {/* Nav Links */}
-                  <div className="py-1">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsProfileOpen(false);
-                        navigate("/workspace/account");
-                      }}
-                      className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs text-on-surface hover:bg-surface-container-high/70 transition-colors text-left"
-                    >
-                      <HugeiconsIcon icon="user-circle" size={15} className="text-on-surface-variant" strokeWidth={1.75} />
-                      <span>{t("topbar.accountProfile")}</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsProfileOpen(false);
-                        navigate("/workspace/settings");
-                      }}
-                      className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs text-on-surface hover:bg-surface-container-high/70 transition-colors text-left"
-                    >
-                      <HugeiconsIcon icon="settings-02" size={15} className="text-on-surface-variant" strokeWidth={1.75} />
-                      <span>{t("topbar.workspaceSettings")}</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsProfileOpen(false);
-                        setIsSearchOpen(true);
-                      }}
-                      className="w-full flex items-center justify-between px-3.5 py-2 text-xs text-on-surface hover:bg-surface-container-high/70 transition-colors text-left"
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <HugeiconsIcon icon="command" size={15} className="text-on-surface-variant" strokeWidth={1.75} />
-                        <span>{t("topbar.commandPalette")}</span>
-                      </div>
-                      <kbd className="text-[10px] font-mono text-outline-variant bg-surface-container px-1 py-0.5 rounded border border-outline-variant/60">⌘K</kbd>
-                    </button>
-                  </div>
-
-                  <div className="py-1">
-                    <LanguageSelector variant="menu" />
-                  </div>
-
-                  {/* Divider & Logout */}
-                  <div className="border-t border-outline-variant/60 my-1" />
+                {/* Nav Links */}
+                <div className="py-1">
                   <button
                     type="button"
                     onClick={() => {
                       setIsProfileOpen(false);
-                      handleLogout();
+                      navigate("/workspace/account");
                     }}
-                    className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs text-error hover:bg-error/10 transition-colors text-left font-medium"
+                    className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs text-on-surface hover:bg-surface-container-high/70 transition-colors text-left"
                   >
-                    <HugeiconsIcon icon="logout-01" size={15} className="text-error" strokeWidth={1.75} />
-                    <span>{t("topbar.logOut")}</span>
+                    <HugeiconsIcon icon="user-circle" size={15} className="text-on-surface-variant" strokeWidth={1.75} />
+                    <span>{t("topbar.accountProfile")}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsProfileOpen(false);
+                      navigate("/workspace/settings");
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs text-on-surface hover:bg-surface-container-high/70 transition-colors text-left"
+                  >
+                    <HugeiconsIcon icon="settings-02" size={15} className="text-on-surface-variant" strokeWidth={1.75} />
+                    <span>{t("topbar.workspaceSettings")}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsProfileOpen(false);
+                      setIsSearchOpen(true);
+                    }}
+                    className="w-full flex items-center justify-between px-3.5 py-2 text-xs text-on-surface hover:bg-surface-container-high/70 transition-colors text-left"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <HugeiconsIcon icon="command" size={15} className="text-on-surface-variant" strokeWidth={1.75} />
+                      <span>{t("topbar.commandPalette")}</span>
+                    </div>
+                    <kbd className="text-[10px] font-mono text-outline-variant bg-surface-container px-1 py-0.5 rounded border border-outline-variant/60">⌘K</kbd>
                   </button>
                 </div>
+
+                {/* Divider */}
+                <div className="border-t border-outline-variant/60 my-1" />
+
+                {/* Theme & Language Controls */}
+                <div className="py-1">
+                  {/* Theme Mode Toggle with new settings design */}
+                  <div className="w-full flex items-center justify-between px-3.5 py-1.5 text-xs text-on-surface transition-colors">
+                    <div className="flex items-center gap-2.5">
+                      <HugeiconsIcon icon={isDarkMode ? "moon" : "sun"} size={15} className="text-on-surface-variant shrink-0" strokeWidth={1.75} />
+                      <span className="font-medium text-on-surface">{isDarkMode ? t("sidebar.darkMode") : t("sidebar.lightMode")}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={toggleTheme}
+                      className={cn(
+                        "w-11 h-6 rounded-full p-0.5 transition-colors relative flex items-center shrink-0 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary",
+                        isDarkMode ? "bg-primary" : "bg-outline-variant"
+                      )}
+                      aria-label={t("workspace.toggleTheme", { ns: "settings" })}
+                      aria-pressed={isDarkMode}
+                    >
+                      <div
+                        className={cn(
+                          "w-5 h-5 rounded-full bg-white flex items-center justify-center transition-transform transform shadow-xs text-slate-800",
+                          isDarkMode ? "translate-x-5" : "translate-x-0"
+                        )}
+                      >
+                        <HugeiconsIcon icon={isDarkMode ? "moon" : "sun"} size={11} strokeWidth={2.5} />
+                      </div>
+                    </button>
+                  </div>
+
+                  <LanguageSelector variant="menu" />
+                </div>
+
+                {/* Divider & Logout */}
+                <div className="border-t border-outline-variant/60 my-1" />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsProfileOpen(false);
+                    handleLogout();
+                  }}
+                  className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs text-error hover:bg-error/10 transition-colors text-left font-medium"
+                >
+                  <HugeiconsIcon icon="logout-01" size={15} className="text-error" strokeWidth={1.75} />
+                  <span>{t("topbar.logOut")}</span>
+                </button>
+              </div>
             )}
           </div>
         </div>
@@ -344,4 +373,3 @@ export default function Topbar({ toggleSidebar }: TopbarProps) {
     </>
   );
 }
-

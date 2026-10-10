@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import HugeiconsIcon, { Folder01Icon } from "@/components/ui/HugeiconsIcon";
+import HugeiconsIcon from "@/components/ui/HugeiconsIcon";
 import LanguageSelector from "@/components/LanguageSelector";
 import { useOnboarding } from "@/context/OnboardingContext";
 import { useTheme } from "@/lib/theme";
@@ -10,7 +10,6 @@ import { cn } from "@/lib/utils";
 export default function Settings() {
   const { t } = useTranslation<'settings'>("settings");
   const { data } = useOnboarding();
-  const [user, setUser] = useState(() => JSON.parse(localStorage.getItem("user") || "{}"));
   const { isDarkMode, toggleTheme } = useTheme();
   const [downloaded, setDownloaded] = useState(false);
 
@@ -36,198 +35,142 @@ export default function Settings() {
   const language = data?.basics?.language || "English";
 
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col h-full pt-2 pb-24 font-sans">
-      {/* Header */}
-      <div className="mb-5">
-        <h1 className="text-2xl font-bold tracking-tight text-on-surface">
-          {t("workspace.title")}
+    <div className="mx-auto flex w-full max-w-4xl flex-col h-full pt-1 pb-20 font-sans">
+      {/* Page Header */}
+      <div className="mb-7">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-on-surface">
+          {t("general.title")}
         </h1>
+        <p className="mt-1.5 text-xs sm:text-sm text-on-surface-variant leading-relaxed">
+          {t("general.subtitle")}
+        </p>
       </div>
 
-{/* Active Project Ribbon */}
-      <div className="mb-6 p-4 rounded-xl border border-outline-variant/80 bg-surface-container-lowest shadow-2xs">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-9 h-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 border border-primary/20">
-              <HugeiconsIcon icon={Folder01Icon} size={18} strokeWidth={1.8} />
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">{t("workspace.activeProject")}</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-secondary shrink-0" />
-                <span className="text-[11px] font-mono text-secondary font-semibold">{t("workspace.synced")}</span>
+      <div className="space-y-6">
+        {/* Section 1: Preferences */}
+        <div>
+          <h2 className="text-xs font-bold uppercase tracking-wider text-on-surface-variant px-1 mb-2.5">
+            {t("general.preferencesGroup")}
+          </h2>
+          <div className="rounded-2xl border border-outline-variant/70 bg-surface-container-lowest divide-y divide-outline-variant/40 overflow-hidden shadow-2xs">
+            {/* Interface Language Row */}
+            <div className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-0.5">
+                <h3 className="text-sm font-semibold text-on-surface">
+                  {t("general.language")}
+                </h3>
+                <p className="text-xs text-on-surface-variant max-w-md">
+                  {t("general.languageDescription")}
+                </p>
               </div>
-              <h2 className="text-sm font-bold text-on-surface truncate" title={projectTitle}>
-                {projectTitle}
-              </h2>
+              <div className="shrink-0">
+                <LanguageSelector variant="minimal" />
+              </div>
             </div>
-          </div>
 
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-[11px] px-2 py-0.5 rounded-md bg-surface border border-outline-variant text-on-surface font-semibold">
-              <span className="text-on-surface-variant font-normal mr-1">{t("workspace.universityLabel")}</span>{university}
-            </span>
-            <span className="text-[11px] px-2 py-0.5 rounded-md bg-surface border border-outline-variant text-on-surface font-semibold">
-              <span className="text-on-surface-variant font-normal mr-1">{t("workspace.methodologyLabel")}</span>{methodology}
-            </span>
-            <span className="text-[11px] px-2 py-0.5 rounded-md bg-surface border border-outline-variant text-on-surface font-semibold">
-              <span className="text-on-surface-variant font-normal mr-1">{t("workspace.generationLanguageLabel")}</span>{language}
-            </span>
+            {/* Appearance / Theme Row */}
+            <div className="p-4 sm:p-5 flex items-center justify-between gap-4">
+              <div className="space-y-0.5">
+                <h3 className="text-sm font-semibold text-on-surface">
+                  {t("general.appearance")}
+                </h3>
+                <p className="text-xs text-on-surface-variant">
+                  {t("general.appearanceDescription")}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={toggleTheme}
+                className={cn(
+                  "w-11 h-6 rounded-full p-0.5 transition-colors relative flex items-center shrink-0 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
+                  isDarkMode ? "bg-primary" : "bg-outline-variant"
+                )}
+                aria-label={t("workspace.toggleTheme")}
+                aria-pressed={isDarkMode}
+              >
+                <div
+                  className={cn(
+                    "w-5 h-5 rounded-full bg-white flex items-center justify-center transition-transform transform shadow-xs text-slate-800",
+                    isDarkMode ? "translate-x-5" : "translate-x-0"
+                  )}
+                >
+                  <HugeiconsIcon icon={isDarkMode ? "moon" : "sun"} size={11} strokeWidth={2.5} />
+                </div>
+              </button>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Primary Configuration Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        {/* Card 1: Project Specifications */}
-        <Link
-          to="/workspace/settings/onboarding"
-          className="group bg-surface-container-lowest border border-outline-variant/80 hover:border-primary/50 rounded-xl p-5 flex flex-col justify-between hover:shadow-xs transition-all cursor-pointer"
-        >
-          <div>
-            {/* Header Row: Icon + Title + Badge */}
-            <div className="flex items-center justify-between gap-3 mb-2.5">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-9 h-9 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 border border-indigo-500/20">
-                  <HugeiconsIcon icon="document" size={18} strokeWidth={1.8} />
+        {/* Section 2: Project Context */}
+        <div>
+          <h2 className="text-xs font-bold uppercase tracking-wider text-on-surface-variant px-1 mb-2.5">
+            {t("general.projectGroup")}
+          </h2>
+          <div className="rounded-2xl border border-outline-variant/70 bg-surface-container-lowest overflow-hidden shadow-2xs">
+            <div className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-2 min-w-0">
+                <div className="flex items-center gap-2.5">
+                  <span className="text-sm font-semibold text-on-surface truncate" title={projectTitle}>
+                    {projectTitle}
+                  </span>
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    {t("workspace.synced")}
+                  </span>
                 </div>
-                <div className="min-w-0">
-                  <h2 className="text-sm font-bold text-on-surface group-hover:text-primary transition-colors truncate">
-                    {t("workspace.projectSpecifications")}
-                  </h2>
-                </div>
-              </div>
-              <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-surface-container text-on-surface-variant font-mono shrink-0">
-                {t("workspace.contextBadge")}
-              </span>
-            </div>
-
-            <p className="text-xs text-on-surface-variant font-normal leading-relaxed mb-4">
-              {t("workspace.projectSpecificationsDescription")}
-            </p>
-          </div>
-
-          <div className="flex items-center justify-between pt-3 border-t border-outline-variant/50 text-xs font-semibold text-primary group-hover:translate-x-0.5 transition-transform">
-            <span className="text-on-surface-variant text-[11px] font-medium">{t("workspace.projectSpecificationsDetails")}</span>
-            <div className="flex items-center gap-1">
-              <span>{t("workspace.edit")}</span>
-              <HugeiconsIcon icon="arrow-right" size={14} strokeWidth={2} />
-            </div>
-          </div>
-        </Link>
-
-        {/* Card 2: User Account & Security */}
-        <Link
-          to="/workspace/account"
-          className="group bg-surface-container-lowest border border-outline-variant/80 hover:border-primary/50 rounded-xl p-5 flex flex-col justify-between hover:shadow-xs transition-all cursor-pointer"
-        >
-          <div>
-            {/* Header Row: Icon + Title + Badge */}
-            <div className="flex items-center justify-between gap-3 mb-2.5">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-9 h-9 rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-400 flex items-center justify-center shrink-0 border border-sky-500/20">
-                  <HugeiconsIcon icon="user-circle" size={18} strokeWidth={1.8} />
-                </div>
-                <div className="min-w-0">
-                  <h2 className="text-sm font-bold text-on-surface group-hover:text-primary transition-colors truncate">
-                    {t("workspace.accountSecurity")}
-                  </h2>
+                <div className="flex flex-wrap items-center gap-2 text-xs text-on-surface-variant">
+                  <span className="px-2 py-0.5 rounded-md bg-surface-container border border-outline-variant/50 text-[11px] font-medium">
+                    {university}
+                  </span>
+                  <span className="px-2 py-0.5 rounded-md bg-surface-container border border-outline-variant/50 text-[11px] font-medium">
+                    {methodology}
+                  </span>
+                  <span className="px-2 py-0.5 rounded-md bg-surface-container border border-outline-variant/50 text-[11px] font-medium">
+                    {language}
+                  </span>
                 </div>
               </div>
-              <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-surface-container text-on-surface-variant font-mono shrink-0">
-                {t("workspace.profileBadge")}
-              </span>
-            </div>
-
-            <p className="text-xs text-on-surface-variant font-normal leading-relaxed mb-4">
-              {t("workspace.accountSecurityDescription")}
-            </p>
-          </div>
-
-          <div className="flex items-center justify-between pt-3 border-t border-outline-variant/50 text-xs font-semibold text-primary group-hover:translate-x-0.5 transition-transform">
-            <span className="text-on-surface-variant text-[11px] font-medium truncate max-w-[160px]">{user.fullName || t("workspace.studentAccount")}</span>
-            <div className="flex items-center gap-1 shrink-0">
-              <span>{t("workspace.manage")}</span>
-              <HugeiconsIcon icon="arrow-right" size={14} strokeWidth={2} />
+              <Link
+                to="/workspace/settings/onboarding"
+                className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl border border-outline-variant/80 bg-surface hover:bg-surface-container-high/60 text-xs font-semibold text-on-surface transition-colors shadow-2xs shrink-0 self-start sm:self-auto"
+              >
+                <span>{t("workspace.edit")}</span>
+                <HugeiconsIcon icon="arrow-right" size={13} strokeWidth={2} />
+              </Link>
             </div>
           </div>
-        </Link>
-      </div>
-
-      <Link to="/workspace/settings/credits" className="group mb-6 flex items-center justify-between gap-4 rounded-xl border border-amber-400/30 bg-amber-400/5 p-5 transition hover:border-primary/50 hover:shadow-xs">
-        <div className="flex items-center gap-3">
-          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400"><HugeiconsIcon icon="wallet-02" size={20} /></div>
-          <div><h2 className="text-sm font-bold text-on-surface group-hover:text-primary">{t("workspace.creditHistory")}</h2><p className="mt-1 text-xs leading-relaxed text-on-surface-variant">{t("workspace.creditHistoryDescription")}</p></div>
-        </div>
-        <HugeiconsIcon icon="arrow-right" size={18} className="shrink-0 text-primary" />
-      </Link>
-
-      <div className="mb-4"><LanguageSelector /></div>
-      {/* Secondary Utilities Grid (2 clean cards) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {/* Workspace Theme Toggle */}
-        <div className="bg-surface-container-lowest border border-outline-variant/80 rounded-xl p-4 shadow-2xs flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-9 h-9 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-500/20">
-              <HugeiconsIcon icon={isDarkMode ? "moon" : "sun"} size={18} strokeWidth={1.8} />
-            </div>
-            <div className="min-w-0">
-              <h3 className="text-xs font-bold text-on-surface">{t("workspace.themeMode")}</h3>
-              <p className="text-[11px] text-on-surface-variant truncate">
-                {isDarkMode ? t("workspace.darkThemeActive") : t("workspace.lightThemeActive")}
-              </p>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={toggleTheme}
-            className={cn(
-              "w-10 h-5.5 rounded-full p-0.5 transition-colors relative flex items-center shrink-0 cursor-pointer",
-              isDarkMode ? "bg-primary" : "bg-outline-variant"
-            )}
-            aria-label={t("workspace.toggleTheme")}
-          >
-            <div
-              className={cn(
-                "w-4.5 h-4.5 rounded-full bg-white transition-transform transform shadow-xs",
-                isDarkMode ? "translate-x-4.5" : "translate-x-0"
-              )}
-            />
-          </button>
         </div>
 
-        {/* Project JSON Backup */}
-        <div className="bg-surface-container-lowest border border-outline-variant/80 rounded-xl p-4 shadow-2xs flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-9 h-9 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/20">
-              <HugeiconsIcon icon="download" size={18} strokeWidth={1.8} />
-            </div>
-            <div className="min-w-0">
-              <h3 className="text-xs font-bold text-on-surface">{t("workspace.exportConfig")}</h3>
-              <p className="text-[11px] text-on-surface-variant truncate">
-                {t("workspace.exportConfigDescription")}
-              </p>
+        {/* Section 3: Data & Backup */}
+        <div>
+          <h2 className="text-xs font-bold uppercase tracking-wider text-on-surface-variant px-1 mb-2.5">
+            {t("general.dataGroup")}
+          </h2>
+          <div className="rounded-2xl border border-outline-variant/70 bg-surface-container-lowest overflow-hidden shadow-2xs">
+            <div className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-0.5">
+                <h3 className="text-sm font-semibold text-on-surface">
+                  {t("general.exportSnapshot")}
+                </h3>
+                <p className="text-xs text-on-surface-variant max-w-md">
+                  {t("general.exportSnapshotDescription")}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleExportJson}
+                className={cn(
+                  "inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl border text-xs font-semibold transition-all shadow-2xs shrink-0 self-start sm:self-auto",
+                  downloaded
+                    ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold"
+                    : "border-outline-variant/80 bg-surface hover:bg-surface-container-high/60 text-on-surface"
+                )}
+              >
+                <HugeiconsIcon icon={downloaded ? "checkmark-circle-02" : "download"} size={14} strokeWidth={2} />
+                <span>{downloaded ? t("general.exportedSuccess") : t("general.exportButton")}</span>
+              </button>
             </div>
           </div>
-
-          <button
-            type="button"
-            onClick={handleExportJson}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface border border-outline-variant hover:bg-surface-container text-xs font-semibold text-on-surface transition-all cursor-pointer shadow-2xs shrink-0"
-          >
-            {downloaded ? (
-              <>
-                <HugeiconsIcon icon="check-circle" size={13} className="text-secondary" />
-                <span className="text-secondary">{t("workspace.saved")}</span>
-              </>
-            ) : (
-              <>
-                <HugeiconsIcon icon="download" size={13} />
-                <span>{t("workspace.export")}</span>
-              </>
-            )}
-          </button>
         </div>
       </div>
     </div>

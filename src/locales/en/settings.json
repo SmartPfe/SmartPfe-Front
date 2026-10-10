@@ -1,5 +1,8 @@
 {
-  "admin": { "interfacePreferences": "Interface preferences", "languageHelp": "Change the language of administration menus and controls." },
+  "admin": {
+    "interfacePreferences": "Interface preferences",
+    "languageHelp": "Change the language of administration menus and controls."
+  },
   "workspace": {
     "title": "Settings",
     "untitledProject": "Untitled Project",
@@ -30,5 +33,31 @@
     "exportConfigDescription": "Download project snapshot JSON",
     "saved": "Saved!",
     "export": "Export"
+  },
+  "nav": {
+    "backToWorkspace": "Back to Workspace",
+    "searchPlaceholder": "Search settings...",
+    "workspaceGroup": "Workspace",
+    "personalGroup": "Personal",
+    "general": "General",
+    "projectSpecifications": "Project Specifications",
+    "accountSecurity": "Account & Security",
+    "creditsBilling": "Credits & Billing"
+  },
+  "general": {
+    "title": "General",
+    "subtitle": "Manage workspace preferences, language, display modes, and project configuration.",
+    "preferencesGroup": "Preferences",
+    "appearance": "Appearance",
+    "appearanceDescription": "Switch between dark and light themes for the workspace.",
+    "language": "Interface Language",
+    "languageDescription": "Select the display language for menus, controls, and interface.",
+    "projectGroup": "Project Context",
+    "activeProjectDescription": "Current thesis project linked to your active workspace.",
+    "dataGroup": "Data & Backup",
+    "exportSnapshot": "Project Snapshot",
+    "exportSnapshotDescription": "Download a complete JSON export of your project specifications and requirements.",
+    "exportButton": "Export JSON",
+    "exportedSuccess": "Downloaded!"
   }
 }

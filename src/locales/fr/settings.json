@@ -1,5 +1,8 @@
 {
-  "admin": { "interfacePreferences": "Préférences d’interface", "languageHelp": "Change la langue des menus et commandes d’administration." },
+  "admin": {
+    "interfacePreferences": "Préférences d’interface",
+    "languageHelp": "Change la langue des menus et commandes d’administration."
+  },
   "workspace": {
     "title": "Paramètres",
     "untitledProject": "Projet sans titre",
@@ -30,5 +33,31 @@
     "exportConfigDescription": "Télécharger un instantané JSON du projet",
     "saved": "Enregistré !",
     "export": "Exporter"
+  },
+  "nav": {
+    "backToWorkspace": "Retour à l’espace de travail",
+    "searchPlaceholder": "Rechercher dans les paramètres…",
+    "workspaceGroup": "Espace de travail",
+    "personalGroup": "Personnel",
+    "general": "Général",
+    "projectSpecifications": "Spécifications du projet",
+    "accountSecurity": "Compte & Sécurité",
+    "creditsBilling": "Crédits & Facturation"
+  },
+  "general": {
+    "title": "Général",
+    "subtitle": "Gérez les préférences de l’espace de travail, la langue, l’affichage et la sauvegarde.",
+    "preferencesGroup": "Préférences",
+    "appearance": "Apparence",
+    "appearanceDescription": "Basculez entre le thème clair et le thème sombre.",
+    "language": "Langue de l’interface",
+    "languageDescription": "Sélectionnez la langue d’affichage des menus et commandes.",
+    "projectGroup": "Contexte du projet",
+    "activeProjectDescription": "Projet de PFE actif associé à votre espace de travail.",
+    "dataGroup": "Données & Sauvegarde",
+    "exportSnapshot": "Instantané du projet",
+    "exportSnapshotDescription": "Téléchargez un export JSON complet des spécifications et livrables de votre projet.",
+    "exportButton": "Exporter en JSON",
+    "exportedSuccess": "Téléchargé !"
   }
 }

@@ -34,13 +34,14 @@ export default function OnboardingStep({
   const progressWidth = `${(step / 4) * 100}%`;
 
   return (
-    <div className="w-full max-w-[960px] flex flex-col gap-lg mx-auto">
-      <div className="flex flex-col gap-xs">
-        <div className="flex justify-between items-center gap-sm font-label-md text-label-md text-on-surface-variant">
+    <div className="w-full max-w-3xl flex flex-col gap-6 mx-auto py-2 font-sans">
+      {/* Step Progress Bar */}
+      <div className="flex flex-col gap-2">
+        <div className="flex justify-between items-center text-xs font-semibold text-on-surface-variant">
           <span>{t("steps.progress", { step })}</span>
-          <span className="text-primary font-semibold text-right">{title}</span>
+          <span className="text-primary font-bold">{title}</span>
         </div>
-        <div className="w-full h-1 bg-surface-container-high rounded-full overflow-hidden">
+        <div className="w-full h-1.5 bg-surface-container-high rounded-full overflow-hidden">
           <div
             className="h-full bg-primary rounded-full transition-all duration-500 ease-in-out"
             style={{ width: progressWidth }}
@@ -48,37 +49,42 @@ export default function OnboardingStep({
         </div>
       </div>
 
-      <section className="bg-surface-container-lowest border border-outline-variant rounded-lg p-md sm:p-lg flex flex-col gap-md shadow-sm">
-        <header className="flex flex-col md:flex-row md:items-start md:justify-between gap-xs md:gap-lg pb-md border-b border-outline-variant min-w-0">
-          <h1 className="font-headline-md text-headline-md text-on-surface md:shrink-0 break-words">{title}</h1>
-          <p className="font-body-md text-body-md text-on-surface-variant md:max-w-[560px]">{description}</p>
+      {/* Main Content Card */}
+      <section className="bg-surface-container-lowest border border-outline-variant/80 rounded-2xl p-6 sm:p-8 flex flex-col gap-6 shadow-2xs">
+        <header className="flex flex-col md:flex-row md:items-start md:justify-between gap-2 md:gap-6 pb-5 border-b border-outline-variant/40 min-w-0">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-on-surface">{title}</h1>
+            <p className="mt-1 text-xs sm:text-sm text-on-surface-variant leading-relaxed max-w-xl">{description}</p>
+          </div>
         </header>
 
-        <div className="flex flex-col gap-md">{children}</div>
+        <div className="flex flex-col gap-5">{children}</div>
       </section>
 
-      <footer className={cn("flex flex-col sm:flex-row sm:items-center gap-md", backTo ? "sm:justify-between" : "sm:justify-end")}>
+      {/* Bottom Step Navigation Footer */}
+      <footer className={cn("flex flex-col sm:flex-row sm:items-center gap-3", backTo ? "sm:justify-between" : "sm:justify-end")}>
         {backTo && (
           <Link
             to={backTo}
-            className="flex w-full sm:w-auto items-center justify-center gap-xs min-w-[120px] px-md sm:px-lg py-sm rounded-DEFAULT border border-outline-variant bg-surface text-on-surface font-label-md text-label-md hover:bg-surface-container transition-colors"
+            className="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-xl border border-outline-variant/80 bg-surface hover:bg-surface-container text-on-surface text-xs font-semibold transition-all shadow-2xs cursor-pointer"
           >
             <span className="material-symbols-outlined text-[18px]">arrow_back</span>
-            {backLabel || t("steps.back")}
+            <span>{backLabel || t("steps.back")}</span>
           </Link>
         )}
         {onNextAction ? (
           <button
+            type="button"
             disabled={isNextDisabled}
             onClick={onNextAction}
             className={cn(
-              "flex w-full sm:w-auto items-center justify-center gap-xs min-w-[120px] px-md sm:px-lg py-sm rounded-DEFAULT border border-primary bg-primary text-on-primary font-label-md text-label-md transition-colors",
+              "inline-flex items-center justify-center gap-2 h-10 px-5 rounded-xl bg-primary text-on-primary text-xs font-bold shadow-2xs transition-all cursor-pointer",
               isNextDisabled
                 ? "opacity-50 cursor-not-allowed"
-                : "hover:bg-on-surface-variant"
+                : "hover:bg-primary/90 active:scale-98"
             )}
           >
-            {nextLabel}
+            <span>{nextLabel}</span>
             <span className="material-symbols-outlined text-[18px]">{nextIcon}</span>
           </button>
         ) : (
@@ -89,13 +95,13 @@ export default function OnboardingStep({
               if (isNextDisabled) event.preventDefault();
             }}
             className={cn(
-              "flex w-full sm:w-auto items-center justify-center gap-xs min-w-[120px] px-md sm:px-lg py-sm rounded-DEFAULT border border-primary bg-primary text-on-primary font-label-md text-label-md transition-colors",
+              "inline-flex items-center justify-center gap-2 h-10 px-5 rounded-xl bg-primary text-on-primary text-xs font-bold shadow-2xs transition-all cursor-pointer",
               isNextDisabled
                 ? "opacity-50 cursor-not-allowed"
-                : "hover:bg-on-surface-variant"
+                : "hover:bg-primary/90 active:scale-98"
             )}
           >
-            {nextLabel}
+            <span>{nextLabel}</span>
             <span className="material-symbols-outlined text-[18px]">{nextIcon}</span>
           </Link>
         )}
