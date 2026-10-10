@@ -11,7 +11,6 @@ import CreditWalletButton from "@/components/credits/CreditWalletButton";
 import LanguageSelector from "@/components/LanguageSelector";
 import { topbarPhaseLabelKey, workspaceTooltipKey } from "@/lib/workspaceLabels";
 import { useTheme } from "@/lib/theme";
-import { useWorkspaceTour } from "@/components/tour/WorkspaceTour";
 
 interface TopbarProps {
   toggleSidebar: () => void;
@@ -38,16 +37,6 @@ const PHASE_ICONS: Record<string, string> = {
 export default function Topbar({ toggleSidebar }: TopbarProps) {
   const { t } = useTranslation(["shell", "settings"]);
   const { isDarkMode, toggleTheme } = useTheme();
-  const { startTour } = useWorkspaceTour();
-  const [helpOpen, setHelpOpen] = useState(false);
-  const helpRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!helpOpen) return;
-    const close = (event: MouseEvent) => { if (!helpRef.current?.contains(event.target as Node)) setHelpOpen(false); };
-    const escape = (event: KeyboardEvent) => { if (event.key === "Escape") setHelpOpen(false); };
-    document.addEventListener("mousedown", close); document.addEventListener("keydown", escape);
-    return () => { document.removeEventListener("mousedown", close); document.removeEventListener("keydown", escape); };
-  }, [helpOpen]);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [saveState, setSaveState] = useState<"saved" | "saving">("saved");
@@ -226,50 +215,6 @@ export default function Topbar({ toggleSidebar }: TopbarProps) {
         {/* Right: Quick Search, Notifications, Profile */}
         <div className="flex items-center gap-1 sm:gap-2 shrink-0">
           <CreditWalletButton />
-          <div className="relative" ref={helpRef}>
-            <button
-              type="button"
-              data-tour-help
-              aria-label={t("tour.help")}
-              title={t("tour.help")}
-              aria-expanded={helpOpen}
-              aria-controls="workspace-help"
-              onClick={() => setHelpOpen(!helpOpen)}
-              className="h-8 w-8 flex items-center justify-center rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-container cursor-pointer transition-colors focus-visible:outline-2 focus-visible:outline-primary"
-            >
-              <HugeiconsIcon icon="help-circle" size={17} strokeWidth={1.75} />
-            </button>
-            {helpOpen && (
-              <div
-                id="workspace-help"
-                className="absolute right-0 top-full mt-2 w-64 rounded-2xl border border-outline-variant/70 dark:border-white/10 bg-surface/98 dark:bg-surface-container-lowest/98 p-1.5 shadow-xl shadow-black/10 dark:shadow-black/40 z-50 backdrop-blur-md font-sans"
-              >
-                <p className="px-2.5 pt-1.5 pb-1 text-[10px] uppercase tracking-wider font-bold text-on-surface-variant/80">
-                  {t("tour.help")}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setHelpOpen(false);
-                    startTour();
-                  }}
-                  className="group w-full text-left flex items-start gap-2.5 rounded-xl p-2 hover:bg-primary/8 dark:hover:bg-primary/15 text-on-surface cursor-pointer transition-colors"
-                >
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/15 group-hover:bg-primary group-hover:text-on-primary transition-colors mt-0.5 shadow-2xs">
-                    <HugeiconsIcon icon="lightbulb" size={15} strokeWidth={1.75} />
-                  </span>
-                  <span>
-                    <span className="block text-xs font-semibold text-on-surface leading-snug">
-                      {t("tour.replay")}
-                    </span>
-                    <span className="block text-[11px] text-on-surface-variant mt-0.5">
-                      {t("tour.duration")}
-                    </span>
-                  </span>
-                </button>
-              </div>
-            )}
-          </div>
           {/* Notion-Style Quick Search Trigger */}
           <button
             onClick={() => setIsSearchOpen(true)}

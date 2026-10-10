@@ -5,6 +5,7 @@ import HugeiconsIcon, { Mortarboard02Icon } from "@/components/ui/HugeiconsIcon"
 import { useTranslation } from "react-i18next";
 import { useMemo, useState } from "react";
 import { sidebarPhaseLabelKey, workspaceGroupKey } from "@/lib/workspaceLabels";
+import { useWorkspaceTour } from "@/components/tour/WorkspaceTour";
 
 interface MethodologyStep {
   stepNumber: number;
@@ -59,6 +60,7 @@ interface SidebarProps {
 export default function Sidebar({ isOpen, setIsSidebarOpen }: SidebarProps) {
   const { t } = useTranslation(["shell", "settings"]);
   const { steps } = useWorkflow();
+  const { startTour } = useWorkspaceTour();
   const location = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -223,6 +225,40 @@ export default function Sidebar({ isOpen, setIsSidebarOpen }: SidebarProps) {
                   </div>
                 </div>
               )}
+            </div>
+
+            {/* Settings Mode Footer Help Navigation */}
+            <div className="mt-auto border-t border-outline-variant/60 p-2 bg-surface-container-lowest/50 shrink-0 flex items-center justify-between">
+              <Link
+                to="/workspace/overview"
+                onClick={() => window.innerWidth < 768 && setIsSidebarOpen(false)}
+                className="flex items-center gap-2 px-2.5 py-1.5 text-xs text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high/60 rounded-lg transition-colors font-medium group"
+              >
+                <HugeiconsIcon
+                  icon="arrow-left"
+                  size={15}
+                  className="text-on-surface-variant group-hover:text-primary transition-colors shrink-0"
+                  strokeWidth={1.75}
+                />
+                <span className="truncate">{t("navigation.overview", { ns: "settings", defaultValue: "Overview" })}</span>
+              </Link>
+              <button
+                type="button"
+                data-tour-help
+                onClick={() => {
+                  if (window.innerWidth < 768) setIsSidebarOpen(false);
+                  startTour();
+                }}
+                className="h-8 w-8 shrink-0 flex items-center justify-center rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-container-high/60 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-primary"
+                title={t("tour.replay")}
+                aria-label={t("tour.help")}
+              >
+                <HugeiconsIcon
+                  icon="help-circle"
+                  size={16}
+                  strokeWidth={1.75}
+                />
+              </button>
             </div>
           </>
         ) : (
@@ -424,21 +460,38 @@ export default function Sidebar({ isOpen, setIsSidebarOpen }: SidebarProps) {
               })}
             </div>
 
-            {/* Footer Navigation */}
-            <div className="mt-auto border-t border-outline-variant/60 p-2.5 bg-surface-container-lowest/50 shrink-0">
+            {/* Footer Navigation: Settings with compact Help button alongside */}
+            <div className="mt-auto border-t border-outline-variant/60 p-2 bg-surface-container-lowest/50 shrink-0 flex items-center gap-1">
               <Link
                 to="/workspace/settings"
                 onClick={() => window.innerWidth < 768 && setIsSidebarOpen(false)}
-                className="flex items-center gap-2 px-2.5 py-1.5 text-xs text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high/60 rounded-lg transition-colors font-medium group"
+                className="flex-1 flex items-center gap-2 px-2.5 py-1.5 text-xs text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high/60 rounded-lg transition-colors font-medium group"
               >
                 <HugeiconsIcon
                   icon="settings-02"
                   size={15}
-                  className="text-on-surface-variant group-hover:text-primary transition-colors"
+                  className="text-on-surface-variant group-hover:text-primary transition-colors shrink-0"
                   strokeWidth={1.75}
                 />
-                <span>{t(sidebarPhaseLabelKey("settings"))}</span>
+                <span className="truncate">{t(sidebarPhaseLabelKey("settings"))}</span>
               </Link>
+              <button
+                type="button"
+                data-tour-help
+                onClick={() => {
+                  if (window.innerWidth < 768) setIsSidebarOpen(false);
+                  startTour();
+                }}
+                className="h-8 w-8 shrink-0 flex items-center justify-center rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-container-high/60 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-primary"
+                title={t("tour.replay")}
+                aria-label={t("tour.help")}
+              >
+                <HugeiconsIcon
+                  icon="help-circle"
+                  size={16}
+                  strokeWidth={1.75}
+                />
+              </button>
             </div>
           </>
         )}
