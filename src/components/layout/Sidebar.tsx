@@ -298,7 +298,7 @@ export default function Sidebar({ isOpen, setIsSidebarOpen }: SidebarProps) {
                   />
                 </div>
                 <div className="mt-1 text-[10px] text-on-surface-variant font-medium">
-                  {t("sidebar.stepsCompleted", { completed: completedCount, total: totalCount })}
+                  {t("sidebar.stepsDone", { completed: completedCount, total: totalCount })}
                 </div>
               </div>
             </div>
@@ -309,7 +309,7 @@ export default function Sidebar({ isOpen, setIsSidebarOpen }: SidebarProps) {
                 const groupSteps = METHODOLOGY_STEPS.filter((s) => s.group === group);
                 return (
                   <div key={group} className="space-y-1">
-                    <p className="px-2.5 text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/70">
+                    <p className="px-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                       {t(workspaceGroupKey(group))}
                     </p>
                     <nav className="space-y-0.5" aria-label={t(workspaceGroupKey(group))}>
@@ -337,7 +337,7 @@ export default function Sidebar({ isOpen, setIsSidebarOpen }: SidebarProps) {
                               isActive
                                 ? "bg-surface-container-high text-on-surface shadow-2xs font-bold border border-outline-variant/50"
                                 : isLocked
-                                ? "text-outline-variant/70 opacity-50 cursor-not-allowed"
+                                ? "text-slate-400 dark:text-slate-500 cursor-not-allowed hover:bg-transparent"
                                 : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high/60"
                             )}
                           >
@@ -349,7 +349,11 @@ export default function Sidebar({ isOpen, setIsSidebarOpen }: SidebarProps) {
                                       "w-4 text-[11px] font-mono font-medium text-center shrink-0",
                                       navActive
                                         ? "text-primary font-bold"
-                                        : "text-outline-variant group-hover:text-on-surface-variant"
+                                        : isLocked
+                                        ? "text-slate-400/80 dark:text-slate-500/80"
+                                        : isCompleted
+                                        ? "text-emerald-600 dark:text-emerald-400 font-bold"
+                                        : "text-slate-600 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white font-semibold"
                                     )}
                                   >
                                     {step.stepNumber}
@@ -362,37 +366,50 @@ export default function Sidebar({ isOpen, setIsSidebarOpen }: SidebarProps) {
                                       "shrink-0 transition-colors",
                                       navActive
                                         ? "text-primary"
-                                        : "text-on-surface-variant group-hover:text-on-surface"
+                                        : isLocked
+                                        ? "text-slate-400/80 dark:text-slate-500/80"
+                                        : isCompleted
+                                        ? "text-emerald-600 dark:text-emerald-400"
+                                        : "text-slate-600 dark:text-slate-300 group-hover:text-on-surface"
                                     )}
                                   />
-                                  <span className="truncate">
+                                  <span
+                                    className={cn(
+                                      "truncate",
+                                      navActive
+                                        ? "text-on-surface font-bold"
+                                        : isLocked
+                                        ? "text-slate-500/90 dark:text-slate-400/80 font-normal"
+                                        : "text-slate-700 dark:text-slate-200 group-hover:text-on-surface font-medium"
+                                    )}
+                                  >
                                     {t(sidebarPhaseLabelKey(step.path.replace("/workspace/", "")))}
                                   </span>
                                 </div>
 
                                 <div className="shrink-0 flex items-center ml-1">
                                   {isCompleted ? (
-                                    <div className="w-4 h-4 rounded-full bg-secondary/15 flex items-center justify-center">
+                                    <span className="w-4.5 h-4.5 rounded-full bg-emerald-500/15 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 dark:border-emerald-500/40 flex items-center justify-center shrink-0 shadow-2xs">
                                       <HugeiconsIcon
-                                        icon="checkmark-circle-02"
-                                        size={12}
-                                        strokeWidth={2.5}
-                                        className="text-secondary"
+                                        icon="check"
+                                        size={10}
+                                        strokeWidth={2.75}
+                                        color="currentColor"
                                       />
-                                    </div>
+                                    </span>
                                   ) : isLocked ? (
                                     <HugeiconsIcon
                                       icon="lock"
                                       size={12}
                                       strokeWidth={1.5}
-                                      className="text-outline-variant/50"
+                                      className="text-slate-400 dark:text-slate-500"
                                     />
                                   ) : (
                                     <HugeiconsIcon
                                       icon="lock-open"
                                       size={12}
                                       strokeWidth={1.5}
-                                      className="text-outline-variant/60 group-hover:text-on-surface-variant transition-colors"
+                                      className="text-slate-400 dark:text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-colors"
                                     />
                                   )}
                                 </div>
