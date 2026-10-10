@@ -49,6 +49,7 @@ export default function AuthLayout() {
       {/* Minimal Footer */}
       <footer className="w-full max-w-[420px] pt-4 pb-1 text-center text-xs text-on-surface-variant/70">
         <p>{t("layout.footer", { year: new Date().getFullYear() })}</p>
+        <div className="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-2"><Link to="/terms" className="hover:text-primary">{t("signup.terms")}</Link><Link to="/privacy" className="hover:text-primary">{t("signup.privacy")}</Link></div>
       </footer>
     </div>
   );

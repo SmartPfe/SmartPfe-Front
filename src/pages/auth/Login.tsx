@@ -48,7 +48,7 @@ export default function Login() {
         emailVerified: data.emailVerified !== false,
         hasCompletedOnboarding: data.hasCompletedOnboarding,
         role: data.role || "etudiant",
-        uiLanguage: data.uiLanguage || "en",
+        uiLanguage: data.uiLanguage || "fr",
       }));
 
       if (data.role === "admin") {

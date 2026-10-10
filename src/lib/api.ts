@@ -99,7 +99,7 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
     headers.set("Content-Type", "application/json");
   }
   if (token && !headers.has("Authorization")) headers.set("Authorization", `Bearer ${token}`);
-  if (!headers.has("X-UI-Language")) headers.set("X-UI-Language", i18n.resolvedLanguage === "fr" ? "fr" : "en");
+  if (!headers.has("X-UI-Language")) headers.set("X-UI-Language", i18n.resolvedLanguage === "en" ? "en" : "fr");
   const actionKey = creditActionForRequest(endpoint, options);
   if (endpoint.startsWith("/ai/") && getRequestMethod(options) === "POST") {
     if (!headers.has("X-Idempotency-Key")) headers.set("X-Idempotency-Key", createIdempotencyKey());

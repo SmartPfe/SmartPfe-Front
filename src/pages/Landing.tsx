@@ -47,7 +47,7 @@ const PRICING_TIERS: PricingTier[] = [
   { key: "free", price: "0 DT" },
   { key: "premium", price: "19 DT", popular: true },
 ];
-const FOOTER_HREFS = [["#features", "#how-it-works", "#pricing"], ["#about", "#features", "#faq"], ["#about", "#contact", "#", "#"]];
+const FOOTER_HREFS = [["#features", "#how-it-works", "#pricing"], ["#about", "#features", "#faq"], ["#about", "#contact", "/privacy", "/terms"]];
 
 export default function Landing() {
   const { t } = useTranslation("landing");
@@ -189,11 +189,6 @@ export default function Landing() {
 
           <div className="relative mx-auto grid max-w-7xl grid-cols-1 items-center gap-12 px-4 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.95fr)] lg:gap-16 lg:px-8">
             <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55 }} className="w-full max-w-[48rem] min-w-0">
-              <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-indigo-100 shadow-sm backdrop-blur">
-                <GraduationCap className="h-4 w-4" />
-                {t("hero.badge")}
-              </div>
-
               <h1 className="max-w-[48rem] text-5xl font-extrabold leading-[1.04] text-white sm:text-6xl lg:text-7xl">
                 {t("hero.title")}
                 <span className="block text-indigo-200">{t("hero.titleEmphasis")}</span>

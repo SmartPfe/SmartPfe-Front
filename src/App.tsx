@@ -38,6 +38,7 @@ import JurySimulation from "./pages/workspace/JurySimulation";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import ResetPassword from "./pages/auth/ResetPassword";
 import Landing from "./pages/Landing";
+import Legal from "./pages/Legal";
 import BackofficeDashboard from "./pages/admin/BackofficeDashboard";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminUsers from "./pages/admin/AdminUsers";
@@ -54,6 +55,8 @@ export default function App() {
       <CreditProvider>
        <Routes>
         <Route path="/" element={<Landing />} />
+        <Route path="/terms" element={<Legal document="terms" />} />
+        <Route path="/privacy" element={<Legal document="privacy" />} />
         
         <Route element={<AuthLayout />}>
           <Route path="login" element={<Login />} />

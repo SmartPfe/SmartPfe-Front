@@ -41,13 +41,15 @@ import frNotifications from '@/locales/fr/notifications.json';
 
 import enServer from '@/locales/en/server.json';
 import frServer from '@/locales/fr/server.json';
+import enLegal from '@/locales/en/legal.json';
+import frLegal from '@/locales/fr/legal.json';
 
 void i18n.use(initReactI18next).init({
   resources: {
-    en: { common: enCommon, settings: enSettings, controls: enControls, shell: enShell, auth: enAuth, onboarding: enOnboarding, landing: enLanding, design: enDesign, planning: enPlanning, analysis: enAnalysis, outline: enOutline, report: enReport, delivery: enDelivery, jury: enJury, creditHistory: enCreditHistory, adminCredits: enAdminCredits, adminManagement: enAdminManagement, notifications: enNotifications, server: enServer },
-    fr: { common: frCommon, settings: frSettings, controls: frControls, shell: frShell, auth: frAuth, onboarding: frOnboarding, landing: frLanding, design: frDesign, planning: frPlanning, analysis: frAnalysis, outline: frOutline, report: frReport, delivery: frDelivery, jury: frJury, creditHistory: frCreditHistory, adminCredits: frAdminCredits, adminManagement: frAdminManagement, notifications: frNotifications, server: frServer },
+    en: { common: enCommon, settings: enSettings, controls: enControls, shell: enShell, auth: enAuth, onboarding: enOnboarding, landing: enLanding, design: enDesign, planning: enPlanning, analysis: enAnalysis, outline: enOutline, report: enReport, delivery: enDelivery, jury: enJury, creditHistory: enCreditHistory, adminCredits: enAdminCredits, adminManagement: enAdminManagement, notifications: enNotifications, server: enServer, legal: enLegal },
+    fr: { common: frCommon, settings: frSettings, controls: frControls, shell: frShell, auth: frAuth, onboarding: frOnboarding, landing: frLanding, design: frDesign, planning: frPlanning, analysis: frAnalysis, outline: frOutline, report: frReport, delivery: frDelivery, jury: frJury, creditHistory: frCreditHistory, adminCredits: frAdminCredits, adminManagement: frAdminManagement, notifications: frNotifications, server: frServer, legal: frLegal },
   },
-  lng: 'en',
+  lng: 'fr',
   fallbackLng: 'en',
   supportedLngs: ['en', 'fr'],
   defaultNS: 'common',

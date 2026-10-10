@@ -50,7 +50,7 @@ export default function GoogleLoginButton({ onError, onLoading }: GoogleLoginBut
     const btnElement = document.getElementById("google-signin-btn");
     if (!btnElement) return;
 
-    const uiLanguage = (i18n.resolvedLanguage || i18n.language || "en").toLowerCase().startsWith("fr") ? "fr" : "en";
+    const uiLanguage = (i18n.resolvedLanguage || i18n.language || "fr").toLowerCase().startsWith("en") ? "en" : "fr";
     btnElement.innerHTML = "";
     window.google.accounts.id.renderButton(btnElement, {
       theme: "outline",
@@ -89,7 +89,7 @@ export default function GoogleLoginButton({ onError, onLoading }: GoogleLoginBut
           emailVerified: data.emailVerified !== false,
           hasCompletedOnboarding: data.hasCompletedOnboarding,
           role: data.role || "etudiant",
-          uiLanguage: data.uiLanguage || "en",
+          uiLanguage: data.uiLanguage || "fr",
         })
       );
 

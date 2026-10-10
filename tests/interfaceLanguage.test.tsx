@@ -12,6 +12,7 @@ import { InterfaceLanguageProvider, useInterfaceLanguage } from '../src/context/
 import { SelectField, OptionCards, MultiSelectChips } from '../src/components/onboarding/FormControls';
 import GoogleLoginButton from '../src/components/GoogleLoginButton';
 import i18n from '../src/lib/i18n';
+import { initialInterfaceLanguage, normalizeInterfaceLanguage } from '../src/lib/interfaceLanguage';
 import Signup from '../src/pages/auth/Signup';
 import { displayOptions } from '../src/lib/onboardingOptions';
 import { AiGenerationProvider, useAiGeneration } from '../src/context/AiGenerationContext';
@@ -103,6 +104,16 @@ test('every UI/content language combination preserves project data and an active
   }
 });
 
+test('French is the default interface while explicit account and device choices are preserved', () => {
+  assert.equal(initialInterfaceLanguage(null, null), 'fr');
+  assert.equal(initialInterfaceLanguage(null, 'invalid'), 'fr');
+  assert.equal(initialInterfaceLanguage(null, 'en'), 'en');
+  assert.equal(initialInterfaceLanguage({ _id: 'u', uiLanguage: 'en' }, 'fr'), 'en');
+  assert.equal(initialInterfaceLanguage({ _id: 'u', uiLanguage: 'fr' }, 'en'), 'fr');
+  assert.equal(initialInterfaceLanguage({ _id: 'u' }, null), 'fr');
+  assert.equal(normalizeInterfaceLanguage(undefined), 'fr');
+});
+
 test('Google SDK bootstrap follows account/device UI preference and ignores content language', () => {
   const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
   const bootstrap = html.match(/<script>\s*([\s\S]*?)<\/script>/)?.[1];
@@ -110,10 +121,11 @@ test('Google SDK bootstrap follows account/device UI preference and ignores cont
   const cases = [
     { token: 'test-session', user: '{"_id":"u","uiLanguage":"fr","language":"English"}', device: 'en', expected: 'fr' },
     { token: 'test-session', user: '{"_id":"u","uiLanguage":"en","language":"French"}', device: 'fr', expected: 'en' },
-    { token: 'test-session', user: '{"_id":"u","language":"French"}', device: 'fr', expected: 'en' },
+    { token: 'test-session', user: '{"_id":"u","language":"French"}', device: 'fr', expected: 'fr' },
     { token: null, user: '{"_id":"u","uiLanguage":"en"}', device: 'fr', expected: 'fr' },
     { token: 'test-session', user: 'invalid-json', device: 'fr', expected: 'fr' },
-    { token: null, user: null, device: null, expected: 'en' },
+    { token: null, user: null, device: null, expected: 'fr' },
+    { token: null, user: null, device: 'en', expected: 'en' },
   ];
   for (const sample of cases) {
     const appended: any[] = [];

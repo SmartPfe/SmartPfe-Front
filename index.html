@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="fr">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -23,7 +23,7 @@
         }
 
         const preference = token && user && user._id ? user.uiLanguage : deviceLanguage;
-        const language = preference === "fr" ? "fr" : "en";
+        const language = preference === "en" ? "en" : "fr";
         const googleIdentityScript = document.createElement("script");
         googleIdentityScript.src = `https://accounts.google.com/gsi/client?hl=${language}`;
         googleIdentityScript.async = true;

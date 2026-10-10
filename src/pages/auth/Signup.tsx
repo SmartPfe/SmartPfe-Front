@@ -257,9 +257,9 @@ export default function Signup() {
 
         <p className="text-[11px] text-on-surface-variant/70 leading-normal">
           {t("signup.termsIntro")}{" "}
-          <a href="#" className="underline hover:text-on-surface transition-colors">{t("signup.terms")}</a>{" "}
+          <Link to="/terms" target="_blank" rel="noopener noreferrer" className="underline hover:text-on-surface transition-colors">{t("signup.terms")}</Link>{" "}
           {t("signup.and")}{" "}
-          <a href="#" className="underline hover:text-on-surface transition-colors">{t("signup.privacy")}</a>.
+          <Link to="/privacy" target="_blank" rel="noopener noreferrer" className="underline hover:text-on-surface transition-colors">{t("signup.privacy")}</Link>.
         </p>
       </div>
     </div>
