@@ -316,8 +316,8 @@ export default function Topbar({ toggleSidebar }: TopbarProps) {
                     </button>
                   </div>
 
-                  <div className="px-3.5 py-2">
-                    <LanguageSelector compact />
+                  <div className="py-1">
+                    <LanguageSelector variant="menu" />
                   </div>
 
                   {/* Divider & Logout */}

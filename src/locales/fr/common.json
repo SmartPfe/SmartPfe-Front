@@ -1,6 +1,7 @@
 {
   "interfaceLanguage": "Langue de l’interface",
   "languageHelp": "Change la langue des menus et commandes. La langue de génération et vos contenus restent inchangés.",
+  "language": "Langue",
   "english": "English",
   "french": "Français",
   "saving": "Enregistrement…",

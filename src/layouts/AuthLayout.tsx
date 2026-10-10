@@ -29,16 +29,19 @@ export default function AuthLayout() {
           </div>
         </Link>
 
-        <Link
-          to="/"
-          className="text-xs font-semibold text-on-surface-variant hover:text-on-surface transition-colors flex items-center gap-1"
-        >
-          <span>{t("layout.backToHome")}</span>
-        </Link>
+        <div className="flex items-center gap-2.5">
+          <Link
+            to="/"
+            className="text-xs font-semibold text-on-surface-variant hover:text-on-surface transition-colors flex items-center gap-1"
+          >
+            <span>{t("layout.backToHome")}</span>
+          </Link>
+          <span className="h-3.5 w-px bg-outline-variant/60" aria-hidden="true" />
+          <LanguageSelector variant="minimal" />
+        </div>
       </header>
 
       {/* Main Form Content */}
-      <div className="w-full max-w-[420px] mb-2"><LanguageSelector compact /></div>
       <main className="w-full max-w-[420px] my-auto py-4">
         <Outlet />
       </main>

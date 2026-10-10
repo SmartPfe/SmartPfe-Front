@@ -6,6 +6,7 @@ import HugeiconsIcon from "@/components/ui/HugeiconsIcon";
 import creditCoin from "@/assets/credit-coin.png";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
+import LanguageSelector from "@/components/LanguageSelector";
 
 const ADMIN_NAV_ITEMS = [
   { labelKey: "admin.navigation.overview", icon: "dashboard", path: "/admin/dashboard", helperKey: "admin.navigation.overviewHelper" },
@@ -125,7 +126,8 @@ export default function AdminLayout() {
                 </div>
               </nav>
             </div>
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-2">
+              <LanguageSelector variant="minimal" />
               <NotificationBell label={t("admin.liveSystemUpdates")} />
               <Link to="/admin/settings" className="grid h-8 w-8 place-items-center rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface" title={t("admin.adminAccountTitle")}>
                 <HugeiconsIcon icon="settings-02" size={17} />
